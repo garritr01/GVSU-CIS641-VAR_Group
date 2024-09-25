@@ -1,6 +1,6 @@
 Team name: VAR Group
 
-Team members: Garrit Reynolds, Keerthana Vegesna, Festus Asante
+Team members: Garrit Reynolds, Sankeerthana Vegesna, Festus Asante
 
 # Introduction
 
