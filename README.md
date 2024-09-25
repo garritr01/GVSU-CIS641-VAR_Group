@@ -1,4 +1,4 @@
-# Team Name
+# VAR Group
 
 Project description (~1 paragraph)
 
