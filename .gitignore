@@ -1,0 +1,6 @@
+#Manual .gitignore
+/webImplementation/flask/database.db
+/webImplementation/flask/databaseOld.db
+/pythonImplementation
+!/pythonImplementation/methods
+/pythonImplementation/methods/__pycache__
