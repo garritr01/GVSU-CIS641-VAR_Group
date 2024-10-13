@@ -1,14 +1,14 @@
 # Overview
-This file contains the software requirements prototype. The following requirements, plus those we choose to add in the near future will constitue the basis of our system.
+This file contains the software requirements prototype. The following requirements, plus those we choose to add in the near future will constitute the basis of our system.
 # Functional Requirements
-1. Filesytstem Requirements   
+1. Filesystem Requirements   
     1. The system shall provide a cloud-based filesystem.
-    2. The filesystem shall enable the user to access all their files through the graphical user interface (GUI).
-    3. The filesystem shall recursively search for explicitly entered user text within in all file contents and file names in the opened directory.
+    2. The filesystem shall enable the user to access all of their files through the graphical user interface (GUI).
+    3. The filesystem shall recursively search for explicitly entered user text within all file contents and file names in the opened directory.
     4. The filesystem shall direct the user to the proper function to edit files based on the file type.
 
 2. Scheduling Requirements
-    1. The system shall allow user to schedule events in a specific or recurring manner.
+    1. The system shall allow the user to schedule events in a specific or recurring manner.
     2. The system shall allow users to update and remove events made.
     3. The system shall remind the user of their scheduled event an hour before the scheduled time if desired.
     4. The system shall provide a calendar view to visualize future commitments. 
@@ -28,4 +28,4 @@ This file contains the software requirements prototype. The following requiremen
     2. The system shall be operational for at least 2 users concurrently, with the ability to scale as needed.
     3. The system shall be available 99.9% of the time to ensure reliability for users.
     4. The system shall update the database each time a file is saved, so the user can simply reload the website if issues arise.
-    5. The system should guarantee that event reminders are delivered within 10 seconds from the time set for notification.
+    5. The system shall guarantee that event reminders are delivered within 10 seconds from the time set for notification.
