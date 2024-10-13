@@ -1,0 +1,65 @@
+* {
+    overflow: visible;
+    box-sizing: border-box;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+body {
+    background-color: #d7e5ee;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+h1 {
+    color: #4c4c6f;
+    text-align: left;
+    font-size: 30px;
+    text-decoration: underline;
+}
+
+h2 {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    margin-left: 8px;
+    color: #4c4c6f;
+    text-align: left;
+    font-size: 20px;
+}
+
+h3 {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    margin-left: 16px;
+    color: #4c4c6f;
+    text-align: left;
+    font-size: 16px;
+}
+
+a {
+    text-decoration: none;
+    color: #2f2fb3;
+}
+
+p {
+    text-decoration: none;
+    color: #4c4c6f;
+    font-size: 14px;
+}
+
+.indented {
+    text-indent: 20px;
+    text-decoration: none;
+    color: #4c4c6f;
+    font-size: 14px;
+    margin-left: 16px;
+    margin-bottom: 4px;
+}
+
+.bulletList p {
+    position: relative;
+    margin-left: 16px;
+}
+
+.bulletList p::before {
+    content: "•";
+}
