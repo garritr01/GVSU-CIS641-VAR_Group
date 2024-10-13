@@ -15,7 +15,7 @@ This file contains the software requirements prototype. The following requiremen
 
 3. Data Recording Requirements
     1. The system shall allow users to analyze their recorded data and compare time usage based on properties they define.
-    2. The system SHALL allow the user to customize the properties they wish to record for each event.
+    2. The system shall allow the user to customize the properties they wish to record for each event.
 
 
 # Non-functional Requirements
