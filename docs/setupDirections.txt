@@ -2,7 +2,7 @@
     https://learn.microsoft.com/en-us/windows/wsl/install#prerequisites
 2. Install nvm: 
     $curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
-3. Put follwing code in ~/.bashrc
+3. Put follwing code in ~/.bashrc file
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 4. Restart ubuntu.
@@ -11,18 +11,30 @@
 6. Confirm you have npm and node:
     $npm -v
     $node -v
-
-#7+ might not work I havent tried it in a while
-7. Pull main branch to local
-8. Download flask dependecies:
+7. Pull main branch to local at the desired location.
+8. Create virtual environment.
+    # retrieve updated package lists
+        $sudo apt update
+    # install venv
+        $sudo apt install python3-venv
+    # create venv (will be created in current directory):
+    # I recommend you name it flaskVenv as this name is already in .gitignore and will not be included in anything pushed to github
+        $python3 -m venv nameOfYourVirtualEnvironment
+    # activate your virtual environment
+        $source nameOfYourVirtualEnvironment/bin/activate
+9. Download flask dependecies (do this within virtual environment) (this takes some time, let me know if it fails):
+    # install required packages if you have not already (if you have you may want to update)
+    $sudo apt install pkg-config build-essential python3-dev libatlas-base-dev liblapack-dev gfortran
+    # install project's python dependencies
     $pip install -r src/flask/requirements.txt
-9. Route to src/whateverWeNameOurProject.
-10. Create app (takes some time, c)
-    $npx create-react-app yourAppName
-11. Open in development build:
+10. Start backend.
+    $python3 src/flask/src/flaskAndSQL.py
+11. Open a new terminal and install dependencies for frontend:
+    $cd termproject
+    $npm install
+12. Open in development build:
     $npm start
-12. Now you should see a webpage on your browser at localhost's port 3000
-    and you can take a look around, but the database won't work yet.
+13. Browser will open development server at http://localhost:3000/
 
 
 Note to self try not to use CORS (browsers don't like)
