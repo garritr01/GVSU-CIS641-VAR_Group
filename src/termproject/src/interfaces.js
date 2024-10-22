@@ -177,7 +177,7 @@ export const MainMenu = ({ printLevel, selectFn, selectResolutionInfo, selectDir
     // Renders military time and all main menu functions
     return (
         <div>
-            <h1>POR.tIA</h1>
+            <h1>ROSA</h1>
             <div style={{ display: 'flex', alignItems: 'center' }}>
                 <h4>{getDateString()}</h4>
                 <h4>-{getTimeString()}</h4>  
