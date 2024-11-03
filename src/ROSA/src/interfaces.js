@@ -325,6 +325,7 @@ export const Journal = ({ printLevel, selectFn, preselectedDir, preselectedTitle
         </div>
     );
 }
+
 /** Renders custom input and handles saving */
 export const CustomInput = ({ printLevel, selectFn, preselectedDir, preselectedTitle, preselectedVersion, resolutionInfo, selectDirTitleAndVersion, mode }) => {
 
@@ -455,7 +456,7 @@ export const CustomInput = ({ printLevel, selectFn, preselectedDir, preselectedT
         }
     }
 
-    //* Adds new options to dropdown menu */
+    /** Adds new options to dropdown menu */
     const saveDropdowns = async (UI) => {
         try {
             const files = await fetchFiles('miscDropdowns', 'Garrit');
