@@ -1,5 +1,47 @@
 import { getDateString, getTimeString } from "./oddsAndEnds";
 
+/**Create username and password combination in database */
+export const createNewUser = async (userName, password) => {
+    //Attempt new user creation and report any failure
+    try {
+        //Get response given userName and password inputs
+        const response = await fetch(`http://localhost:5000/sign_up/${userName}/${password}`, { method: ['POST'], });
+        const data = await response.json();
+        //If fails return failure and reason
+        if (!response.ok) {
+            console.error(data.message);
+            return { truth: false, msg: data.message, status: response.status };
+        } else {
+             return { truth: true, msg: data.message, status: response.status };
+        }
+    } catch (err) {
+        console.error(`Erred creating user: ${err}`);
+        return { truth: false, msg: err, status: 500};
+    }
+}
+
+/**Get Username and Password combo then check validity */
+export const checkLoginInfo = async(userName, password) => {
+    //Attempt login process and report issues if fails
+    try {
+        //Get response from log_in with userName and password inputs
+        const response = await fetch(`http://localhost:5000/log_in/${userName}/${password}`);
+        //console.log(response);
+        const data = await response.json();
+        //console.log(data);
+        //If response is failure report why else return success
+        if (!response.ok) {
+            console.error(data.message);
+            return { truth: false, msg: data.message, status: response.status };
+        } else {
+            return { truth: true, msg: data.message, status: response.status };
+        }
+    } catch (err) {
+        console.error(`Erred getting login info: ${err}`);
+        return { truth: false, msg: err, status: 500 }
+    }
+}
+
 /**Get dateTime objects from specified table */
 export const fetchDateTimes = async (table, userID, directory, title) => {
     try {

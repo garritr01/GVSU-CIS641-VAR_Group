@@ -1,8 +1,9 @@
 import React, { useState, useEffect, version } from 'react';
-import { MainMenu, Journal, FileExplorer, CustomInput, CustomUI, ScheduleView, EditMiscObject } from './interfaces';
-
+import { MainMenu, Journal, FileExplorer, CustomInput, CustomUI, ScheduleView, EditMiscObject, LogIn, SignUp } from './interfaces';
 
 import { testSaveTime, testCallTime, testGetFiles, testGetDirsAndFiles, testSaveObject, testGetObject, testSaveText, testGetText, testDelete } from './dbChangeTest'
+
+import './default.css';
 
 /** Notes for VAR group 
  * Look up useEffect quickly, necessary to understand all of these functions
@@ -18,7 +19,7 @@ import { testSaveTime, testCallTime, testGetFiles, testGetDirsAndFiles, testSave
 const App = () => {
 
   // Variables for passing between functions
-  const [open, setOpen] = useState('main');
+  const [open, setOpen] = useState('login');
   // increase printoutLevel for more detailed printouts to use for debugging and tracing
   const [printoutLevel, setPrintoutLevel] = useState(10);
   const [table, setTable] = useState(null);
@@ -29,7 +30,9 @@ const App = () => {
   const [currentMode, setCurrentMode] = useState('record');
 
   useEffect(() => {
-    if (open === 'customInfo') {
+    if (open === 'login') {
+      setCurrentMode('login');
+    } else if (open === 'customInfo') {
       setCurrentMode('record');
     } else if (open === 'customEdit') {
       setCurrentMode('edit');
@@ -72,6 +75,12 @@ const App = () => {
   // Handles the opening of interfaces and the variables they need to operate
   return (
     <div>
+      {open === 'login' && <LogIn
+        printLevel={printoutLevel}
+        selectFn={handleOpen}/>}
+      {open === 'signup' && <SignUp
+        printLevel={printoutLevel}
+        selectFn={handleOpen} />}
       {open === 'main' && <MainMenu
         printLevel={printoutLevel}
         selectFn={handleOpen}

@@ -1,0 +1,63 @@
+* {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+input {
+    height: 20px;
+}
+
+.flexDivColumns {
+    display: flex;
+    flex-direction: column;
+}
+
+.flexDivRows {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+}
+.flexDivRows > :not(:first-child):not(:last-child) {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+.flexDivRows > :first-child {
+    padding-left: 0px;
+    padding-right: 4px;
+}
+.flexDivRows > :last-child {
+    padding-left: 4px;
+    padding-right: 0px;
+}
+
+.popup {
+    font-weight: bold;
+    white-space: pre-wrap;
+}
+
+.errorPopup {
+    color: rgb(245, 10, 10);
+    font-weight: bold;
+    white-space: pre-wrap;
+}
+
+.more {
+    display: none;
+    position: absolute;
+    z-index: 1;
+    border: 1px;
+}
+
+.bulletList {
+    display: block;
+}
+
+.bulletList p::before {
+    content: '•';
+}
+
+.bulletList p{
+    padding-left: 8px;
+}

@@ -10,11 +10,62 @@ app = Flask(__name__)
 app.debug = True
 CORS(app)  # Enable CORS for all routes
 
+'''
+Utilize the error codes as described here (make notes here if that's easier)
+https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+'''
+
 # Database folder path
 parent_folder = os.path.dirname(os.path.abspath(__file__))
 
 # Database file path
 db_path = os.path.join(parent_folder+'/..', 'database.db')
+
+@app.route('/sign_up/<userName>/<password>', methods=['POST'])
+def sign_up(userName, password):
+    '''Enters username and password in database'''
+    #print(f"signing up {userName}, with password {password}")
+    try:
+        with sqlite3.connect(db_path) as connection:
+            cursor = connection.cursor()
+            #Create loginInfo if it doesn't exist with "columns", id (automated), userID, and password
+            cursor.execute(f'CREATE TABLE IF NOT EXISTS loginInfo \
+                           (id INTEGER PRIMARY KEY AUTOINCREMENT, userID TEXT, password TEXT, \
+                           UNIQUE (userID))')
+            #Insert username, and password
+            cursor.execute(f'INSERT INTO loginInfo (userID, password) \
+                            VALUES (?, ?)', (userName, password))
+            #Commit changes
+            connection.commit()
+            return jsonify({'message':f"user {userName} created and assigned password: {password}"}), 201
+    except sqlite3.IntegrityError as e:
+        return jsonify({'message':str(e)}), 403
+    except Exception as e:
+        return jsonify({'message':str(e)}), 500
+
+@app.route('/log_in/<userName>/<password>', methods=['GET'])
+def log_in(userName, password):
+    '''Checks login information and returns success or reason for failure'''
+    try:
+        #Connect to database
+        with sqlite3.connect(db_path) as connection:
+            #Create a cursor for use in database
+            cursor = connection.cursor()
+            #Select password from loginInfo table where userID is the input userID
+            cursor.execute(f'SELECT password FROM loginInfo \
+                            WHERE userID = ?', 
+                            (userName, ))
+            #Fetch password from cursor
+            truePassword = cursor.fetchone()[0]
+            #If password is correct return 200
+            if password == truePassword:
+                return jsonify({'message': f"{userName}, {password}, is correct"}), 200
+            #Else return 403 (Forbidden)
+            else:
+                return jsonify({'message': f"{userName}, {password}, is incorrect"}), 403
+    #Exceptions help determine issues    
+    except Exception as e:
+        return jsonify({'message': f"{userName}, {password},  Database error"}), 500
 
 def create_table(tableName,tableType):
     '''
@@ -66,6 +117,11 @@ def tablePrintout(fullPrintout=''):
     '''
 
     with sqlite3.connect(db_path) as connection:
+
+        print('\n\n -------- START TABLE PRINTOUT ----------')
+
+        print(f"\nprinting tables based on '{fullPrintout}'")
+
         cursor = connection.cursor()
 
         cursor.execute("SELECT name from sqlite_master WHERE type='table'")
@@ -76,19 +132,22 @@ def tablePrintout(fullPrintout=''):
             cursor.execute(f"PRAGMA table_info({tableName})")
             cols = cursor.fetchall()
 
-            print("table:", tableName)
-            colNames = []
-            for col in cols:
-                colNames.append(col[1])
-            print("columns:", ','.join(colNames))
+            if fullPrintout == '':
+                print("\ntable:", tableName)
+                colNames = []
+                for col in cols:
+                    colNames.append(col[1])
+                print("columns:", ','.join(colNames))
 
             if fullPrintout == tableName:
-                print('\n\n\n------- FULL PRINTOUT -------')
+                print(f'\n------- FULL {tableName} PRINTOUT -------')
                 cursor.execute(f'SELECT * FROM {tableName}')
                 entries = cursor.fetchall()
                 for i, entry in enumerate(entries):
                     print(f"Entry {i}:", entry)
                     print('------------------------')
+        
+        print('\n\n -------- END TABLE PRINTOUT ----------')
 
 def selection_test(tableName, dir, name):
     '''
@@ -496,10 +555,13 @@ def remove_entry(tableName, encodedDateTime, userID, directory, title):
 
 
 #create_table('miscDropdowns','object')
-tablePrintout()
+
+#Prints out table info
+#Use table name for detailed printout of just that table
+tablePrintout('loginInfo')
 #remove_messed_up_entry('miscDropdowns','Garrit','CustomInfo/Chores','Taking Dogs Out')
-#remove_table('resolvedEvents')
-#selection_test('miscObject2','Health','Gym')
+#remove_table('loginInfo')
+#selection_test('loginInfo','Health','Gym')
 #find_string('customInfo','Garrit','ldes')
 
 if __name__ == '__main__':
