@@ -1,7 +1,18 @@
-import React, { useState, useEffect, version } from 'react';
-import { MainMenu, Journal, FileExplorer, CustomInput, CustomUI, ScheduleView, EditMiscObject, LogIn, SignUp } from './interfaces';
+import React, { useState, useEffect, version 
+} from 'react';
 
-import { testSaveTime, testCallTime, testGetFiles, testGetDirsAndFiles, testSaveObject, testGetObject, testSaveText, testGetText, testDelete } from './dbChangeTest'
+import { LogIn, SignUp } from './LogIn';
+import { EditMiscObject } from './DirectEdit';
+import { MainMenu } from './MainMenu';
+import { Journal } from './Journal';
+import { CustomInput } from './CustomInput';
+import { CustomUI } from './CustomUI';
+import { ScheduleView } from './Calendar';
+import { FileExplorer } from './FileExplorer';
+
+import { testSaveTime, testCallTime, testGetFiles, testGetDirsAndFiles, 
+  testSaveObject, testGetObject, testSaveText, testGetText, testDelete 
+} from './dbChangeTest'
 
 import './default.css';
 
@@ -197,40 +208,6 @@ const App = () => {
         preselectedVersion={version} />}
     </div>
   );
-}
-
-const TestApp = () => {
-  return (
-    <div>
-      <button onClick={() => testSaveTime()}>
-        Record Time
-      </button>
-      <button onClick={() => testCallTime()}>
-        Get Time
-      </button>
-      <button onClick={() => testGetFiles()}>
-        Get Names
-      </button>
-      <button onClick={() => testGetDirsAndFiles()}>
-        Get Dirs And Files
-      </button>
-      <button onClick={() => testSaveObject()}>
-        Save Object
-      </button>
-      <button onClick={() => testGetObject()}>
-        Get Object
-      </button>
-      <button onClick={() => testSaveText()}>
-        Save Text
-      </button>
-      <button onClick={() => testGetText()}>
-        Get Text
-      </button>
-      <button onClick={() => testDelete()}>
-        Delete
-      </button>
-    </div>
-  )
 }
 
 export default App;
