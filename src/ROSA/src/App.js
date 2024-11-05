@@ -10,21 +10,12 @@ import { CustomUI } from './CustomUI';
 import { ScheduleView } from './Calendar';
 import { FileExplorer } from './FileExplorer';
 
+//Used in TestApp for testing database interactions from end to end and back
 import { testSaveTime, testCallTime, testGetFiles, testGetDirsAndFiles, 
   testSaveObject, testGetObject, testSaveText, testGetText, testDelete 
 } from './dbChangeTest'
 
 import './default.css';
-
-/** Notes for VAR group 
- * Look up useEffect quickly, necessary to understand all of these functions
- * I know I didn't do a great job of redocumenting, but this should be a reference point so just ask if you want to know where some feature is and how it works
- * por.tia/src/interfaces.js contains the bulk of the code - this is probably the worst documented and least reusable, but most helpful reference to look at for our project
- * por.tia/src/oddsAndEnds.js contains some reusable small functions for more space efficient code (well documented)
- * por.tia/src/generalFetch.js handles all the API business - reusable and well documented
- * por.tia/src/manualEdit.js might come in handy for me to quickly and manually change things in the database. You guys don't need to worry about this
- * flask/src/flaskAndSQL.py is is the other side of the API and handles database interactions - reusable and well documented
-*/
 
 // Calls interfaces and handles any passing of variables between them
 const App = () => {
@@ -208,6 +199,40 @@ const App = () => {
         preselectedVersion={version} />}
     </div>
   );
+}
+
+const TestApp = () => {
+  return (
+    <div>
+      <button onClick={() => testSaveTime()}>
+        Record Time
+      </button>
+      <button onClick={() => testCallTime()}>
+        Get Time
+      </button>
+      <button onClick={() => testGetFiles()}>
+        Get Names
+      </button>
+      <button onClick={() => testGetDirsAndFiles()}>
+        Get Dirs And Files
+      </button>
+      <button onClick={() => testSaveObject()}>
+        Save Object
+      </button>
+      <button onClick={() => testGetObject()}>
+        Get Object
+      </button>
+      <button onClick={() => testSaveText()}>
+        Save Text
+      </button>
+      <button onClick={() => testGetText()}>
+        Get Text
+      </button>
+      <button onClick={() => testDelete()}>
+        Delete
+      </button>
+    </div>
+  )
 }
 
 export default App;

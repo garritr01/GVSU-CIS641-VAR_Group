@@ -560,9 +560,11 @@ def remove_entry(tableName, encodedDateTime, userID, directory, title):
 #Use table name for detailed printout of just that table
 tablePrintout('loginInfo')
 #remove_messed_up_entry('miscDropdowns','Garrit','CustomInfo/Chores','Taking Dogs Out')
-#remove_table('loginInfo')
 #selection_test('loginInfo','Health','Gym')
 #find_string('customInfo','Garrit','ldes')
+
+'''IF YOU UNCOMMENT THIS LINE THE FILE WILL RERUN AND TABLE WILL BE DELETED IMMEDIATELY'''
+#remove_table('loginInfo')
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000)

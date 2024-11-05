@@ -2,10 +2,32 @@
     font-family: Arial, Helvetica, sans-serif;
     margin: 0;
     padding: 0;
+    border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 input {
     height: 20px;
+}
+
+.bulletList {
+    display: block;
+    padding-left: 16px;
+}
+
+.bulletList p::before {
+    content: '•';
+}
+
+.errorP {
+    color: rgb(245, 10, 10);
+    font-weight: bold;
+}
+
+.errorPopup {
+    display: none;
+    color: rgb(245, 10, 10);
+    font-weight: bold;
+    white-space: pre-wrap;
 }
 
 .flexDivColumns {
@@ -19,28 +41,37 @@ input {
     align-items: center;
     width: auto;
 }
-.flexDivRows > :not(:first-child):not(:last-child) {
-    padding-left: 4px;
-    padding-right: 4px;
-}
-.flexDivRows > :first-child {
+
+.flexDivRows> :first-child {
     padding-left: 0px;
     padding-right: 4px;
 }
-.flexDivRows > :last-child {
+
+.flexDivRows> :last-child {
     padding-left: 4px;
     padding-right: 0px;
 }
 
-.popup {
-    font-weight: bold;
-    white-space: pre-wrap;
+.flexDivRows> :not(:first-child):not(:last-child) {
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
-.errorPopup {
-    color: rgb(245, 10, 10);
-    font-weight: bold;
-    white-space: pre-wrap;
+.flexDivTable {
+    display: table;
+}
+
+.flexDivTable .flexDivColumns {
+    display: table-cell;
+}
+
+.flexDivTable .flexDivRows {
+    display: table-row;
+}
+
+.mainContainer {
+    background-color: white;
+    margin: 12px;
 }
 
 .more {
@@ -50,14 +81,7 @@ input {
     border: 1px;
 }
 
-.bulletList {
-    display: block;
-}
-
-.bulletList p::before {
-    content: '•';
-}
-
-.bulletList p{
-    padding-left: 8px;
+.popup {
+    font-weight: bold;
+    white-space: pre-wrap;
 }

@@ -16,13 +16,16 @@ export const MainMenu = ({ printLevel, selectFn, selectResolutionInfo, selectDir
     // Renders military time and all main menu functions
     return (
         <div>
+            <h1>ROSA</h1>
+            <button 
+                onClick={() => selectFn("login")}
+                style={({ right: '0' })}
+                >
+                Log Out
+            </button>
             <div className="flexDivRows">
-                <h1>ROSA</h1>
-                <button onClick={() => selectFn("login")}>Log Out</button>
-            </div>
-            <div className="flexDivRows">
-                <h4>{getDateString()}</h4>
-                <h4>-{getTimeString()}</h4>
+                <p>{getDateString()}</p>
+                <p>-{getTimeString()}</p>
             </div>
             <Functions printLevel={printLevel} selectFn={selectFn} />
             <ClockOutOptions printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
