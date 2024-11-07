@@ -21,7 +21,7 @@ import './default.css';
 const App = () => {
 
   // Variables for passing between functions
-  const [open, setOpen] = useState('login');
+  const [open, setOpen] = useState('main');
   // increase printoutLevel for more detailed printouts to use for debugging and tracing
   const [printoutLevel, setPrintoutLevel] = useState(10);
   const [table, setTable] = useState(null);

@@ -23,7 +23,7 @@ db_path = os.path.join(parent_folder+'/..', 'database.db')
 
 @app.route('/sign_up/<userName>/<password>', methods=['POST'])
 def sign_up(userName, password):
-    '''Enters username and password in database'''
+    '''Creates a username and password in the database'''
     #print(f"signing up {userName}, with password {password}")
     try:
         with sqlite3.connect(db_path) as connection:

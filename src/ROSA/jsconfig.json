@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "target": "ES2022",
+        "jsx": "react",
+        "allowImportingTsExtensions": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "checkJs": true, // Enable type-checking for JavaScript files
+        "baseUrl": ".", // Set the base URL for module resolution
+        "paths": { // Define module paths if necessary
+            "*": [
+                "node_modules/*",
+                "src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*", // Include all files in the src directory
+        "*.js" // Include all JavaScript files
+    ],
+    "exclude": [
+        "node_modules",
+        "**/node_modules/*"
+    ]
+}

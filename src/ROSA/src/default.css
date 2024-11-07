@@ -3,10 +3,7 @@
     margin: 0;
     padding: 0;
     border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-input {
-    height: 20px;
+    box-sizing: border-box;
 }
 
 .bulletList {
@@ -39,7 +36,7 @@ input {
     display: flex;
     flex-direction: row;
     align-items: center;
-    width: auto;
+    width: 100%;
 }
 
 .flexDivRows> :first-child {
@@ -67,21 +64,52 @@ input {
 
 .flexDivTable .flexDivRows {
     display: table-row;
+    
+}
+
+input {
+    height: 20px;
+}
+
+.loginContainer {
+    background-color: white;
+    margin: 2%;
 }
 
 .mainContainer {
     background-color: white;
-    margin: 12px;
-}
-
-.more {
-    display: none;
-    position: absolute;
-    z-index: 1;
-    border: 1px;
+    position: fixed;
+    top: 10%;
+    margin: 2%;
+    width: 96%;
 }
 
 .popup {
     font-weight: bold;
     white-space: pre-wrap;
+}
+
+.stickyHeader {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    justify-content: space-between;
+    top: 0;
+    left: 0;
+    height: 10%;
+    width: 100%;
+    background-color: lightblue;
+}
+
+.stickyHeader button {
+    margin-left: 0.5%;
+    margin-right: 0.5%;
+}
+
+.stickyHeader> button:first-child {
+    margin-left: 0;
+}
+
+.stickyHeader> button:last-child {
+    margin-right: 0;
 }

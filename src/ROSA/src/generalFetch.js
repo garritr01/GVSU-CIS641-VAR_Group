@@ -1,6 +1,11 @@
 import { getDateString, getTimeString } from "./oddsAndEnds";
 
-/**Create username and password combination in database */
+/**
+ * Create a Username's account with the given password
+ * @param {string} userName - The username input by the user.
+ * @param {string} password - The password input by the user.
+ * @returns {Promise<{truth: boolean, msg: string, status: number}>}
+ */
 export const createNewUser = async (userName, password) => {
     //Attempt new user creation and report any failure
     try {
@@ -20,15 +25,18 @@ export const createNewUser = async (userName, password) => {
     }
 }
 
-/**Get Username and Password combo then check validity */
+/**
+ * Get Username and Password combo then check validity.
+ * @param {string} userName - The username input by the user.
+ * @param {string} password - The password input by the user.
+ * @returns {Promise<{truth: boolean, msg: string, status: number}>}
+ */
 export const checkLoginInfo = async(userName, password) => {
     //Attempt login process and report issues if fails
     try {
         //Get response from log_in with userName and password inputs
         const response = await fetch(`http://localhost:5000/log_in/${userName}/${password}`);
-        //console.log(response);
         const data = await response.json();
-        //console.log(data);
         //If response is failure report why else return success
         if (!response.ok) {
             console.error(data.message);

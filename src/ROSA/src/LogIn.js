@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef
 import { createNewUser, checkLoginInfo 
 } from './generalFetch';
 
+import { BASE_URL } from './config'
+
 /** Renders the login UI */
 export const LogIn = ({ printLevel, selectFn }) => {
 
@@ -11,13 +13,18 @@ export const LogIn = ({ printLevel, selectFn }) => {
     const [userName, setUserName] = useState('');
     const [password, setPassword] = useState('');
     const [popupErr, setPopupErr] = useState('');
+    const [passwordVisibility, setPasswordVisibilty] = useState(false);
 
-    //Update input value upon change given variable and setVariable
+    /** Update input value upon change given variable and setVariable */
     const uponInputChange = (inputValue, setInputValue) => {
         setInputValue(inputValue);
     };
 
-    //Prompt general fetch to prompt database to check login information
+    const togglePasswordVisibility = () => {
+        setPasswordVisibilty(!passwordVisibility);
+    }
+
+    /** Prompt general fetch to prompt database to check login information */
     const checkCombo = async () => {
         //Attempt login info check and report any failures
         try {
@@ -25,7 +32,7 @@ export const LogIn = ({ printLevel, selectFn }) => {
             if (userName && password) {
                 //Call checkLoginInfo with inputs userName and password
                 const response = await checkLoginInfo(userName, password);
-                //Output errors by specific code
+                //Output errors by specific code or open main menu
                 if (response.truth) {
                     selectFn('main');
                 } else if (response.status === 403) {
@@ -48,27 +55,39 @@ export const LogIn = ({ printLevel, selectFn }) => {
     }
 
     return (
-        <div>
+        <div className="loginContainer">
             <h2>Welcome to ROSA</h2>
-            {
+            { /** Display popupError if exists */
                 popupErr === '' ? <p>Enter Username and Password</p>
                     : <p className="errorPopup">{popupErr}</p>
             }
-            <div className="flexDivColumns">
+            <div className="flexDivTable">
                 <div className="flexDivRows">
-                    <p>Username:</p>
+                    <p className="flexDivColumns">Username:</p>
                     <input
-                        value={userName}
+                        name="user"
+                        className="flexDivColumns"
                         onChange={(e) => uponInputChange(e.target.value, setUserName)}
                     />
                 </div>
                 <div className="flexDivRows">
-                    <p>Password:</p>
-                    <input
-                        value={password}
-                        onChange={(e) => uponInputChange(e.target.value, setPassword)}
-                    />
+                    <p className="flexDivColumns" style={({ height: '20px' })}>Password:</p>
+                    <div className="flexDivColumns">
+                        <input
+                            type={ passwordVisibility ? "text" : "password" }
+                            name="password"
+                            onChange={(e) => uponInputChange(e.target.value, setPassword)}
+                        />
+                        <img
+                            src={passwordVisibility ? `${BASE_URL}passwordVizIcon.png` : `${BASE_URL}passwordInvizIcon.png`}
+                            onClick={togglePasswordVisibility}
+                            alt="Viz Icon"
+                            style={({ height: '20px', width: 'auto', verticalAlign: 'middle' })}
+                        />
+                    </div>
                 </div>
+            </div>
+            <div className="flexDivRows">
                 <button onClick={() => checkCombo()}>Enter</button>
                 <button onClick={() => selectFn('signup')}>Sign Up</button>
             </div>
@@ -84,11 +103,15 @@ export const SignUp = ({ printLevel, selectFn }) => {
     const [password, setPassword] = useState('');
     const [password2, setPassword2] = useState(''); // New state for re-entering password
 
-    //Update input value upon change given variable and setVariable
+    /** Update input value upon change given variable and setVariable */
     const uponInputChange = (inputValue, setInputValue) => {
         setInputValue(inputValue);
     };
 
+    /** Add <p> child to "info" div
+     * @param {string} issue - text content within <p>
+     * @param {string} pClass - class assigned to <p>
+     */
     const updateIssueLog = (issue, pClass = '') => {
         const popupDiv = document.getElementById('info');
         const p = document.createElement('p');
@@ -99,6 +122,7 @@ export const SignUp = ({ printLevel, selectFn }) => {
         popupDiv.appendChild(p);
     }
 
+    /** Perform preliminary checks to check input properties */
     const checkInputs = () => {
         let constraintsMet = true;
 
@@ -137,12 +161,12 @@ export const SignUp = ({ printLevel, selectFn }) => {
         }
     }
 
-    //Prompt general fetch to sign user up with given userName and password
+    /** Prompt general fetch to sign user up with given userName and password */
     const createUser = async () => {
         const popupDiv = document.getElementById('info');
         popupDiv.innerHTML = '';
         try {
-            //Make sure userName and password exist
+            // Output issues or success
             if (userName && password && password2) {
                 if (checkInputs()) {
                     const response = await createNewUser(userName, password);
@@ -169,8 +193,11 @@ export const SignUp = ({ printLevel, selectFn }) => {
     }
 
     return (
-        <div className="mainContainer">
+        <div className="loginContainer">
+            {/** main container adds a margin */}
             <h2>Create New Username and Password</h2>
+            {/* flexDivTable shows cell format when flexDivRows and 
+            flexDivColumns used in that order */}
             <div className="flexDivTable">
                 <div className="flexDivRows">
                     <p className="flexDivColumns">Username:</p>

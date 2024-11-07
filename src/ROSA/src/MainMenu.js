@@ -16,30 +16,23 @@ export const MainMenu = ({ printLevel, selectFn, selectResolutionInfo, selectDir
     // Renders military time and all main menu functions
     return (
         <div>
-            <h1>ROSA</h1>
-            <button 
-                onClick={() => selectFn("login")}
-                style={({ right: '0' })}
-                >
-                Log Out
-            </button>
-            <div className="flexDivRows">
-                <p>{getDateString()}</p>
-                <p>-{getTimeString()}</p>
-            </div>
             <Functions printLevel={printLevel} selectFn={selectFn} />
-            <ClockOutOptions printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
-            <ScheduleView printLevel={printLevel} selectFn={selectFn} selectResolutionInfo={selectResolutionInfo} selectDirTitleAndVersion={selectDirTitleAndVersion} mode={'mainMenu'} />
-            <QuickNotes printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
+            <div className="mainContainer">
+                <h1>ROSA</h1>
+                <div className="flexDivRows">
+                    <p>{getDateString()}</p>
+                    <p>-{getTimeString()}</p>
+                </div>
+                <ClockOutOptions printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
+                <ScheduleView printLevel={printLevel} selectFn={selectFn} selectResolutionInfo={selectResolutionInfo} selectDirTitleAndVersion={selectDirTitleAndVersion} mode={'mainMenu'} />
+                <QuickNotes printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
+            </div>
         </div>
     );
 }
 
 /** Renders the buttons for choosing functions on the main menu */
 export const Functions = ({ printLevel, selectFn }) => {
-
-    //initialize func as empty
-    const func = useState('');
 
     //select a function based on funcName
     const anyPress = (funcName) => {
@@ -49,21 +42,29 @@ export const Functions = ({ printLevel, selectFn }) => {
 
     //renders the buttons for selecting different functions on the main menu
     return (
-        <div>
-            <h3>Functions</h3>
-            <button onClick={() => anyPress("file manager")}>File Manager</button>
-            <button onClick={() => anyPress("journals")}>Journal</button>
-            <button onClick={() => anyPress("customInfo")}>Custom Record</button>
-            <button onClick={() => anyPress("customClockIn")}>Clock In</button>
-            <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button>
-            <button onClick={() => anyPress("quick note")}>Quick Note</button>
-            <button onClick={() => anyPress("schedule view")}>Calendar</button>
-            {/* The below buttons can be rendered for infrequently used functions. Code found in manualEdit.js*/}
-            {/*<button onClick={() => alterMatches("CustomUI", null, null,"Earning ($)","Earning ($)", "earning")}>Alter UI</button>*/}
-            {/*<button onClick={() => createCustomUIDropdown()}>CustomUI Dropdown</button>*/}
-            {/*<button onClick={() => createCustomInfoDropdowns()}>CustomInfo Dropdowns</button>*/}
-            {/*<button onClick={() => convertSchedules()}>Convert Schedules</button>*/}
-            {/*<button onClick={() => moveTables()}>Move Tables</button>*/}
+        <div className="stickyHeader">
+            <div style={({ width: '90%' })}>
+                <button onClick={() => anyPress("file manager")}>File Manager</button>
+                <button onClick={() => anyPress("journals")}>Journal</button>
+                <button onClick={() => anyPress("customInfo")}>Custom Record</button>
+                <button onClick={() => anyPress("customClockIn")}>Clock In</button>
+                <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button>
+                <button onClick={() => anyPress("quick note")}>Quick Note</button>
+                <button onClick={() => anyPress("schedule view")}>Calendar</button>
+                {/* The below buttons can be rendered for infrequently used functions. Code found in manualEdit.js*/}
+                {/*<button onClick={() => alterMatches("CustomUI", null, null,"Earning ($)","Earning ($)", "earning")}>Alter UI</button>*/}
+                {/*<button onClick={() => createCustomUIDropdown()}>CustomUI Dropdown</button>*/}
+                {/*<button onClick={() => createCustomInfoDropdowns()}>CustomInfo Dropdowns</button>*/}
+                {/*<button onClick={() => convertSchedules()}>Convert Schedules</button>*/}
+                {/*<button onClick={() => moveTables()}>Move Tables</button>*/}
+            </div>
+            <div style={({ width: '10%' })}>
+                <button
+                    onClick={() => selectFn("login")}
+                    >
+                    Log Out
+                </button>
+            </div>
         </div>
     );
 }
