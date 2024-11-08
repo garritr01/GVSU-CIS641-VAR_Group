@@ -37,7 +37,7 @@ export const FileExplorer = ({ printLevel, selectFn, selectDirTitleAndVersion })
 
     const callFetchDirsAndFiles = async (table) => {
         try {
-            const dirsAndFiles = await fetchDirsAndFiles(table, 'Garrit');
+            const dirsAndFiles = await fetchDirsAndFiles(table, 'garritr01');
             setListOfFiles(dirsAndFiles.files);
             setListOfDirs(dirsAndFiles.directories);
             if (selectedTitle) {
@@ -56,7 +56,7 @@ export const FileExplorer = ({ printLevel, selectFn, selectDirTitleAndVersion })
 
     const handleSearch = async () => {
         try {
-            const relevantFiles = await fetchStringInstances(selectedTable, 'Garrit', searchString);
+            const relevantFiles = await fetchStringInstances(selectedTable, 'garritr01', searchString);
             setDiscoveredFiles(relevantFiles);
         } catch (err) {
             console.log('error searching:', err);
@@ -130,10 +130,10 @@ export const FileExplorer = ({ printLevel, selectFn, selectDirTitleAndVersion })
                     setSelectedVersion(listOfVersionsTemp[0]);
                     try {
                         if (selectedTable === 'journals') {
-                            const content = await fetchText(selectedTable, listOfVersionsTemp[0], 'Garrit', selectedDirectory, file.title);
+                            const content = await fetchText(selectedTable, listOfVersionsTemp[0], 'garritr01', selectedDirectory, file.title);
                             setFileContent(content);
                         } else {
-                            const content = await fetchObject(selectedTable, listOfVersionsTemp[0], 'Garrit', selectedDirectory, file.title);
+                            const content = await fetchObject(selectedTable, listOfVersionsTemp[0], 'garritr01', selectedDirectory, file.title);
                             setFileContent(content);
                         }
                     } catch (err) {
@@ -143,7 +143,7 @@ export const FileExplorer = ({ printLevel, selectFn, selectDirTitleAndVersion })
             } else {
                 try {
                     console.log('attempting time versions');
-                    const content = await fetchDateTimes(selectedTable, 'Garrit', selectedDirectory, file.title);
+                    const content = await fetchDateTimes(selectedTable, 'garritr01', selectedDirectory, file.title);
                     setListOfVersions(content);
                 } catch (err) {
                     console.log('Error fetching file:', err);
@@ -163,10 +163,10 @@ export const FileExplorer = ({ printLevel, selectFn, selectDirTitleAndVersion })
             setSelectedVersion(version);
             try {
                 if (selectedTable === 'journals') {
-                    const content = await fetchText(selectedTable, version, 'Garrit', selectedDirectory, selectedTitle);
+                    const content = await fetchText(selectedTable, version, 'garritr01', selectedDirectory, selectedTitle);
                     setFileContent(content);
                 } else {
-                    const content = await fetchObject(selectedTable, version, 'Garrit', selectedDirectory, selectedTitle);
+                    const content = await fetchObject(selectedTable, version, 'garritr01', selectedDirectory, selectedTitle);
                     setFileContent(content);
                 }
             } catch (err) {
@@ -213,7 +213,7 @@ export const FileExplorer = ({ printLevel, selectFn, selectDirTitleAndVersion })
         setDblCheckDeleteDir(false);
         setFileContent(null);
         try {
-            const responseMsg = await deleteEntry(selectedTable, version, 'Garrit', directory, title);
+            const responseMsg = await deleteEntry(selectedTable, version, 'garritr01', directory, title);
             console.log(responseMsg);
             setSelectedVersion(null);
             await callFetchDirsAndFiles(selectedTable, selectedDirectory);

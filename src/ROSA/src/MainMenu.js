@@ -10,6 +10,8 @@ import { deleteEntry, fetchObject, fetchFiles
 import { ScheduleView 
 } from './Calendar';
 
+//ClockOutOptions and QuickNotes still need updating
+
 /** Renders the main menu and handles selection */
 export const MainMenu = ({ printLevel, selectFn, selectResolutionInfo, selectDirTitleAndVersion }) => {
 
@@ -44,8 +46,10 @@ export const Functions = ({ printLevel, selectFn }) => {
     return (
         <div className="stickyHeader">
             <div style={({ width: '90%' })}>
+                <button onClick={() => anyPress("main")}>Main Menu</button>
                 <button onClick={() => anyPress("file manager")}>File Manager</button>
                 <button onClick={() => anyPress("journals")}>Journal</button>
+                <button onClick={() => anyPress("new journal")}>New Journal</button>
                 <button onClick={() => anyPress("customInfo")}>Custom Record</button>
                 <button onClick={() => anyPress("customClockIn")}>Clock In</button>
                 <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button>
@@ -74,8 +78,6 @@ export const ClockOutOptions = ({ printLevel, selectFn, selectDirTitleAndVersion
 
     // Array holding objects representing events on the clock
     const [clockedInEvents, setClockedInEvents] = useState([]);
-
-    console.log('cIE', clockedInEvents);
 
     useEffect(() => {
         checkForClockIns();

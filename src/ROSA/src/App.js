@@ -4,7 +4,7 @@ import React, { useState, useEffect, version
 import { LogIn, SignUp } from './LogIn';
 import { EditMiscObject } from './DirectEdit';
 import { MainMenu } from './MainMenu';
-import { Journal } from './Journal';
+import { Journal, NewJournal } from './Journal';
 import { CustomInput } from './CustomInput';
 import { CustomUI } from './CustomUI';
 import { ScheduleView } from './Calendar';
@@ -24,6 +24,16 @@ const App = () => {
   const [open, setOpen] = useState('main');
   // increase printoutLevel for more detailed printouts to use for debugging and tracing
   const [printoutLevel, setPrintoutLevel] = useState(10);
+  const [currentObj, setCurrentObj] = 
+    useState({ 
+      userID: 'garritr01',
+      table: null,
+      dir: null,
+      filename: null,
+      dateTime: null,
+      options: null,
+      payload: null
+    });
   const [table, setTable] = useState(null);
   const [dir, setDir] = useState(null);
   const [title, setTitle] = useState(null);
@@ -57,8 +67,18 @@ const App = () => {
       setDir(null);
       setTitle(null);
       setVersion(null);
+      setCurrentObj(prevState => ({
+        ...prevState,
+        table: null,
+        dir: null,
+        filename: null,
+        dateTime: null,
+        options: null,
+        payload: null
+      }));
     }
   }
+
 
   // Sets dir and title from one function to be passed into another
   const handleReturnedDirTitleAndVersion = (dirToOpen, titleToOpen, versionToOpen, tableToOpen) => {
@@ -67,6 +87,13 @@ const App = () => {
     setDir(dirToOpen);
     setTitle(titleToOpen);
     setVersion(versionToOpen);
+    setCurrentObj(prevState => ({
+      ...prevState,
+      table: tableToOpen,
+      dir: dirToOpen,
+      filename: titleToOpen,
+      dateTime: versionToOpen
+    }));
   }
 
   const handleResolutionInfo = (info) => {
@@ -79,7 +106,8 @@ const App = () => {
     <div>
       {open === 'login' && <LogIn
         printLevel={printoutLevel}
-        selectFn={handleOpen}/>}
+        selectFn={handleOpen}
+        setCurrentObj={setCurrentObj}/>}
       {open === 'signup' && <SignUp
         printLevel={printoutLevel}
         selectFn={handleOpen} />}
@@ -94,6 +122,10 @@ const App = () => {
         preselectedDir={dir}
         preselectedTitle={title}
         preselectedVersion={version} />}
+      {open === 'new journal' && <NewJournal
+        printLevel={printoutLevel}
+        selectFn={handleOpen}
+        preselectedObj={currentObj} />}
       {open === 'customInfo' && <CustomInput
         printLevel={printoutLevel}
         selectFn={handleOpen}

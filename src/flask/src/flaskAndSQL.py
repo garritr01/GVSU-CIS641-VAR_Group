@@ -558,7 +558,7 @@ def remove_entry(tableName, encodedDateTime, userID, directory, title):
 
 #Prints out table info
 #Use table name for detailed printout of just that table
-tablePrintout('loginInfo')
+tablePrintout('journals')
 #remove_messed_up_entry('miscDropdowns','Garrit','CustomInfo/Chores','Taking Dogs Out')
 #selection_test('loginInfo','Health','Gym')
 #find_string('customInfo','Garrit','ldes')

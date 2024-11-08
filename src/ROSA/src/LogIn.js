@@ -7,7 +7,7 @@ import { createNewUser, checkLoginInfo
 import { BASE_URL } from './config'
 
 /** Renders the login UI */
-export const LogIn = ({ printLevel, selectFn }) => {
+export const LogIn = ({ printLevel, selectFn, setCurrentObj }) => {
 
     //Create empty userName, password, and popup variables
     const [userName, setUserName] = useState('');
@@ -32,8 +32,9 @@ export const LogIn = ({ printLevel, selectFn }) => {
             if (userName && password) {
                 //Call checkLoginInfo with inputs userName and password
                 const response = await checkLoginInfo(userName, password);
-                //Output errors by specific code or open main menu
+                //Output errors by specific code or open main menu and update userID
                 if (response.truth) {
+                    setCurrentObj(prevState => ({ ...prevState, userID: userName}));
                     selectFn('main');
                 } else if (response.status === 403) {
                     setPopupErr('Incorrect password provided!');
@@ -114,12 +115,14 @@ export const SignUp = ({ printLevel, selectFn }) => {
      */
     const updateIssueLog = (issue, pClass = '') => {
         const popupDiv = document.getElementById('info');
-        const p = document.createElement('p');
-        if (pClass) {
-            p.className = pClass;
+        if (popupDiv) {
+            const p = document.createElement('p');
+            if (pClass) {
+                p.className = pClass;
+            }
+            p.textContent = issue;
+            popupDiv.appendChild(p);
         }
-        p.textContent = issue;
-        popupDiv.appendChild(p);
     }
 
     /** Perform preliminary checks to check input properties */
@@ -164,7 +167,10 @@ export const SignUp = ({ printLevel, selectFn }) => {
     /** Prompt general fetch to sign user up with given userName and password */
     const createUser = async () => {
         const popupDiv = document.getElementById('info');
-        popupDiv.innerHTML = '';
+        if (popupDiv) {
+            popupDiv.innerHTML = '';
+        }
+
         try {
             // Output issues or success
             if (userName && password && password2) {
