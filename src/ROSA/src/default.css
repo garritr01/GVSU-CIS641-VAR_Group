@@ -113,3 +113,8 @@ input {
 .stickyHeader> button:last-child {
     margin-right: 0;
 }
+
+textarea {
+    width: 100%;
+    height: auto;
+}
