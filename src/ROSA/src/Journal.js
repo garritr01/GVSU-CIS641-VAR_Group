@@ -239,7 +239,6 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
             loaded.filename === obj.filename &&
             loaded.dateTime.date === obj.dateTime.date &&
             loaded.dateTime.time === obj.dateTime.time)) {
-            console.log('turning off');
             const errorBox = document.getElementById("fileChange");
             if (errorBox) {
                 errorBox.style.display = 'none';
