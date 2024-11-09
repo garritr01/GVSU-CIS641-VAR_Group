@@ -7,9 +7,9 @@
         "allowImportingTsExtensions": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        "checkJs": true, // Enable type-checking for JavaScript files
-        "baseUrl": ".", // Set the base URL for module resolution
-        "paths": { // Define module paths if necessary
+        "checkJs": true, 
+        "baseUrl": ".", 
+        "paths": { 
             "*": [
                 "node_modules/*",
                 "src/*"
@@ -17,8 +17,8 @@
         }
     },
     "include": [
-        "src/**/*", // Include all files in the src directory
-        "*.js" // Include all JavaScript files
+        "src/**/*", 
+        "*.js" 
     ],
     "exclude": [
         "node_modules",
