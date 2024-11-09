@@ -27,11 +27,11 @@ const App = () => {
   const [currentObj, setCurrentObj] = 
     useState({ 
       userID: 'garritr01',
-      table: null,
-      dir: null,
-      filename: null,
-      dateTime: null,
-      options: null,
+      table: '',
+      dir: '',
+      filename: '',
+      dateTime: { date: '', time: '' },
+      options: {},
       payload: null
     });
   const [table, setTable] = useState(null);
@@ -67,15 +67,6 @@ const App = () => {
       setDir(null);
       setTitle(null);
       setVersion(null);
-      setCurrentObj(prevState => ({
-        ...prevState,
-        table: null,
-        dir: null,
-        filename: null,
-        dateTime: null,
-        options: null,
-        payload: null
-      }));
     }
   }
 

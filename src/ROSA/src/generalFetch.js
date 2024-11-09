@@ -20,7 +20,6 @@ export const createNewUser = async (userName, password) => {
              return { truth: true, msg: data.message, status: response.status };
         }
     } catch (err) {
-        console.error(`Erred creating user: ${err}`);
         return { truth: false, msg: err, status: 500};
     }
 }
@@ -39,13 +38,11 @@ export const checkLoginInfo = async(userName, password) => {
         const data = await response.json();
         //If response is failure report why else return success
         if (!response.ok) {
-            console.error(data.message);
             return { truth: false, msg: data.message, status: response.status };
         } else {
             return { truth: true, msg: data.message, status: response.status };
         }
     } catch (err) {
-        console.error(`Erred getting login info: ${err}`);
         return { truth: false, msg: err, status: 500 }
     }
 }
@@ -220,8 +217,15 @@ export const saveText = async (tableNameOut, entryOut, dateTimeOut, userIDout, d
             }),
         });
         const data = await response.json();
-        return data.message;
-    } catch (err) { throw err }
+        //If response is failure report why else return success
+        if (!response.ok) {
+            return { truth: false, msg: data.message, status: response.status };
+        } else {
+            return { truth: true, msg: data.message, status: response.status };
+        }
+    } catch (err) {
+        return { truth: false, msg: err, status: 500 }
+    }
 }
 
 /** Find and return all instances of str in table */

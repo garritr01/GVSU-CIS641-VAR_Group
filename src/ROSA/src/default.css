@@ -1,3 +1,7 @@
+:root {
+    --smallMargin: 1%;
+}
+
 * {
     font-family: Arial, Helvetica, sans-serif;
     margin: 0;
@@ -40,18 +44,16 @@
 }
 
 .flexDivRows> :first-child {
-    padding-left: 0px;
-    padding-right: 4px;
+    margin-left: var(--smallMargin);
+    margin-right: var(--smallMargin);
 }
 
 .flexDivRows> :last-child {
-    padding-left: 4px;
-    padding-right: 0px;
+    margin-left: 0;
 }
 
 .flexDivRows> :not(:first-child):not(:last-child) {
-    padding-left: 4px;
-    padding-right: 4px;
+    margin-right: 0;
 }
 
 .flexDivTable {
@@ -64,7 +66,6 @@
 
 .flexDivTable .flexDivRows {
     display: table-row;
-    
 }
 
 input {
@@ -102,8 +103,8 @@ input {
 }
 
 .stickyHeader button {
-    margin-left: 0.5%;
-    margin-right: 0.5%;
+    margin-left: var(--smallMargin);
+    margin-right: var(--smallMargin);
 }
 
 .stickyHeader> button:first-child {

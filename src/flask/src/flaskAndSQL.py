@@ -456,7 +456,7 @@ def save_text():
                 cursor.execute(f'INSERT INTO {tableName} (content, dateTime, userID, directory, title) \
                                 VALUES (?, ?, ?, ?, ?)', (entry, dateTime, userID, directory, title))
                 connection.commit()
-                return {'message':f"{userID}'s {tableName}, {directory}, {title} entry saved successfully"}, 200
+                return {'message':f"{userID}'s {tableName}, {directory}, {title} entry saved successfully"}, 201
             except sqlite3.IntegrityError as e:
                 cursor.execute(f'UPDATE {tableName} SET content = ? \
                                WHERE dateTime = ? AND userID = ? AND directory = ? AND title = ?', 

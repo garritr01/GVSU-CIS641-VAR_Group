@@ -48,8 +48,8 @@ export const Functions = ({ printLevel, selectFn }) => {
             <div style={({ width: '90%' })}>
                 <button onClick={() => anyPress("main")}>Main Menu</button>
                 <button onClick={() => anyPress("file manager")}>File Manager</button>
-                <button onClick={() => anyPress("journals")}>Journal</button>
-                <button onClick={() => anyPress("new journal")}>New Journal</button>
+                {/* <button onClick={() => anyPress("journals")}>Journal</button> */}
+                <button onClick={() => anyPress("new journal")}>Journal</button>
                 <button onClick={() => anyPress("customInfo")}>Custom Record</button>
                 <button onClick={() => anyPress("customClockIn")}>Clock In</button>
                 <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button>

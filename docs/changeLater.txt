@@ -1,0 +1,4 @@
+1. All instances of 'title' must be changed to 'filename'
+2. All instances of 'directory' must be changed to 'dir'
+3. Add delete functionality to NewJournal
+4. Remove 'New' from function titles when done
