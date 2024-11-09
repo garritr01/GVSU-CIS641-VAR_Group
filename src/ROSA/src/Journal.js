@@ -183,9 +183,14 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
         setObj(prevObj => ({ ...prevObj, filename: '' }));
     }, [obj.dir]);
 
-    // Empties dateTime if dir or filename is changed
+    // Autofills or empties dateTime when dir or filename is changed
     useEffect(() => {
-        setObj(prevObj => ({ ...prevObj, dateTime: { date: '', time: '' } }));
+        if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.title).includes(obj.filename)) {
+            const mostRecent = chooseMostRecent(fileInfo, obj.dir, obj.filename);
+            setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
+        } else {
+            setObj(prevObj => ({ ...prevObj, dateTime: { date: '', time: '' } }));
+        }
     }, [obj.dir, obj.filename]);
 
     // Warns of changing save location of loaded content
@@ -205,7 +210,18 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
 
     /** Update object property (which is also an object) with inputValue */
     const uponObjectInputChange = (inputValue, prop) => {
-        setObj(prevState => ({ ...prevState, [prop]: JSON.parse(inputValue) }));
+        let parsedObj;
+        // Attempt to parse and notify upon uncaught failure
+        try {
+            parsedObj = JSON.parse(inputValue);
+        } catch(err) {
+            if (prop === 'dateTime') {
+                parsedObj = { date: '', time: '' };
+            } else {
+                console.error("No catch for unparseable object!");
+            }
+        }
+        setObj(prevState => ({ ...prevState, [prop]: parsedObj }));
     };
 
     /** Gets dirs and files where directories is all unqiue directories and
@@ -391,9 +407,8 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
                     <div className="flexDivRows">
                         <p className="flexDivColumns">Version:</p>
                         <select 
-                            onChange={(e) => e.target.value !== 'new' ?
-                                uponObjectInputChange(e.target.value, 'dateTime') :
-                                uponInputChange( { date: '', time: '' }, 'dateTime')}
+                            value={JSON.stringify(obj.dateTime)}
+                            onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}
                             >
                             <option key={'new'} value={'new'}>New</option>
                             { // Create option for each version and set to last saved in database initially
