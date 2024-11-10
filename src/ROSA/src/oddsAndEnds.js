@@ -37,6 +37,19 @@ export function getTimeString(local=false) {
 
     return new Date().toLocaleTimeString(undefined, options);
 }
+/** return object containing day, month(Jan=1), year, hour, minute 
+ * @param {boolean} [local] - return UTC time by default, but local if true
+*/
+export const getCurrentDateStrings = (local = true) => {
+    const now = new Date();
+    return {
+        day: local ? String(now.getDate()).padStart(2, '0') : String(now.getUTCDate()).padStart(2, '0'),
+        month: local ? String(now.getMonth() + 1).padStart(2, '0') : String(now.getUTCMonth() + 1).padStart(2, '0'),  // getMonth() is zero-based
+        year: local ? String(now.getFullYear()) : String(now.getUTCFullYear()),
+        hour: local ? String(now.getHours()).padStart(2, '0') : String(now.getUTCHours()).padStart(2, '0'),
+        minute: local ? String(now.getMinutes()).padStart(2, '0') : String(now.getUTCMinutes()).padStart(2, '0')
+    };
+}
 /** Given int 0-6 returns associated weekday string */
 export function getWeekdayString(weekdayNum) {
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

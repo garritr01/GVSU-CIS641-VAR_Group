@@ -52,7 +52,8 @@ export const Functions = ({ printLevel, selectFn }) => {
                 <button onClick={() => anyPress("new journal")}>Journal</button>
                 <button onClick={() => anyPress("customInfo")}>Custom Record</button>
                 <button onClick={() => anyPress("customClockIn")}>Clock In</button>
-                <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button>
+                {/* <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button> */}
+                <button onClick={() => anyPress("new customUI")}>Custom UI</button>
                 <button onClick={() => anyPress("quick note")}>Quick Note</button>
                 <button onClick={() => anyPress("schedule view")}>Calendar</button>
                 {/* The below buttons can be rendered for infrequently used functions. Code found in manualEdit.js*/}

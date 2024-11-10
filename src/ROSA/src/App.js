@@ -6,7 +6,7 @@ import { EditMiscObject } from './DirectEdit';
 import { MainMenu } from './MainMenu';
 import { Journal, NewJournal } from './Journal';
 import { CustomInput } from './CustomInput';
-import { CustomUI } from './CustomUI';
+import { CustomUI, NewCustomUI } from './CustomUI';
 import { ScheduleView } from './Calendar';
 import { FileExplorer } from './FileExplorer';
 
@@ -114,6 +114,10 @@ const App = () => {
         preselectedTitle={title}
         preselectedVersion={version} />}
       {open === 'new journal' && <NewJournal
+        printLevel={printoutLevel}
+        selectFn={handleOpen}
+        preselectedObj={currentObj} />}
+      {open === 'new customUI' && <NewCustomUI
         printLevel={printoutLevel}
         selectFn={handleOpen}
         preselectedObj={currentObj} />}

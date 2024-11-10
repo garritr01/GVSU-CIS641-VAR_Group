@@ -68,6 +68,10 @@
     display: table-row;
 }
 
+.fourDigitInput {
+    width: 40px;
+}
+
 input {
     height: 20px;
 }
@@ -118,4 +122,8 @@ input {
 textarea {
     width: 100%;
     height: auto;
+}
+
+.twoDigitInput {
+    width: 20px;
 }
