@@ -966,10 +966,13 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     const [endDate, setEndDate] = useState({ month: time.month, day: time.day, year: time.year });
     // repeatInfo is only used by weekly to specify which day and specRpt to specify how many days before repeating
     const [repeatInfo, setRepeatInfo] = useState('1');
-    // elementType determines the UI to show to create the element
-    const [elementType, setElementType] = useState(null);
     // elementInfo contains the text to show describing the input
-    const [elementInfo, setElementInfo] = useState(null);
+    const [elementInfo, setElementInfo] = useState({ type: '', label: '', choices: null, group: 0 });
+    // hold index of object to be moved
+    const [moveIndex, setMoveIndex] = useState(null);
+    // hold current group number and if it is actively being grouped
+    const [groupNum, setGroupNum] = useState(1);
+    const [grouping, setGrouping] = useState(false);
 
     // Set table to 'customUI' upon load
     useEffect(() => {
@@ -986,27 +989,27 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     /** Update date 1 property with inputValue */
     const uponDate1Change = (inputValue, prop) => {
         setDate1(prevState => ({ ...prevState, [prop]: inputValue }));
-    };
+    }
 
     /** Update date 2 property with inputValue */
     const uponDate2Change = (inputValue, prop) => {
         setDate2(prevState => ({ ...prevState, [prop]: inputValue }));
-    };
+    }
 
     /** Update effective start date property with inputValue */
     const uponEffectiveStartChange = (inputValue, prop) => {
         setStartDate(prevState => ({ ...prevState, [prop]: inputValue }));
-    };
+    }
 
     /** Update effective end date property with inputValue */
     const uponEffectiveEndChange = (inputValue, prop) => {
         setEndDate(prevState => ({ ...prevState, [prop]: inputValue }));
-    };
+    }
 
     /** Update object property with inputValue */
     const uponInputChange = (inputValue, prop) => {
         setObj(prevState => ({ ...prevState, [prop]: inputValue }));
-    };
+    }
 
     /** Update object property (which is also an object) with inputValue */
     const uponObjectInputChange = (inputValue, prop) => {
@@ -1022,26 +1025,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
             }
         }
         setObj(prevState => ({ ...prevState, [prop]: parsedObj }));
-    };
-
-    /** Update option property with inputValue */
-    const uponPayloadInputChange = (inputValue, prop) => {
-        setObj(prevState => ({ ...prevState, payload: { ...prevState.payload, [prop]: inputValue } }));
-    };
-
-    /** Update option property (which is also an object) with inputValue */
-    const uponPayloadObjectInputChange = (inputValue, prop) => {
-        let parsedObj;
-        // Attempt to parse and notify upon uncaught failure
-        try {
-            parsedObj = JSON.parse(inputValue);
-        } catch (err) {
-            console.error("No catch for unparseable object!");
-        }
-        setObj(prevState => ({ ...prevState, payload: { ...prevState.payload, [prop]: parsedObj } }));
-    };
-
-    const addToggle = () => {}
+    }
 
     /** Gets dirs and files where directories is all unqiue directories and
     * files is an array of objects containing dateTime, directory, and title
@@ -1056,7 +1040,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
         }
     };
 
-    // Get payload given relevant arguments
+    /** Get payload given relevant arguments */
     const getPayload = async () => {
         try {
             const content = await fetchObject(obj.table, obj.dateTime, obj.userID, obj.dir, obj.filename);
@@ -1064,6 +1048,10 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
         } catch {
             console.error('Error getting content with ', obj);
         }
+    }
+
+    const saveCustomUI = async () => {
+        
     }
 
     /** Add StartEndInput content to obj.options.schedule */
@@ -1095,6 +1083,38 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
         // Remove content at index
         updatedSchedule.splice(index, 1);
         setObj(prevState => ({ ...prevState, options: { ...prevState.options, schedule: updatedSchedule } }));
+    }
+
+    /** Add element to payload with elementInfo */
+    const addElement = () => {
+        setObj(prevState => ({
+            ...prevState,
+            payload: prevState.payload
+                ? [...prevState.payload, elementInfo]
+                : [elementInfo]
+        }));
+    }
+
+    /** remove element from payload by index */
+    const removeElement = (index) => {
+        const updatedArray = [...obj.payload];
+        updatedArray.splice(index, 1);
+        setObj(prevState => ({ ...prevState, payload: updatedArray }));
+    }
+
+    /** move Element from moveIndex to index just selected */
+    const moveElement = (index) => {
+        const updatedArray = [...obj.payload];
+        const [movedElement] = updatedArray.splice(moveIndex, 1);
+        // Insert element at index above element at moveIndex
+        if (index < moveIndex) {
+            updatedArray.splice(index, 0, movedElement);
+        } else if (index > moveIndex) {
+            updatedArray.splice(index-1, 0, movedElement);
+        } else {
+            return;
+        }
+        setObj(prevState => ({ ...prevState, payload: updatedArray }));
     }
 
     /** HTML element for editing start and end date/time of schedule */
@@ -1327,6 +1347,81 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
         </div>
     )
 
+    /** payload element display including remove, move, and  group buttons */
+    const EditUI = ({ element, index }) => (
+        <div key={index+'AB'}>
+            <div key={index+'A'} className="flexDivRows">
+                {
+                    element.type === 'toggle' ? (
+                        <button>{element.label}</button>
+                    ) : element.type === 'choice' ? (
+                        <p>{element.label}</p>
+                    ) : element.type === 'input' ? (
+                        <p>{element.label}</p>
+                    ) : element.type === 'text' ? (
+                        <p>{element.label}</p>
+                    ) : (null)
+                }
+                <button onClick={() => removeElement(index)}>Remove</button>
+                {/** Either show move or move to button */
+                    moveIndex !== null
+                        ? <button onClick={() => {
+                            moveElement(index);
+                            setMoveIndex(null);
+                        }}>
+                            Place Above
+                        </button>
+                        : <button onClick={() => setMoveIndex(index)}>Move</button>
+                }
+                {/** Show group button and commit button if currently grouping */
+                    grouping ?
+                        <div className="flexDivRows">
+                            <button onClick={() =>
+                                setObj(prevState => ({
+                                    ...prevState, payload:
+                                        prevState.payload.map((element, i) =>
+                                            i === index ? { ...element, group: groupNum } : element
+                                        )
+                                }))
+                            }>Group</button>
+                            <button
+                                onClick={() => {
+                                    setGrouping(false);
+                                    setGroupNum(groupNum + 1);
+                                }}>
+                                Commit
+                            </button>
+                        </div>
+                        : <button onClick={() => {
+                            setGrouping(true);
+                            setObj(prevState => ({
+                                ...prevState, payload:
+                                    prevState.payload.map((element, i) =>
+                                        i === index ? { ...element, group: groupNum } : element
+                                    )
+                            }));
+                        }}>
+                            Group
+                        </button>
+                }
+                <p className="flexDivRows">Group {element.group.toString()}</p>
+            </div>
+            <div key={index+'B'}>
+                {
+                    element.type === 'input' ? (
+                        <input/>
+                    ) : element.type === 'choice' ? (
+                        element.choices.map((choice, i) => (
+                            <button>{choice}</button>
+                        ))
+                    ) : element.type === 'text' ? (
+                        <textarea/>
+                    ) : (null)
+                }
+            </div>
+        </div>
+    )
+
     return (
         <div>
             <Functions printLevel={printLevel} selectFn={selectFn} />
@@ -1386,6 +1481,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                                 {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
                                             </option>
                                         );
+                                    } else {
+                                        return null;
                                     }
                                 })
                             }
@@ -1530,23 +1627,84 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                 }
                 {/** Options to create elements */}
                 <div className="flexDivRows">
-                    <button onClick={() => setElementType('toggle')}>Add Toggle</button>
-                    <button onClick={() => setElementType('choice')}>Add Multiple Choice</button>
-                    <button onClick={() => setElementType('input')}>Add Input Box</button>
-                    <button onClick={() => setElementType('text')}>Add Text Box</button>
+                    <button onClick={() => setElementInfo(({ type: 'toggle', label: '', choices: null, group: 0 }))}>Add Button</button>
+                    <button onClick={() => setElementInfo(({ type: 'choice', label: '', choices: [''], group: 0 }))}>Add Multiple Choice</button>
+                    <button onClick={() => setElementInfo(({ type: 'input', label: '', choices: null, group: 0 }))}>Add Input Box</button>
+                    <button onClick={() => setElementInfo(({ type: 'text', label: '', choices: null, group: 0 }))}>Add Text Box</button>
                 </div>
                 {/** Element creation UI */
-                    elementType === 'toggle' ? (
+                    elementInfo.type === 'toggle' ? (
                         <div className="flexDivRows">
-                            <p>Label:</p>
+                            <p>Button Label:</p>
                             <input
-                                className="flexDivColumns"
                                 name='toggle label box'
-                                value={elementInfo}
-                                onChange={(e) => uponPayloadInputChange(e.target.value, 'dir')}
+                                value={elementInfo.label}
+                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
                             />
+                            <button onClick={() => addElement()}>Add it!</button>
+                        </div>
+                    ) : elementInfo.type === 'choice' ? (
+                        <div>
+                            <div className="flexDivRows">
+                                <p>Multiple Choice Question:</p>
+                                <input
+                                    name='choice label box'
+                                    value={elementInfo.label}
+                                    onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                                />
+                            </div>
+                            <div className="flexDivRows">
+                                <p>Choices:</p>
+                                <button onClick={() => setElementInfo(prevState => ({ ...prevState, choices: prevState.choices.slice(0, prevState.choices.length - 1) }))}>-</button>
+                                <button onClick={() => setElementInfo(prevState => ({ ...prevState, choices: [...prevState.choices, ''] }))}>+</button>
+                                {/** Shows input for each existing choice and edits them based on their index */
+                                    elementInfo.choices.map((choice, index) => (
+                                        <input
+                                            key={index}
+                                            name={`choice box${index}`}
+                                            value={choice}
+                                            onChange={(e) => 
+                                                setElementInfo(prevState => 
+                                                    ({ ...prevState, 
+                                                        choices: prevState.choices.map((c, i) =>
+                                                            i === index ? e.target.value : c
+                                                        )
+                                                    })
+                                                )}
+                                        />
+                                    ))
+                                }
+                            </div>
+                            <button onClick={() => addElement()}>Add it!</button>
+                        </div>
+                    ) : elementInfo.type === 'input' ? (
+                        <div className="flexDivRows">
+                            <p>Input Label:</p>
+                            <input
+                                name='input label box'
+                                value={elementInfo.label}
+                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                            />
+                            <button onClick={() => addElement()}>Add it!</button>
+                        </div>
+                    ) : elementInfo.type === 'text' ? (
+                        <div className="flexDivRows">
+                            <p>Text Box Label:</p>
+                            <input
+                                name='text label box'
+                                value={elementInfo.label}
+                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                            />
+                            <button onClick={() => addElement()}>Add it!</button>
                         </div>
                     ) : (null)
+                }
+                <p>UI Representation:</p>
+                {/** Display UI similar to how it will be in CustomRecord */
+                    obj.payload &&
+                        obj.payload.map((element, index) => (
+                            <EditUI element={element} index={index}/>
+                        ))
                 }
             </div>
         </div>

@@ -40,7 +40,8 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 
 .flexDivRows> :first-child {
@@ -85,8 +86,10 @@ input {
     background-color: white;
     position: fixed;
     top: 10%;
+    max-height: 90%;
     margin: 2%;
     width: 96%;
+    overflow: auto;
 }
 
 .popup {

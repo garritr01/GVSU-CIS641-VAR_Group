@@ -2,3 +2,5 @@
 2. All instances of 'directory' must be changed to 'dir'
 3. Add delete functionality to NewJournal
 4. Remove 'New' from function titles when done
+5. Remove 'Log' buttons from the beginning of functions when done
+6. Set initial function to 'Login' and remove 'garritr01' as automatic userID
