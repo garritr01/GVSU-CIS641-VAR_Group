@@ -31,7 +31,7 @@ const App = () => {
       dir: '',
       filename: '',
       dateTime: { date: '', time: '' },
-      options: {},
+      options: null,
       payload: null
     });
   const [table, setTable] = useState(null);

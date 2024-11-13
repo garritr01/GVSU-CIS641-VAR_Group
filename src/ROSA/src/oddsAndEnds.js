@@ -77,6 +77,48 @@ export function convertLocalStringsToUTC(dateTime) {
     return formatDateToObject(utcDate);
 }
 
+/** 
+ * Converts a local time object to UTC time.
+ * @param {Object} localObj - Object representing local time with properties { day, month, year, hour, minute }.
+ * @returns {Object} - Object representing the same date and time in UTC with properties { day, month, year, hour, minute }.
+ */
+export const convertLocalObjToUTC = (localObj) => {
+    const { day, month, year, hour, minute } = localObj;
+
+    // Create a new Date object using the local time (month is zero-indexed, hence month - 1)
+    const localDate = new Date(year, month - 1, day, hour, minute);
+
+    // Extract the UTC values
+    return {
+        day: String(localDate.getUTCDate()).padStart(2, '0'), // Ensures two digits
+        month: String(localDate.getUTCMonth() + 1).padStart(2, '0'), // month is 0-indexed, ensures two digits
+        year: String(localDate.getUTCFullYear()).padStart(4, '0'), // Ensures four digits
+        hour: String(localDate.getUTCHours()).padStart(2, '0'), // Ensures two digits
+        minute: String(localDate.getUTCMinutes()).padStart(2, '0'), // Ensures two digits
+    };
+};
+
+/** 
+ * Converts a UTC time object to local time.
+ * @param {Object} utcObj - Object representing UTC time with properties { day, month, year, hour, minute }.
+ * @returns {Object} - Object representing the same date and time in the local time zone with properties { day, month, year, hour, minute }.
+ */
+export const convertUTCObjToLocal = (utcObj) => {
+    const { day, month, year, hour, minute } = utcObj;
+
+    // Create a new Date object using UTC time (Date.UTC ensures it's in UTC)
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+
+    // Now extract the local time values (JavaScript automatically converts it to local time)
+    return {
+        day: String(utcDate.getDate()).padStart(2, '0'), // Local day (two digits)
+        month: String(utcDate.getMonth() + 1).padStart(2, '0'), // Local month (two digits)
+        year: String(utcDate.getFullYear()).padStart(4, '0'), // Local year (four digits)
+        hour: String(utcDate.getHours()).padStart(2, '0'), // Local hour (two digits)
+        minute: String(utcDate.getMinutes()).padStart(2, '0'), // Local minute (two digits)
+    };
+};
+
 /**  Parse a {date,time} object into a date object */
 export const parseDateObject = (date) => {
     //console.log(dateString);

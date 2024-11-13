@@ -364,6 +364,7 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
         <div>
             <Functions printLevel={printLevel} selectFn={selectFn} />
             <div className="mainContainer">
+                <button onClick={() => console.log(fileInfo)}>anyLog</button>
                 <button onClick={() => console.log(obj)}>Log</button>
                 <div className="flexDivTable">
                     {/** Directory row */}

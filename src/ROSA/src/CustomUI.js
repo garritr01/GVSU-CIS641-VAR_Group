@@ -3,13 +3,15 @@ import React, { useState, useEffect, useRef
 
 import {getDateString, getTimeString, chooseMostRecent, formatDateToObject,
     convertUTCstringsToLocal, convertLocalStringsToUTC, getCurrentDateStrings,
-    getWeekdayString
+    getWeekdayString, convertLocalObjToUTC, convertUTCObjToLocal
 } from './oddsAndEnds';
 
-import { deleteEntry, fetchObject, fetchFiles, fetchDirsAndFiles, saveObject 
+import { deleteEntry, fetchObject, fetchFiles, fetchDirsAndFiles, saveObject, 
+    newSaveObject, newFetchObject, newFetchDirsAndFiles
 } from './generalFetch';
 
 import { Functions } from './MainMenu';
+import { flushSync } from 'react-dom';
 
 /** interface for creating a user interface for custom info - Skipped documentation here too 
  * as the simple functions are the most important for future use and I think they're relatively self explanatory
@@ -958,6 +960,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     const [schedule, setSchedule] = useState(false);
     // Contain repeat type temporarily
     const [repeatType, setRepeatType] = useState('');
+    // Used to determine whether value is absolute or subject to time zones (true -> absolute)
+    const [local, setLocal] = useState(false);
     // Contain date being input for later conversion to object (2 for start and end if necessary)
     const [date1, setDate1] = useState(time);
     const [date2, setDate2] = useState(time);
@@ -968,43 +972,13 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     const [repeatInfo, setRepeatInfo] = useState('1');
     // elementInfo contains the text to show describing the input
     const [elementInfo, setElementInfo] = useState({ type: '', label: '', choices: null, group: 0 });
-    // hold index of object to be moved
-    const [moveIndex, setMoveIndex] = useState(null);
-    // hold current group number and if it is actively being grouped
-    const [groupNum, setGroupNum] = useState(1);
-    const [grouping, setGrouping] = useState(false);
 
     // Set table to 'customUI' upon load
+    // and get existing dirs, files and versions
     useEffect(() => {
         setObj(prevState => ({ ...prevState, table: 'customUI' }));
+        getDirsAndFiles();
     }, []);
-
-    // Make sure repeatInfo won't be greater than 6 (Saturday) when changed
-    useEffect(() => {
-        if (repeatType === 'weekly' && repeatInfo > 6) {
-            setRepeatInfo('1');
-        }
-    },[repeatType])
-
-    /** Update date 1 property with inputValue */
-    const uponDate1Change = (inputValue, prop) => {
-        setDate1(prevState => ({ ...prevState, [prop]: inputValue }));
-    }
-
-    /** Update date 2 property with inputValue */
-    const uponDate2Change = (inputValue, prop) => {
-        setDate2(prevState => ({ ...prevState, [prop]: inputValue }));
-    }
-
-    /** Update effective start date property with inputValue */
-    const uponEffectiveStartChange = (inputValue, prop) => {
-        setStartDate(prevState => ({ ...prevState, [prop]: inputValue }));
-    }
-
-    /** Update effective end date property with inputValue */
-    const uponEffectiveEndChange = (inputValue, prop) => {
-        setEndDate(prevState => ({ ...prevState, [prop]: inputValue }));
-    }
 
     /** Update object property with inputValue */
     const uponInputChange = (inputValue, prop) => {
@@ -1032,37 +1006,235 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     */
     const getDirsAndFiles = async () => {
         try {
-            const dirsAndFiles = await fetchDirsAndFiles('journals', obj.userID);
-            setFileInfo(dirsAndFiles.files);
-            setDirs(dirsAndFiles.directories);
+            const response = await newFetchDirsAndFiles('customUI', obj.userID);
+            if (response.truth) {
+                setFileInfo(response.files);
+                setDirs(response.dirs);
+            } else {
+                console.error(`${response.status}: ${response.msg}`);
+            }
         } catch (err) {
-            console.error('Error fetching journal dirs and files:', err);
+            console.error('Error fetching customUI dirs and files:', err);
         }
     };
 
-    /** Get payload given relevant arguments */
+    /** Get payload and options given relevant arguments */
     const getPayload = async () => {
         try {
-            const content = await fetchObject(obj.table, obj.dateTime, obj.userID, obj.dir, obj.filename);
-            setObj(prevState => ({ ...prevState, payload: content }));
+            const response = await newFetchObject(obj);
+            
+            if (!response.truth) {
+                console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`)
+            } else {
+                const newObj = {
+                    ...obj,
+                    options: response.options,
+                    payload: response.payload
+                };
+                const updatedObj = convertScheduleIn(newObj);
+            }
         } catch {
             console.error('Error getting content with ', obj);
         }
     }
 
-    const saveCustomUI = async () => {
-        
+    /** Convert all options.schedules to to local if option.schedule[i].local === false
+     * setObject
+     */
+    const convertScheduleIn = (newObj) => {
+        const updatedObj = {
+            ...newObj,
+            options: {
+                ...newObj.options,
+                schedule: newObj.options.schedule.map((schedule) => {
+                    // If `schedule.local` is false, convert times to UTC
+                    if (!schedule.local) {
+                        // Convert start and end to UTC with hour and minute set to midnight
+                        const startLocal = convertUTCObjToLocal(schedule.start);
+
+                        const endLocal = convertUTCObjToLocal(schedule.end);
+
+                        // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
+                        let effectiveStartLocal = schedule.effectiveStart;
+                        let effectiveEndLocal = schedule.effectiveEnd;
+
+                        if (schedule.effectiveStart.month !== 'NA') {
+                            effectiveStartLocal = convertUTCObjToLocal({
+                                day: schedule.effectiveStart.day,
+                                month: schedule.effectiveStart.month,
+                                year: schedule.effectiveStart.year,
+                                hour: '00', // Set the hour to midnight
+                                minute: '00', // Set the minute to midnight
+                            });
+                        }
+
+                        if (schedule.effectiveEnd.month !== 'NA') {
+                            effectiveEndLocal = convertUTCObjToLocal({
+                                day: schedule.effectiveEnd.day,
+                                month: schedule.effectiveEnd.month,
+                                year: schedule.effectiveEnd.year,
+                                hour: '00', // Set the hour to midnight
+                                minute: '00', // Set the minute to midnight
+                            });
+                        }
+
+                        return {
+                            ...schedule,
+                            start: startLocal,
+                            end: endLocal,
+                            effectiveStart: {
+                                day: effectiveStartLocal.day,
+                                month: effectiveStartLocal.month,
+                                year: effectiveStartLocal.year,
+                            },
+                            effectiveEnd: {
+                                day: effectiveEndLocal.day,
+                                month: effectiveEndLocal.month,
+                                year: effectiveEndLocal.year,
+                            }
+                        };
+                    } else {
+                        // If `schedule.local` is true, leave the schedule unchanged
+                        return {
+                            ...schedule,
+                        };
+                    }
+                })
+            }
+        };
+
+        setObj(updatedObj);
+    }
+
+    /** Convert all options.schedules to UTC if option.schedule[i].local === false 
+     * return object
+    */
+    const convertScheduleOut = () => {
+        const updatedObj = {
+            ...obj,
+            options: {
+                ...obj.options,
+                schedule: obj.options.schedule.map((schedule) => {
+                    // If `schedule.local` is false, convert times to UTC
+                    if (!schedule.local) {
+                        // Convert start and end to UTC with hour and minute set to midnight
+                        const startUTC = convertLocalObjToUTC(schedule.start);
+
+                        const endUTC = convertLocalObjToUTC(schedule.end);
+
+                        // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
+                        let effectiveStartUTC = schedule.effectiveStart;
+                        let effectiveEndUTC = schedule.effectiveEnd;
+
+                        if (schedule.effectiveStart.month !== 'NA') {
+                            effectiveStartUTC = convertLocalObjToUTC({
+                                day: schedule.effectiveStart.day,
+                                month: schedule.effectiveStart.month,
+                                year: schedule.effectiveStart.year,
+                                hour: '00', // Set the hour to midnight
+                                minute: '00', // Set the minute to midnight
+                            });
+                        }
+
+                        if (schedule.effectiveEnd.month !== 'NA') {
+                            effectiveEndUTC = convertLocalObjToUTC({
+                                day: schedule.effectiveEnd.day,
+                                month: schedule.effectiveEnd.month,
+                                year: schedule.effectiveEnd.year,
+                                hour: '00', // Set the hour to midnight
+                                minute: '00', // Set the minute to midnight
+                            });
+                        }
+
+                        return {
+                            ...schedule,
+                            start: startUTC,
+                            end: endUTC,
+                            effectiveStart: {
+                                day: effectiveStartUTC.day,
+                                month: effectiveStartUTC.month,
+                                year: effectiveStartUTC.year,
+                            },
+                            effectiveEnd: {
+                                day: effectiveEndUTC.day,
+                                month: effectiveEndUTC.month,
+                                year: effectiveEndUTC.year,
+                            }
+                        };
+                    } else {
+                        // If `schedule.local` is true, leave the schedule unchanged
+                        return {
+                            ...schedule,
+                        };
+                    }
+                })
+            }
+        };
+
+        return updatedObj;
+    }
+
+    /** Save new UI or overwrite UI */
+    const saveCustomUI = async (overwrite) => {
+
+        const outObj = convertScheduleOut();
+
+        if (overwrite) {
+            const response = await newSaveObject(outObj);
+            if (response.truth) {
+                if (response.status === 200) {
+                    getDirsAndFiles();
+                    console.log(`Updated content of ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`);
+                } else {
+                    console.error('Updated???',response);
+                }
+            } else {
+                console.error(`Failed to update content of ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`,response);
+            }
+        } else {
+            const objToSave = { ...outObj, dateTime: { date: getDateString(), time: getTimeString() } };
+            const response = await newSaveObject(objToSave);
+            if (response.truth) {
+                if (response.status === 201) {
+                    getDirsAndFiles();
+                    console.log(`Saved content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`);
+                } else {
+                    console.error('Updated???', response);
+                }
+            } else {
+                console.error(`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`, response);
+            }
+        }
     }
 
     /** Add StartEndInput content to obj.options.schedule */
     const scheduleIt = () => {
+        // Format date properties to ensure two digits for day, month, hour, and minute, and four digits for year
+        const formatDate = (dateObj) => {
+            return {
+                day: String(dateObj.day).padStart(2, '0'),
+                month: String(dateObj.month).padStart(2, '0'),
+                year: String(dateObj.year).padStart(4, '0'),
+                hour: String(dateObj.hour).padStart(2, '0'),
+                minute: String(dateObj.minute).padStart(2, '0')
+            };
+        };
+
+        // Create new formatted variables for start, end, effectiveStart, and effectiveEnd
+        const formattedStart = formatDate(date1);
+        const formattedEnd = formatDate(date2);
+        const formattedEffectiveStart = formatDate(startDate);
+        const formattedEffectiveEnd = formatDate(endDate);
+
+        // Create the newSchedule object with formatted date objects
         const newSchedule = {
             repeatType: repeatType,
             repeatInfo: repeatInfo,
-            start: date1,
-            end: date2,
-            effectiveStart: startDate,
-            effectiveEnd: endDate,
+            start: formattedStart,
+            end: formattedEnd,
+            effectiveStart: formattedEffectiveStart,
+            effectiveEnd: formattedEffectiveEnd,
+            local: local
         };
 
         setObj(prevState => ({
@@ -1076,15 +1248,6 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
         }));
     }
 
-    /** Remove content from obj.options.schedule */
-    const removeSchedule = (index) => {
-        // Make copy
-        const updatedSchedule = [...obj.options.schedule];
-        // Remove content at index
-        updatedSchedule.splice(index, 1);
-        setObj(prevState => ({ ...prevState, options: { ...prevState.options, schedule: updatedSchedule } }));
-    }
-
     /** Add element to payload with elementInfo */
     const addElement = () => {
         setObj(prevState => ({
@@ -1095,339 +1258,12 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
         }));
     }
 
-    /** remove element from payload by index */
-    const removeElement = (index) => {
-        const updatedArray = [...obj.payload];
-        updatedArray.splice(index, 1);
-        setObj(prevState => ({ ...prevState, payload: updatedArray }));
-    }
-
-    /** move Element from moveIndex to index just selected */
-    const moveElement = (index) => {
-        const updatedArray = [...obj.payload];
-        const [movedElement] = updatedArray.splice(moveIndex, 1);
-        // Insert element at index above element at moveIndex
-        if (index < moveIndex) {
-            updatedArray.splice(index, 0, movedElement);
-        } else if (index > moveIndex) {
-            updatedArray.splice(index-1, 0, movedElement);
-        } else {
-            return;
-        }
-        setObj(prevState => ({ ...prevState, payload: updatedArray }));
-    }
-
-    /** HTML element for editing start and end date/time of schedule */
-    const StartEndInput = () => (
-        <div className="flexDivTable">
-            <div className="flexDivRows">
-                <p className="flexDivColumns">From:</p>
-                <input
-                    className="twoDigitInput"
-                    name='month1 box'
-                    value={date1.month}
-                    onChange={(e) => uponDate1Change(e.target.value, 'month')}
-                />
-                <p className="flexDivColumns">/</p>
-                <input
-                    className="twoDigitInput"
-                    name='day1 box'
-                    value={date1.day}
-                    onChange={(e) => uponDate1Change(e.target.value, 'day')}
-                />
-                <p className="flexDivColumns">/</p>
-                <input
-                    className="fourDigitInput"
-                    name='year1 box'
-                    value={date1.year}
-                    onChange={(e) => uponDate1Change(e.target.value, 'year')}
-                />
-                <p className="flexDivColumns">at</p>
-                <input
-                    className="twoDigitInput"
-                    name='hour1 box'
-                    value={date1.hour}
-                    onChange={(e) => uponDate1Change(e.target.value, 'hour')}
-                />
-                <p className="flexDivColumns">:</p>
-                <input
-                    className="twoDigitInput"
-                    name='minute1 box'
-                    value={date1.minute}
-                    onChange={(e) => uponDate1Change(e.target.value, 'minute')}
-                />
-            </div>
-            <div className="flexDivRows">
-                <p className="flexDivColumns">To:</p>
-                <input
-                    className="twoDigitInput"
-                    name='month2 box'
-                    value={date2.month}
-                    onChange={(e) => uponDate2Change(e.target.value, 'month')}
-                />
-                <p className="flexDivColumns">/</p>
-                <input
-                    className="twoDigitInput"
-                    name='day2 box'
-                    value={date2.day}
-                    onChange={(e) => uponDate2Change(e.target.value, 'day')}
-                />
-                <p className="flexDivColumns">/</p>
-                <input
-                    className="fourDigitInput"
-                    name='year2 box'
-                    value={date2.year}
-                    onChange={(e) => uponDate2Change(e.target.value, 'year')}
-                />
-                <p className="flexDivColumns">at</p>
-                <input
-                    className="twoDigitInput"
-                    name='hour2 box'
-                    value={date2.hour}
-                    onChange={(e) => uponDate2Change(e.target.value, 'hour')}
-                />
-                <p className="flexDivColumns">:</p>
-                <input
-                    className="twoDigitInput"
-                    name='minute2 box'
-                    value={date2.minute}
-                    onChange={(e) => uponDate2Change(e.target.value, 'minute')}
-                />
-            </div>
-        </div>
-    )
-
-    /** HTML element for editing effective start and end date of schedule */
-    const EffectiveTimeRange = () => (
-        <div>
-        { /** Render unless 'Always' chosen */
-            startDate.month !== 'NA' ?
-                <div>
-                    <div className="flexDivRows">
-                        <p>Effective Time Range</p>
-                        <button
-                            onClick={() => {
-                                setStartDate({ month: 'NA', day: 'NA', year: 'NA' });
-                                setEndDate({ month: 'NA', day: 'NA', year: 'NA' });
-                            }}>
-                            Always
-                        </button>
-                    </div>
-                    <div className="flexDivTable">
-                        <div className="flexDivRows">
-                            <p className="flexDivColumns">From:</p>
-                            <input
-                                className="twoDigitInput"
-                                name='start month box'
-                                value={startDate.month}
-                                onChange={(e) => uponEffectiveStartChange(e.target.value, 'month')}
-                            />
-                            <p className="flexDivColumns">/</p>
-                            <input
-                                className="twoDigitInput"
-                                name='start day box'
-                                value={startDate.day}
-                                onChange={(e) => uponEffectiveStartChange(e.target.value, 'day')}
-                            />
-                            <p className="flexDivColumns">/</p>
-                            <input
-                                className="fourDigitInput"
-                                name='start year box'
-                                value={startDate.year}
-                                onChange={(e) => uponEffectiveStartChange(e.target.value, 'year')}
-                            />
-                        </div>
-                        <div className="flexDivRows">
-                            <p className="flexDivColumns">To:</p>
-                            <input
-                                className="twoDigitInput"
-                                name='end month box'
-                                value={endDate.month}
-                                onChange={(e) => uponEffectiveEndChange(e.target.value, 'month')}
-                            />
-                            <p className="flexDivColumns">/</p>
-                            <input
-                                className="twoDigitInput"
-                                name='end day box'
-                                value={endDate.day}
-                                onChange={(e) => uponEffectiveEndChange(e.target.value, 'day')}
-                            />
-                            <p className="flexDivColumns">/</p>
-                            <input
-                                className="fourDigitInput"
-                                name='end year box'
-                                value={endDate.year}
-                                onChange={(e) => uponEffectiveEndChange(e.target.value, 'year')}
-                            />
-                        </div>
-                    </div>
-                </div>
-                :
-                <div className="flexDivRows">
-                    <p>Always in effect.</p>
-                    <button
-                        onClick={() => {
-                            setStartDate(time);
-                            setEndDate(time);
-                        }}>
-                        Reset
-                    </button>
-                </div>
-            }
-        </div>
-    )
-
-    /** HTML element for displaying schedules that will be saved with UI */
-    const ScheduleDisplay = ({ schedule, index }) => (
-        <div>
-            <div className="flexDivRows" key={index}>
-                <p
-                    style={({ cursor: 'pointer' })}
-                    onClick={() => { removeSchedule(index) }}>
-                    {schedule.start.month}/{schedule.start.day}/{schedule.start.year}&nbsp;
-                    {schedule.start.hour}:{schedule.start.minute}&nbsp;
-                    -&nbsp;
-                    {schedule.start.month === schedule.end.month &&
-                        schedule.start.day === schedule.end.day &&
-                        schedule.start.year === schedule.end.year ? (
-                        <span>{schedule.end.hour}:{schedule.end.minute}</span>
-                    ) : (
-                        <span>
-                            {schedule.end.month}/{schedule.end.day}/{schedule.end.year}&nbsp;
-                            {schedule.end.hour}:{schedule.end.minute}
-                        </span>
-                    )
-                    }
-                </p>
-                {
-                    schedule.repeatType === 'specRpt' ? (
-                    <p
-                        style={({ cursor: 'pointer' })}
-                        onClick={() => { removeSchedule(index) }}>
-                            &nbsp;repeats every {schedule.repeatInfo} days
-                        </p>
-                    ) : schedule.repeatType === 'daily' ? (
-                    <p
-                        style={({ cursor: 'pointer' })}
-                        onClick={() => { removeSchedule(index) }}>
-                            &nbsp;repeats daily
-                        </p>
-                    ) : schedule.repeatType === 'weekly' ? (
-                    <p
-                        style={({ cursor: 'pointer' })}
-                        onClick={() => { removeSchedule(index) }}>
-                            &nbsp;repeats every {getWeekdayString(parseInt(schedule.repeatInfo))}
-                        </p>
-                    ) : schedule.repeatType === 'monthly' ? (
-                    <p
-                        style={({ cursor: 'pointer' })}
-                        onClick={() => { removeSchedule(index) }}>
-                            &nbsp;repeats monthly
-                        </p>
-                    ) : schedule.repeatType === 'annually' ? (
-                    <p
-                        style={({ cursor: 'pointer' })}
-                        onClick={() => { removeSchedule(index) }}>
-                            &nbsp;repeats annually
-                        </p>
-                    ) : (null)
-                }
-            </div>
-            <div className="flexDivRows" key={index}>
-                    <p
-                        style={({ cursor: 'pointer' })}
-                        onClick={() => { removeSchedule(index) }}>
-                        {schedule.effectiveStart.month !== 'NA' ? (<>
-                            Effective {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year}
-                            &nbsp;- {schedule.effectiveEnd.month}/{schedule.effectiveEnd.day}/{schedule.effectiveEnd.year}
-                        </>) : (<>Effective forever</>)
-                        }
-                    </p>
-            </div>
-        </div>
-    )
-
-    /** payload element display including remove, move, and  group buttons */
-    const EditUI = ({ element, index }) => (
-        <div key={index+'AB'}>
-            <div key={index+'A'} className="flexDivRows">
-                {
-                    element.type === 'toggle' ? (
-                        <button>{element.label}</button>
-                    ) : element.type === 'choice' ? (
-                        <p>{element.label}</p>
-                    ) : element.type === 'input' ? (
-                        <p>{element.label}</p>
-                    ) : element.type === 'text' ? (
-                        <p>{element.label}</p>
-                    ) : (null)
-                }
-                <button onClick={() => removeElement(index)}>Remove</button>
-                {/** Either show move or move to button */
-                    moveIndex !== null
-                        ? <button onClick={() => {
-                            moveElement(index);
-                            setMoveIndex(null);
-                        }}>
-                            Place Above
-                        </button>
-                        : <button onClick={() => setMoveIndex(index)}>Move</button>
-                }
-                {/** Show group button and commit button if currently grouping */
-                    grouping ?
-                        <div className="flexDivRows">
-                            <button onClick={() =>
-                                setObj(prevState => ({
-                                    ...prevState, payload:
-                                        prevState.payload.map((element, i) =>
-                                            i === index ? { ...element, group: groupNum } : element
-                                        )
-                                }))
-                            }>Group</button>
-                            <button
-                                onClick={() => {
-                                    setGrouping(false);
-                                    setGroupNum(groupNum + 1);
-                                }}>
-                                Commit
-                            </button>
-                        </div>
-                        : <button onClick={() => {
-                            setGrouping(true);
-                            setObj(prevState => ({
-                                ...prevState, payload:
-                                    prevState.payload.map((element, i) =>
-                                        i === index ? { ...element, group: groupNum } : element
-                                    )
-                            }));
-                        }}>
-                            Group
-                        </button>
-                }
-                <p className="flexDivRows">Group {element.group.toString()}</p>
-            </div>
-            <div key={index+'B'}>
-                {
-                    element.type === 'input' ? (
-                        <input/>
-                    ) : element.type === 'choice' ? (
-                        element.choices.map((choice, i) => (
-                            <button>{choice}</button>
-                        ))
-                    ) : element.type === 'text' ? (
-                        <textarea/>
-                    ) : (null)
-                }
-            </div>
-        </div>
-    )
-
     return (
         <div>
             <Functions printLevel={printLevel} selectFn={selectFn} />
             <div className="mainContainer">
                 <button onClick={() => console.log(obj)}>obj</button>
-                <button onClick={() => console.log(repeatInfo,typeof(repeatInfo))}>repeatInfo</button>
+                <button onClick={() => console.log(convertScheduleOut())}>anyLog</button>
                 <div className="flexDivTable">
                     {/** Directory row */}
                     <div className="flexDivRows">
@@ -1442,7 +1278,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                         <datalist id='dirs'>
                             {dirs.length > 0 &&
                                 dirs.map((name, index) => (
-                                    <option key={index} value={name} />
+                                    <option key={'dir'+index} value={name} />
                                 ))}
                         </datalist>
                     </div>
@@ -1460,9 +1296,9 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                             {fileInfo.length > 0 &&
                                 fileInfo.filter((file) => file.directory === obj.dir
                                 ).filter((obj, index, self) =>
-                                    index === self.findIndex((o) => o.title === obj.title)
+                                    index === self.findIndex((o) => o.filename === obj.filename)
                                 ).map((file, index) => (
-                                    <option key={index} value={file.title} />
+                                    <option key={'filename'+index} value={file.filename} />
                                 ))}
                         </datalist>
                     </div>
@@ -1475,9 +1311,9 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                             <option key={'new'} value={'new'}>New</option>
                             { // Create option for each version and set to last saved in database initially
                                 fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
-                                    if (file.title === obj.filename && file.directory === obj.dir) {
+                                    if (file.filename === obj.filename && file.directory === obj.dir) {
                                         return (
-                                            <option key={index} value={JSON.stringify(file.dateTime)}>
+                                            <option key={'version'+index} value={JSON.stringify(file.dateTime)}>
                                                 {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
                                             </option>
                                         );
@@ -1494,7 +1330,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                     { // Render load content button if all necessary fields are filled
                         obj.dir && obj.filename && obj.dateTime.date ?
                             <div>
-                                <button onClick={() => getPayload()}>LoadContent</button>
+                                <button onClick={() => getPayload()}>Load Content</button>
                             </div>
                             :
                             <div>
@@ -1502,21 +1338,15 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                             </div>
                     } { // Render overwrite button if using previous file version
                         obj.payload && obj.dir && obj.filename ?
-                            obj.dateTime.date ?
-                                <div className="flexDivRows">
-                                    <button>Overwrite</button>
-                                    <button>Save New</button>
-                                </div>
-                                :
-                                <div className="flexDivRows">
-                                    <button style={({ color: 'gray' })}>Overwrite</button>
-                                    <button>Save New</button>
-                                </div>
-                            :
-                            <div className="flexDivRows">
-                                <button style={({ color: 'gray' })}>Overwrite</button>
-                                <button style={({ color: 'gray' })}>Save New</button>
-                            </div>
+                            obj.dateTime.date 
+                                ? <button onClick={() => saveCustomUI(true)}>Overwrite</button>
+                                : <button onClick={() => saveCustomUI(false)}>Save</button>
+                            : <button style={({ color: 'gray' })}>Save</button>
+                    } { // Render empty content button if payload || options
+                        (obj.payload || obj.options) &&
+                            <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null}))}>
+                                Empty Content
+                            </button>
                     }
                 </div>
                 {/** Initial Scheduling Row */}
@@ -1530,12 +1360,60 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                         schedule &&
                             <div>
                                 <p>Repeat Type:</p>
-                                <button onClick={() => {setRepeatType('none')}}>Specific</button>
-                                <button onClick={() => {setRepeatType('specRpt')}}>Specific Repeat</button>
-                                <button onClick={() => {setRepeatType('daily')}}>Daily</button>
-                                <button onClick={() => {setRepeatType('weekly')}}>Weekly</button>
-                                <button onClick={() => {setRepeatType('monthly')}}>Monthly</button>
-                                <button onClick={() => {setRepeatType('annually')}}>Annually</button>
+                                <button className="moreLink" onClick={() => {setRepeatType('none')}}>
+                                    Specific
+                                    <span className="more bulletList">
+                                        <h3>Specific Behavior</h3>
+                                        <p>Start and end define one event</p>
+                                    </span>
+                                </button>
+                                <button className="moreLink" onClick={() => {setRepeatType('specRpt')}}>
+                                    Specific Repeat
+                                    <span className="more bulletList">
+                                        <h3>Specific Repeat Behavior</h3>
+                                        <p>Start and end serve as initial date</p>
+                                        <p>Events will repeat the specified number of days apart</p>
+                                        <p>Events will repeat in the past and future within the inclusive bounds of effective start and end</p>
+                                    </span>
+                                </button>
+                                <button className="moreLink" onClick={() => {setRepeatType('daily')}}>
+                                    Daily
+                                    <span className="more bulletList">
+                                        <h3>Daily Repeat Behavior</h3>
+                                        <p>Start and end are only relevant for the starting time and time span</p>
+                                        <p>If the start and end dates are different events will span multiple days</p>
+                                        <p>Events will repeat each day in the past and future within the inclusive bounds of effective start and end</p>
+                                    </span>
+                                </button>
+                                <button className="moreLink" onClick={() => {setRepeatType('weekly'); setRepeatInfo('1');}}>
+                                    Weekly
+                                    <span className="more bulletList">
+                                        <h3>Weekly Repeat Behavior</h3>
+                                        <p>Start and end are only relevant for the starting time and time span</p>
+                                        <p>If the start and end date are different each event will span multiple days and the start date will use the given day of the week</p>
+                                        <p>Events will repeat each week in the past and future within the inclusive bounds of effective start and end</p>
+                                    </span>
+                                </button>
+                                <button className="moreLink" onClick={() => {setRepeatType('monthly')}}>
+                                    Monthly
+                                    <span className="more bulletList">
+                                        <h3>Monthly Repeat Behavior</h3>
+                                        <p>Start and end are only relevant for the day, and time</p>
+                                        <p>If the start and end date are different each event will span multiple days</p>
+                                        <p>If day used is not in a certain month the last day of the month will be used</p>
+                                        <p>Events will repeat each month in the past and future within the bounds of effective start and end</p>
+                                    </span>
+                                </button>
+                                <button className="moreLink" onClick={() => {setRepeatType('annually')}}>
+                                    Annually
+                                    <span className="more bulletList">
+                                        <h3>Annually Repeat Behavior</h3>
+                                        <p>Start and end are only relevant for the month, day, and time</p>
+                                        <p>If the start and end date are different each event will span multiple days</p>
+                                        <p>If month/day set to 2/29, 2/28 will be used on non-leap years</p>
+                                        <p>Events will repeat each year in the past and future within the bounds of effective start and end</p>
+                                    </span>
+                                </button>
                             </div>
                     }
                 </div>
@@ -1544,14 +1422,19 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                         repeatType === 'none' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput/>
-                                <p className="flexDivRows">Never repeat</p>
+                                <StartEndInput 
+                                    local={local} setLocal={setLocal} 
+                                    date1={date1} setDate1={setDate1} 
+                                    date2={date2} setDate2={setDate2}/>
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
                             </div>
                         ) : repeatType === 'specRpt' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput/>
+                                <StartEndInput
+                                    local={local} setLocal={setLocal}
+                                    date1={date1} setDate1={setDate1}
+                                    date2={date2} setDate2={setDate2} />
                                 <div className="flexDivRows">
                                     <p>Repeat every&nbsp;</p>
                                     <input
@@ -1562,21 +1445,30 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                     />
                                     <p>&nbsp;days</p>
                                 </div>
-                                <EffectiveTimeRange/>
+                                <EffectiveTimeRange repeatType={repeatType}
+                                    startDate={startDate} setStartDate={setStartDate}
+                                    endDate={endDate} setEndDate={setEndDate}/>
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
                             </div>
                         ) : repeatType === 'daily' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput/>
-                                <p className="flexDivRows">Repeat daily</p>
-                                <EffectiveTimeRange/>
+                                <StartEndInput
+                                    local={local} setLocal={setLocal}
+                                    date1={date1} setDate1={setDate1}
+                                    date2={date2} setDate2={setDate2} />
+                                <EffectiveTimeRange repeatType={repeatType}
+                                    startDate={startDate} setStartDate={setStartDate}
+                                    endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
                             </div>
                         ) : repeatType === 'weekly' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput/>
+                                <StartEndInput
+                                    local={local} setLocal={setLocal}
+                                    date1={date1} setDate1={setDate1}
+                                    date2={date2} setDate2={setDate2} />
                                 <div className="flexDivRows">
                                     <p>Repeat every&nbsp;</p>
                                     <select
@@ -1592,23 +1484,33 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                             <option key={'6'} value={'6'}>Saturday</option>
                                     </select>
                                 </div>
-                                <EffectiveTimeRange/>
+                                <EffectiveTimeRange repeatType={repeatType}
+                                    startDate={startDate} setStartDate={setStartDate}
+                                    endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
                             </div>
                         ) : repeatType === 'monthly' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput/>
-                                <p className="flexDivRows">Repeat monthly</p>
-                                <EffectiveTimeRange/>
+                                <StartEndInput
+                                    local={local} setLocal={setLocal}
+                                    date1={date1} setDate1={setDate1}
+                                    date2={date2} setDate2={setDate2} />
+                                <EffectiveTimeRange repeatType={repeatType}
+                                    startDate={startDate} setStartDate={setStartDate}
+                                    endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
                             </div>
                         ) : repeatType === 'annually' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput/>
-                                <p className="flexDivRows">Repeat annually</p>
-                                <EffectiveTimeRange/>
+                                <StartEndInput
+                                    local={local} setLocal={setLocal}
+                                    date1={date1} setDate1={setDate1}
+                                    date2={date2} setDate2={setDate2} />
+                                <EffectiveTimeRange repeatType={repeatType}
+                                    startDate={startDate} setStartDate={setStartDate}
+                                    endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
                             </div>
                         ) : (null)
@@ -1619,11 +1521,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                     <p className="flexDivRows">Scheduled Dates</p>
                 }
                 {/** Display all schedule elements */
-                    obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
-                        obj.options.schedule.map((schedule, index) => (
-                            <ScheduleDisplay schedule={schedule} index={index} />
-                        )
-                    )
+                    <ScheduleDisplay obj={obj} setObj={setObj} />
                 }
                 {/** Options to create elements */}
                 <div className="flexDivRows">
@@ -1660,7 +1558,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                 {/** Shows input for each existing choice and edits them based on their index */
                                     elementInfo.choices.map((choice, index) => (
                                         <input
-                                            key={index}
+                                            key={'multChoice'+index}
                                             name={`choice box${index}`}
                                             value={choice}
                                             onChange={(e) => 
@@ -1701,12 +1599,415 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                 }
                 <p>UI Representation:</p>
                 {/** Display UI similar to how it will be in CustomRecord */
-                    obj.payload &&
-                        obj.payload.map((element, index) => (
-                            <EditUI element={element} index={index}/>
-                        ))
+                    <EditUI obj={obj} setObj={setObj}/>
                 }
             </div>
         </div>
     );
 }
+
+/** HTML element for editing start and end date/time of schedule */
+const StartEndInput = ({ local, setLocal, date1, setDate1, date2, setDate2 }) => {
+
+    /** Update date 1 property with inputValue */
+    const uponDate1Change = (inputValue, prop) => {
+        setDate1(prevState => ({ ...prevState, [prop]: inputValue }));
+    }
+
+    /** Update date 2 property with inputValue */
+    const uponDate2Change = (inputValue, prop) => {
+        setDate2(prevState => ({ ...prevState, [prop]: inputValue }));
+    }
+
+    return (
+        <div className="flexDivTable">
+            <div className="flexDivRows">
+                <p className="flexDivColumns">Start:</p>
+                <input
+                    className="twoDigitInput"
+                    name='month1 box'
+                    value={date1.month}
+                    onChange={(e) => uponDate1Change(e.target.value, 'month')}
+                />
+                <p className="flexDivColumns">/</p>
+                <input
+                    className="twoDigitInput"
+                    name='day1 box'
+                    value={date1.day}
+                    onChange={(e) => uponDate1Change(e.target.value, 'day')}
+                />
+                <p className="flexDivColumns">/</p>
+                <input
+                    className="fourDigitInput"
+                    name='year1 box'
+                    value={date1.year}
+                    onChange={(e) => uponDate1Change(e.target.value, 'year')}
+                />
+                <p className="flexDivColumns">at</p>
+                <input
+                    className="twoDigitInput"
+                    name='hour1 box'
+                    value={date1.hour}
+                    onChange={(e) => uponDate1Change(e.target.value, 'hour')}
+                />
+                <p className="flexDivColumns">:</p>
+                <input
+                    className="twoDigitInput"
+                    name='minute1 box'
+                    value={date1.minute}
+                    onChange={(e) => uponDate1Change(e.target.value, 'minute')}
+                />
+            </div>
+            <div className="flexDivRows">
+                <p className="flexDivColumns">End:</p>
+                <input
+                    className="twoDigitInput"
+                    name='month2 box'
+                    value={date2.month}
+                    onChange={(e) => uponDate2Change(e.target.value, 'month')}
+                />
+                <p className="flexDivColumns">/</p>
+                <input
+                    className="twoDigitInput"
+                    name='day2 box'
+                    value={date2.day}
+                    onChange={(e) => uponDate2Change(e.target.value, 'day')}
+                />
+                <p className="flexDivColumns">/</p>
+                <input
+                    className="fourDigitInput"
+                    name='year2 box'
+                    value={date2.year}
+                    onChange={(e) => uponDate2Change(e.target.value, 'year')}
+                />
+                <p className="flexDivColumns">at</p>
+                <input
+                    className="twoDigitInput"
+                    name='hour2 box'
+                    value={date2.hour}
+                    onChange={(e) => uponDate2Change(e.target.value, 'hour')}
+                />
+                <p className="flexDivColumns">:</p>
+                <input
+                    className="twoDigitInput"
+                    name='minute2 box'
+                    value={date2.minute}
+                    onChange={(e) => uponDate2Change(e.target.value, 'minute')}
+                />
+            </div>
+            {/** Determine time zone dependency */
+                local ?
+                    <div>
+                        <button
+                            className="moreLink"
+                            style={{ color: 'gray' }}>
+                            Local
+                            <span style={{ color: 'black' }} className="more">Selected: Given date and time are absolute and will never be converted.</span>
+                        </button>
+                        <button
+                            className="moreLink"
+                            onClick={() => setLocal(false)}>
+                            UTC
+                            <span className="more">Given date and time will be stored in universal standard time and converted to the local time for use.</span>
+                        </button>
+                    </div>
+                    :
+                    <div>
+                        <button
+                            className="moreLink"
+                            onClick={() => setLocal(true)}>
+                            Local
+                            <span className="more">Given date and time are absolute and will never be converted.</span>
+                        </button>
+                        <button
+                            className="moreLink"
+                            style={{ color: 'gray' }}>
+                            UTC
+                            <span style={{ color: 'black' }} className="more">Selected: Given date and time will be stored in universal standard time and converted to the local time for use.</span>
+                        </button>
+                    </div>
+            }
+        </div>
+    );
+}
+
+/** HTML element for editing effective start and end date of schedule */
+const EffectiveTimeRange = ({ startDate, setStartDate, endDate, setEndDate, repeatType }) => {
+
+    // Update effective start date property with inputValue
+    const uponEffectiveStartChange = (inputValue, prop) => {
+        setStartDate(prevState => ({ ...prevState, [prop]: inputValue }));
+    };
+
+    // Update effective end date property with inputValue
+    const uponEffectiveEndChange = (inputValue, prop) => {
+        setEndDate(prevState => ({ ...prevState, [prop]: inputValue }));
+    };
+
+    return (
+        <div>
+            { /** Render unless 'Always' chosen */
+                repeatType !== 'none' ?
+                    <div>
+                        <div className="flexDivRows">
+                            <p>Effective Time Range</p>
+                            {
+                                endDate.month !== 'NA' ?
+                                    <button onClick={() => { setEndDate({ month: 'NA', day: 'NA', year: 'NA' }) }}>Always</button>
+                                    :
+                                    <button onClick={() => { setEndDate(startDate) }}>Resest</button>
+                            }
+                        </div>
+                        <div className="flexDivTable">
+                            <div className="flexDivRows">
+                                <p className="flexDivColumns">Start:</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='start month box'
+                                    value={startDate.month}
+                                    onChange={(e) => { setStartDate(prevState => ({ ...prevState, month: e.target.value })) }}
+                                />
+                                <p className="flexDivColumns">/</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='start day box'
+                                    value={startDate.day}
+                                    onChange={(e) => uponEffectiveStartChange(e.target.value, 'day')}
+                                />
+                                <p className="flexDivColumns">/</p>
+                                <input
+                                    className="fourDigitInput"
+                                    name='start year box'
+                                    value={startDate.year}
+                                    onChange={(e) => uponEffectiveStartChange(e.target.value, 'year')}
+                                />
+                            </div>
+                            <div className="flexDivRows">
+                                <p className="flexDivColumns">End:</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='end month box'
+                                    value={endDate.month}
+                                    onChange={(e) => uponEffectiveEndChange(e.target.value, 'month')}
+                                />
+                                <p className="flexDivColumns">/</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='end day box'
+                                    value={endDate.day}
+                                    onChange={(e) => uponEffectiveEndChange(e.target.value, 'day')}
+                                />
+                                <p className="flexDivColumns">/</p>
+                                <input
+                                    className="fourDigitInput"
+                                    name='end year box'
+                                    value={endDate.year}
+                                    onChange={(e) => uponEffectiveEndChange(e.target.value, 'year')}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    :
+                    <div className="flexDivRows">
+                        <p>In effect starting today.</p>
+                    </div>
+            }
+        </div>
+    )
+}
+
+/** HTML element for displaying schedules that will be saved with UI */
+const ScheduleDisplay = ({ obj, setObj }) => {
+
+    /** Remove content from obj.options.schedule */
+    const removeSchedule = (index) => {
+        // Make copy
+        const updatedSchedule = [...obj.options.schedule];
+        // Remove content at index
+        updatedSchedule.splice(index, 1);
+        setObj(prevState => ({ ...prevState, options: { ...prevState.options, schedule: updatedSchedule } }));
+    }
+
+    return (
+        obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
+            obj.options.schedule.map((schedule, index) => (
+                <div key={'fullSchedule' + index}>
+                    <div className="flexDivRows" key={'Schedule' + index}>
+                        <p
+                            style={({ cursor: 'pointer' })}
+                            onClick={() => { removeSchedule(index) }}>
+                            {schedule.start.month}/{schedule.start.day}/{schedule.start.year}&nbsp;
+                            {schedule.start.hour}:{schedule.start.minute}&nbsp;
+                            -&nbsp;
+                            {schedule.start.month === schedule.end.month &&
+                                schedule.start.day === schedule.end.day &&
+                                schedule.start.year === schedule.end.year ? (
+                                <span>{schedule.end.hour}:{schedule.end.minute}</span>
+                            ) : (
+                                <span>
+                                    {schedule.end.month}/{schedule.end.day}/{schedule.end.year}&nbsp;
+                                    {schedule.end.hour}:{schedule.end.minute}
+                                </span>
+                            )
+                            }
+                        </p>
+                        {
+                            schedule.repeatType === 'specRpt' ? (
+                                <span
+                                    style={({ cursor: 'pointer' })}
+                                    onClick={() => { removeSchedule(index) }}>
+                                    &nbsp;repeats every {schedule.repeatInfo} days
+                                </span>
+                            ) : schedule.repeatType === 'daily' ? (
+                                <span
+                                    style={({ cursor: 'pointer' })}
+                                    onClick={() => { removeSchedule(index) }}>
+                                    &nbsp;repeats daily
+                                </span>
+                            ) : schedule.repeatType === 'weekly' ? (
+                                <span
+                                    style={({ cursor: 'pointer' })}
+                                    onClick={() => { removeSchedule(index) }}>
+                                    &nbsp;repeats every {getWeekdayString(parseInt(schedule.repeatInfo))}
+                                </span>
+                            ) : schedule.repeatType === 'monthly' ? (
+                                <span
+                                    style={({ cursor: 'pointer' })}
+                                    onClick={() => { removeSchedule(index) }}>
+                                    &nbsp;repeats monthly
+                                </span>
+                            ) : schedule.repeatType === 'annually' ? (
+                                <span
+                                    style={({ cursor: 'pointer' })}
+                                    onClick={() => { removeSchedule(index) }}>
+                                    &nbsp;repeats annually
+                                </span>
+                            ) : (null)
+                        }
+                    </div>
+                    <div className="flexDivRows" key={'effectiveSchedule' + index}>
+                        <p
+                            style={({ cursor: 'pointer' })}
+                            onClick={() => { removeSchedule(index) }}>
+                            {schedule.effectiveEnd.month !== 'NA' ? (<>
+                                Effective {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year}
+                                &nbsp;- {schedule.effectiveEnd.month}/{schedule.effectiveEnd.day}/{schedule.effectiveEnd.year}
+                            </>) : (<>Effective indefinitely starting: {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year}</>)
+                            }
+                        </p>
+                    </div>
+                </div>
+        ))
+    );
+}
+
+/** payload element display including remove, move, and group buttons */
+const EditUI = ({ obj, setObj }) => {
+
+    // hold index of object to be moved
+    const [moveIndex, setMoveIndex] = useState(null);
+    // hold current group number and if it is actively being grouped
+    const [groupNum, setGroupNum] = useState(1);
+    const [grouping, setGrouping] = useState(false);
+
+    /** remove element from payload by index */
+    const removeElement = (index) => {
+        const updatedArray = [...obj.payload];
+        updatedArray.splice(index, 1);
+        setObj(prevState => ({ ...prevState, payload: updatedArray }));
+    };
+
+    /** move Element from moveIndex to index just selected */
+    const moveElement = (index) => {
+        const updatedArray = [...obj.payload];
+        const [movedElement] = updatedArray.splice(moveIndex, 1);
+        // Insert element at index above element at moveIndex
+        if (index < moveIndex) {
+            updatedArray.splice(index, 0, movedElement);
+        } else if (index > moveIndex) {
+            updatedArray.splice(index - 1, 0, movedElement);
+        } else {
+            return;
+        }
+        setObj(prevState => ({ ...prevState, payload: updatedArray }));
+    };
+
+    /** set the group number for the selected element */
+    const groupElement = (index) => {
+        setObj(prevState => ({
+            ...prevState,
+            payload: prevState.payload.map((item, i) =>
+                i === index ? { ...item, group: groupNum } : item
+            )
+        }));
+    };
+
+    return (
+        obj.payload &&
+        obj.payload.map((element, index) => (
+            <div key={'editUI' + index}>
+                <div key={'editUIA' + index} className="flexDivRows">
+                    {
+                        element.type === 'toggle' ? (
+                            <button>{element.label}</button>
+                        ) : element.type === 'choice' ? (
+                            <p>{element.label}</p>
+                        ) : element.type === 'input' ? (
+                            <p>{element.label}</p>
+                        ) : element.type === 'text' ? (
+                            <p>{element.label}</p>
+                        ) : (null)
+                    }
+                    <button onClick={() => removeElement(index)}>Remove</button>
+                    {/** Either show move or move to button */
+                        moveIndex !== null
+                            ? <button onClick={() => {
+                                moveElement(index);
+                                setMoveIndex(null);
+                            }}>
+                                Place Above
+                            </button>
+                            : <button onClick={() => setMoveIndex(index)}>Move</button>
+                    }
+                    {/** Show group button and commit button if currently grouping */
+                        grouping ? (
+                            <div className="flexDivRows">
+                                <button onClick={() => groupElement(index)}>
+                                    Group
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setGrouping(false);
+                                        setGroupNum(groupNum + 1);
+                                    }}>
+                                    Commit
+                                </button>
+                            </div>
+                        ) : (
+                            <button onClick={() => {
+                                setGrouping(true);
+                                groupElement(index);
+                            }}>
+                                Group
+                            </button>
+                        )
+                    }
+                    <p className="flexDivRows">Group {element.group?.toString()}</p>
+                </div>
+                <div key={'editUIB' + index}>
+                    {
+                        element.type === 'input' ? (
+                            <input />
+                        ) : element.type === 'choice' ? (
+                            element.choices.map((choice, i) => (
+                                <button key={'choiceButton' + i}>{choice}</button>
+                            ))
+                        ) : element.type === 'text' ? (
+                            <textarea />
+                        ) : (null)
+                    }
+                </div>
+            </div>
+        ))
+    );
+};

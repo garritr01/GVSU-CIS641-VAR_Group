@@ -1,0 +1,9 @@
+1. Returning object
+    a. from FlaskAndSQL
+    - Success returns message, payload, and options
+    - Failure returns message
+    b. from generalFetch
+    - Both return truth, status, message, payload, and options
+    - Failure has null in payload and options
+
+2. Schedule Info structure - see pg4 of notebook

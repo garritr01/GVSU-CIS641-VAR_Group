@@ -21,8 +21,8 @@ parent_folder = os.path.dirname(os.path.abspath(__file__))
 # Database file path
 db_path = os.path.join(parent_folder+'/..', 'database.db')
 
-@app.route('/sign_up/<userName>/<password>', methods=['POST'])
-def sign_up(userName, password):
+@app.route('/signUp/<userName>/<password>', methods=['POST'])
+def signUp(userName, password):
     '''Creates a username and password in the database'''
     #print(f"signing up {userName}, with password {password}")
     try:
@@ -43,8 +43,8 @@ def sign_up(userName, password):
     except Exception as e:
         return jsonify({'message':str(e)}), 500
 
-@app.route('/log_in/<userName>/<password>', methods=['GET'])
-def log_in(userName, password):
+@app.route('/logIn/<userName>/<password>', methods=['GET'])
+def logIn(userName, password):
     '''Checks login information and returns success or reason for failure'''
     try:
         #Connect to database
@@ -98,8 +98,33 @@ def create_table(tableName,tableType):
             cursor.execute(f'CREATE TABLE IF NOT EXISTS {tableName} \
                             (id INTEGER PRIMARY KEY AUTOINCREMENT, userID TEXT, password TEXT,  \
                             UNIQUE (userID))')
-       
-def remove_table(tableName):
+
+def createTable(tableName,tableType):
+    '''
+    Creates a table called {tableName} if it doesn't exist\n
+    Contains text filename, directory, and userID (unique combination req'd), and date object
+    - {tableType}
+        - 'text' adds text payload
+        - 'object' adds object payload
+        - 'time' adds nothing
+        - 'login' is a different beast (userID and password as TEXT)
+    '''
+    with sqlite3.connect(db_path) as connection:
+        cursor = connection.cursor()
+        if (tableType == 'text'):
+            cursor.execute(f'CREATE TABLE IF NOT EXISTS {tableName} \
+                           (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, directory TEXT, userID TEXT, dateTime JSON, options JSON, payload TEXT, \
+                           UNIQUE (filename, directory, userID, dateTime))')
+        elif (tableType == 'object'):
+            cursor.execute(f'CREATE TABLE IF NOT EXISTS {tableName} \
+                           (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, directory TEXT, userID TEXT, dateTime JSON, options JSON, payload JSON, \
+                           UNIQUE (filename, directory, userID, dateTime))')
+        elif (tableType == 'login'):
+            cursor.execute(f'CREATE TABLE IF NOT EXISTS {tableName} \
+                            (id INTEGER PRIMARY KEY AUTOINCREMENT, userID TEXT, password TEXT,  \
+                            UNIQUE (userID))')
+
+def removeTable(tableName):
     '''Removes {tableName}'''
     try:
         with sqlite3.connect(db_path) as connection:
@@ -304,6 +329,23 @@ def get_dirs_and_titles(tableName, userID):
         except Exception as e:
             return jsonify({'message': f"Exception fetching dirs and titles from {userID}'s {tableName} table: "+str(e)}), 500
 
+@app.route('/getDirsAndTitles/<tableName>/<userID>',methods=['GET'])
+def getDirsAndTitles(tableName, userID):
+    '''
+    Return list of dicts containing directory and filename properties corresponding with input tableName and userID
+    '''
+    with sqlite3.connect(db_path) as connection:
+        cursor = connection.cursor()
+        try:
+            cursor.execute(f"SELECT filename, directory, dateTime FROM {tableName} WHERE userID = ?",(userID,))
+            data = cursor.fetchall()
+            files = [{'dateTime':json.loads(row[2]), 'directory': row[1], 'filename': row[0]} for row in data]
+            return jsonify({'message': f"GET successful", 'files': files}), 200
+        except sqlite3.OperationalError as e:
+            return jsonify({'message': f"OperationalError fetching dirs and filenames from {userID}'s {tableName} table: "+str(e)}), 404
+        except Exception as e:
+            return jsonify({'message': f"Exception fetching dirs and filenames from {userID}'s {tableName} table: "+str(e)}), 500
+
 @app.route('/get_listed_objects/<tableName>',methods=['POST'])
 def get_listed_objects(tableName):
     '''
@@ -409,6 +451,87 @@ def save_object():
             notList.append('directory')
         if not title:
             notList.append('title')
+        return jsonify({'message': f"missing required data: {', '.join(notList)}"}), 404
+
+@app.route('/getObject/<tableName>/<encodedDateTime>/<userID>/<path:directory>/<filename>', methods=['GET'])
+def getObject(tableName, encodedDateTime, userID, directory, filename):
+    '''
+    Accept tableName, userID, directory, and filename\n
+    Returns object containing UI array of objects and dateTime object
+    '''
+    with sqlite3.connect(db_path) as connection:
+        try:
+            dateTime = json.dumps(json.loads(encodedDateTime.replace('_','/')))
+            cursor = connection.cursor()
+            cursor.execute(f'SELECT payload, options FROM {tableName} \
+                           WHERE dateTime = ? AND userID = ? AND directory = ? AND filename = ?', 
+                           (dateTime, userID, directory, filename))
+            data = cursor.fetchone()
+            if data is not None:
+                payload = json.loads(data[0])
+                options = json.loads(data[1])
+                return jsonify({ 'payload': payload, 'options': options, 'message': 'GET was successful' }), 200
+            else:
+                cursor.execute(f'SELECT payload, options FROM {tableName} \
+                                WHERE userID = ? AND directory = ? AND filename = ?', 
+                                (userID, directory, filename))
+                data = cursor.fetchone()
+                if data is not None:
+                    print('\n\n\ndatetime',dateTime)
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} UI doesn't exist at the given time"}), 404
+                else:
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} UI doesn't exist"}), 404
+
+        except Exception as e:
+            return jsonify({'message':"An error occurred:"+str(e)}), 500
+
+@app.route('/saveObject',methods=['POST'])
+def saveObject():
+    '''
+    Save userID, directory, filename, dateTime, options, and payload to tableName
+    '''
+    args = request.get_json()
+    UI, dateTime, options, tableName, userID, directory, filename = \
+        json.dumps(args.get('UI')), json.dumps(args.get('dateTime')), json.dumps(args.get('options')), \
+        args.get('table'), args.get('userID'), args.get('dir'), args.get('filename')
+
+    createTable(tableName,'object')
+
+    if UI and tableName and dateTime and options and userID and directory and filename:
+        with sqlite3.connect(db_path) as connection:
+            cursor = connection.cursor()
+    
+            try:
+                cursor.execute(f'INSERT INTO {tableName} (payload, options, dateTime, userID, directory, filename) \
+                                VALUES (?, ?, ?, ?, ?, ?)', (UI, options, dateTime, userID, directory, filename))
+                connection.commit()
+                return {'message':f"{userID}'s {tableName}, {directory}, {filename} object saved successfully"}, 201
+            except sqlite3.IntegrityError as e:
+                print('updatingUI: \n\n',UI)
+                cursor.execute(f'UPDATE {tableName} SET payload = ?, options = ? \
+                               WHERE dateTime = ? AND userID = ? AND directory = ? AND filename = ?', 
+                               (UI, options, dateTime, userID, directory, filename))
+                print('affected:', cursor.rowcount)
+                connection.commit()
+                return {'message':f"{userID}'s {tableName}, {directory}, {filename} object updated successfully"}, 200
+            except Exception as e:
+                return {'message':str(e)}, 500
+    else:
+        notList = []
+        if not UI:
+            notList.append('UI')
+        if not dateTime:
+            notList.append('dateTime')
+        if not options:
+            notList.append('dateTime')
+        if not tableName:
+            notList.append('tableName')
+        if not userID:
+            notList.append('userID')
+        if not directory:
+            notList.append('directory')
+        if not filename:
+            notList.append('filename')
         return jsonify({'message': f"missing required data: {', '.join(notList)}"}), 404
 
 @app.route('/get_text/<tableName>/<encodedDateTime>/<userID>/<path:directory>/<title>', methods=['GET'])
@@ -564,7 +687,7 @@ tablePrintout('journals')
 #find_string('customInfo','Garrit','ldes')
 
 '''IF YOU UNCOMMENT THIS LINE THE FILE WILL RERUN AND TABLE WILL BE DELETED IMMEDIATELY'''
-#remove_table('loginInfo')
+#removeTable('loginInfo')
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000)
