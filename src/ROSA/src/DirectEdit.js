@@ -54,9 +54,9 @@ export const EditMiscObject = ({ printLevel, selectFn, preselectedTable, presele
             <EditValues originalObject={object} onObjectChange={handleObjectChange} />
         </div>
     );
-};
+}
 
-const EditValues = ({ printLevel, originalObject, onObjectChange }) => {
+export const EditValues = ({ printLevel, originalObject, onObjectChange }) => {
     // Function to handle input changes and update the state
 
     const handleInputChange = (key, index, value) => {

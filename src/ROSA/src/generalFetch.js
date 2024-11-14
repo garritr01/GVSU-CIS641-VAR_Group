@@ -122,7 +122,20 @@ export const fetchDirsAndFiles = async (table, userID) => {
     } catch (err) { throw err }
 }
 
-/** Return array of objects containing directory, title, dateTime AND an array of unique directories in an object*/
+/**
+ * Fetches directories and file details from the server, then returns an array of objects containing directory, title, and dateTime,
+ * along with an array of unique directories.
+ *
+ * @param {string} table - The name of the table to fetch data from.
+ * @param {string} userID - The unique ID of the user for fetching their specific data.
+ * 
+ * @returns {Promise<Object>} - A promise that resolves to an object containing:
+ *    - {boolean} truth - Indicates whether the request was successful (`true` for success, `false` for failure).
+ *    - {string} msg - A message related to the status of the request.
+ *    - {number} status - The HTTP status code of the response.
+ *    - {Array|null} files - An array of file objects if successful, otherwise `null`.
+ *    - {Array|null} dirs - An array of unique directories if successful, otherwise `null`.
+ */
 export const newFetchDirsAndFiles = async (table, userID) => {
     try {
         const response = await fetch(`http://localhost:5000/getDirsAndTitles/${table}/${userID}`);
@@ -244,8 +257,8 @@ export const newSaveObject = async (obj) => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                UI: obj.payload,
-                options: obj.options,
+                payload: obj.payload || {},
+                options: obj.options || {},
                 dateTime: obj.dateTime,
                 table: obj.table,
                 userID: obj.userID,
@@ -306,6 +319,71 @@ export const saveText = async (tableNameOut, entryOut, dateTimeOut, userIDout, d
         }
     } catch (err) {
         return { truth: false, msg: err, status: 500 }
+    }
+}
+
+/**
+ * Get full information from database given following location parameters
+ * @param {Object} obj - The parameters for the function.
+ * @param {string} obj.userID - The user ID.
+ * @param {string} obj.table - The table name.
+ * @param {string} obj.dir - The directory.
+ * @param {string} obj.filename - The filename.
+ * @param {string} obj.dateTime - The date and time.
+ * @returns {Promise<{truth: boolean, msg: string, status: number, payload: string, options: Object}>}
+ */
+export const newFetchText = async (obj) => {
+    try {
+        const encodedDateTime = encodeURIComponent(JSON.stringify(obj.dateTime).replace(/\//g, '_'));
+        const response = await fetch(`http://localhost:5000/getText/${obj.table}/${encodedDateTime}/${obj.userID}/${obj.dir}/${obj.filename}`);
+        const data = await response.json();
+        if (!response.ok) {
+            return { truth: false, payload: '', options: null, msg: data.message.message, status: response.status };
+        } else {
+            return { truth: true, payload: data.payload, options: data.options, msg: data.message, status: response.status };
+        }
+    } catch (err) {
+        return { truth: false, payload: '', options: null, msg: err, status: 500 };
+    }
+}
+
+/**
+ * Save obj to database
+ * @param {Object} obj - The parameters for the function.
+ * @param {string} obj.userID - The user ID.
+ * @param {string} obj.table - The table name.
+ * @param {string} obj.dir - The directory.
+ * @param {string} obj.filename - The filename.
+ * @param {Object} obj.dateTime - The date and time.
+ * @param {Object} obj.options - Misc options (often includes schedule)
+ * @param {string} obj.payload - Payload
+ * @returns {Promise<{truth: boolean, msg: string, status: number}>}
+ */
+export const newSaveText = async (obj) => {
+    try {
+        const response = await fetch(`http://localhost:5000/saveText`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                payload: obj.payload,
+                options: obj.options || {},
+                dateTime: obj.dateTime,
+                table: obj.table,
+                userID: obj.userID,
+                dir: obj.dir,
+                filename: obj.filename,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { truth: false, msg: data.message.message, status: response.status };
+        } else {
+            return { truth: true, msg: data.message, status: response.status };
+        }
+    } catch (err) {
+        return { truth: false, msg: err, status: 500 };
     }
 }
 

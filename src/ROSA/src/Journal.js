@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef
 import { getDateString, getTimeString, chooseMostRecent, convertUTCstringsToLocal, convertLocalStringsToUTC 
 } from './oddsAndEnds';
 
-import { fetchDirsAndFiles, deleteEntry, fetchText, saveText 
+import { fetchDirsAndFiles, deleteEntry, fetchText, saveText, newFetchText, newSaveText, newFetchDirsAndFiles
 } from './generalFetch';
 
 import { Functions } from './MainMenu';
@@ -185,23 +185,13 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
 
     // Autofills or empties dateTime when dir or filename is changed
     useEffect(() => {
-        if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.title).includes(obj.filename)) {
+        if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.filename).includes(obj.filename)) {
             const mostRecent = chooseMostRecent(fileInfo, obj.dir, obj.filename);
             setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
         } else {
             setObj(prevObj => ({ ...prevObj, dateTime: { date: '', time: '' } }));
         }
     }, [obj.dir, obj.filename]);
-
-    // Warns of changing save location of loaded content
-    useEffect(() => {
-        fileChangeWarning();
-    }, [loaded, obj.dir, obj.filename, obj.dateTime]);
-
-    // Triggers save notification creation
-    useEffect(() => {
-        fileSaveNotification();
-    }, [saved, notSaved]);
 
     /** Update object property with inputValue */
     const uponInputChange = (inputValue, prop) => {
@@ -225,98 +215,41 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
     };
 
     /** Gets dirs and files where directories is all unqiue directories and
-    * files is an array of objects containing dateTime, directory, and title
+    * files is an array of objects containing dateTime, directory, and filename
     */
     const getDirsAndFiles = async () => {
         try {
-            const dirsAndFiles = await fetchDirsAndFiles('journals', obj.userID);
-            setFileInfo(dirsAndFiles.files);
-            setDirs(dirsAndFiles.directories);
+            const response = await newFetchDirsAndFiles('journals', obj.userID);
+            if (response.truth) {
+                setFileInfo(response.files);
+                setDirs(response.dirs);
+            } else {
+                console.error(`${response.status}: ${response.msg}`);
+                setFileInfo([]);
+                setDirs([]);
+            }
         } catch (err) {
-            console.error('Error fetching journal dirs and files:', err);
+            console.error('Error fetching customUI dirs and files:', err);
         }
     };
 
-    // Get payload given relevant arguments
+    /** Get payload and options given relevant arguments */
     const getPayload = async () => {
         try {
-            const content = await fetchText(obj.table, obj.dateTime, obj.userID, obj.dir, obj.filename);
-            setObj(prevState => ({ ...prevState, payload: content }));
-            setLoaded({ dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime });
-        } catch {
-            console.error('Error getting content with ',obj);
-        }
-    }
+            const response = await newFetchText(obj);
 
-    /** Outputs warning about changing names if loaded dir, filename, datetime is not equal to its corresponding value in obj */
-    const fileChangeWarning = () => {
-        if (!loaded.dir ||
-            (loaded.dir === obj.dir &&
-            loaded.filename === obj.filename &&
-            loaded.dateTime.date === obj.dateTime.date &&
-            loaded.dateTime.time === obj.dateTime.time)) {
-            const errorBox = document.getElementById("fileChange");
-            if (errorBox) {
-                errorBox.style.display = 'none';
-                errorBox.textContent = '';
+            if (!response.truth) {
+                console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`)
             } else {
-                console.error('id=fileChange element DNE???');
+                setLoaded({ dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime });
+                setObj({
+                    ...obj,
+                    options: response.options,
+                    payload: response.payload
+                });
             }
-        } else {
-            const errorBox = document.getElementById("fileChange");
-            if (errorBox) {
-                let errText;
-                if (shrink.error) {
-                    errText = 'Name change warning';
-                } else {
-                    errText = `Warning: You imported ${loaded.dir}/${loaded.filename} version: ${loaded.dateTime.date}-${loaded.dateTime.time} and changed the location you will save to!`;
-                }
-                errorBox.style.display = 'block';
-                errorBox.textContent = errText;
-            } else {
-                console.error('id=fileChange element DNE???');
-            }
-        }
-    }
-    
-    /** Outputs notification of file save  */
-    const fileSaveNotification = () => {
-        if (notSaved.dir) {
-            const saveBox = document.getElementById("fileSave");
-            if (saveBox) {
-                let saveText;
-                if (shrink.save) {
-                    saveText = 'Save failed';
-                } else {
-                    saveText = `${notSaved.dir}/${notSaved.filename} version: ${notSaved.dateTime.date}-${notSaved.dateTime.time} did not save: ${dbMsg}`;
-                }
-                saveBox.style.display = 'block';
-                saveBox.textContent = saveText;
-            } else {
-                console.error('id=fileSave element DNE???');
-            }
-        } else if (saved.dir) {
-            const saveBox = document.getElementById("fileSave");
-            if (saveBox) {
-                let saveText;
-                if (shrink.save) {
-                    saveText = 'Save succeeded';
-                } else {
-                    saveText = `${saved.dir}/${saved.filename} version: ${saved.dateTime.date}-${saved.dateTime.time} saved successfully`;
-                }
-                saveBox.style.display = 'block';
-                saveBox.textContent = saveText;
-            } else {
-                console.error('id=fileSave element DNE???');
-            }
-        } else {
-            const saveBox = document.getElementById("fileSave");
-            if (saveBox) {
-                saveBox.style.display = 'none';
-                saveBox.textContent = '';
-            } else {
-                console.error('id=fileSave element DNE???');
-            }
+        } catch {
+            console.error('Error getting content with ', obj);
         }
     }
 
@@ -326,7 +259,7 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
     const saveJournal = async (overwrite) => {
         try {
             if (overwrite) {
-                const response = await saveText(obj.table, obj.payload, obj.dateTime, obj.userID, obj.dir, obj.filename);
+                const response = await newSaveText(obj);
                 setDbMsg(response.msg);
                 if (response.truth && response.status === 200) {
                     console.log(`Overwrote ${obj.dir}/${obj.filename} version: ${JSON.stringify(obj.dateTime)} with new entry`);
@@ -339,19 +272,19 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
                     setNotSaved({ dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime });
                 }
             } else {
-                const newDateTime = { date: getDateString(), time: getTimeString() };
-                const response = await saveText(obj.table, obj.payload, newDateTime, obj.userID, obj.dir, obj.filename);
+                const objToSave = { ...obj, dateTime: { date: getDateString(), time: getTimeString() } };
+                const response = await newSaveText(objToSave);
                 setDbMsg(response.msg);
                 // Update currently used object to reflect version it was saved under
                 if (response.truth && response.status === 201) {
-                    console.log(`Saved ${obj.dir}/${obj.filename} version: ${JSON.stringify(newDateTime)}`);
-                    setSaved({ dir: obj.dir, filename: obj.filename, dateTime: newDateTime });
+                    console.log(`Saved ${objToSave.dir}/${objToSave.filename} version: ${JSON.stringify(objToSave.dateTime)}`);
+                    setSaved({ dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime });
                     getDirsAndFiles();
                     setNotSaved({ dir: '', filename: '', dateTime: { date: '', time: '' } });
                 } else {
-                    console.error(`Erred saving ${obj.dir}/${obj.filename} version: ${JSON.stringify(newDateTime)}: ${response.msg}`);
+                    console.error(`Erred saving ${objToSave.dir}/${objToSave.filename} version: ${JSON.stringify(objToSave.dateTime)}: ${response.msg}`);
                     setSaved({ dir: '', filename: '', dateTime: { date: '', time: '' } });
-                    setNotSaved({ dir: obj.dir, filename: obj.filename, dateTime: newDateTime });
+                    setNotSaved({ dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime });
                 }
             }
         } catch (err) {
@@ -398,9 +331,9 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
                             {fileInfo.length > 0 &&
                                 fileInfo.filter((file) => file.directory === obj.dir
                                 ).filter((obj, index, self) =>
-                                    index === self.findIndex((o) => o.title === obj.title)
+                                    index === self.findIndex((o) => o.filename === obj.filename)
                                 ).map((file, index) => (
-                                    <option key={index} value={file.title} />
+                                    <option key={index} value={file.filename} />
                                 ))}
                         </datalist>
                     </div>
@@ -414,7 +347,7 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
                             <option key={'new'} value={'new'}>New</option>
                             { // Create option for each version and set to last saved in database initially
                                 fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
-                                    if (file.title === obj.filename && file.directory === obj.dir) {
+                                    if (file.filename === obj.filename && file.directory === obj.dir) {
                                         return (
                                             <option key={index} value={JSON.stringify(file.dateTime)}>
                                                 {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
@@ -428,67 +361,30 @@ export const NewJournal = ({ printLevel, selectFn, preselectedObj }) => {
                 </div>
                 {/** Button row (saving, loading, resetting) */}
                 <div className="flexDivRows">
-                    { // Render remove content button to remove loaded and empty payload
-                        loaded.dir ?
-                            <div>
-                                <button onClick={() => {
-                                    setLoaded({ dir: '', filename: '', dateTime: { date: '', time: '' } });
-                                    setObj(prevState => ({ ...prevState, payload: '' }));
-                                    }}>
-                                        Empty Content
-                                </button>
-                            </div>
-                        :
-                        <div>
-                            <button style={({ color: 'gray' })}>
-                                Empty Content
-                            </button>
-                        </div>
-                    }
                     { // Render load content button if all necessary fields are filled
                         obj.dir && obj.filename && obj.dateTime.date ?
                             <div>
-                                <button onClick={() => getPayload()}>LoadContent</button>
+                                <button onClick={() => getPayload()}>Load Content</button>
                             </div>
                             :
                             <div>
                                 <button style={({ color: 'gray' })}>Load Content</button>
                             </div>
                     } { // Render overwrite button if using previous file version
-                        obj.payload && obj.dir && obj.filename ?
-                            obj.dateTime.date ?
-                                <div className="flexDivRows">
-                                    <button onClick={() => saveJournal(true)}>Overwrite</button>
-                                    <button onClick={() => saveJournal(false)}>Save New</button>
-                                </div>
-                                :
-                                <div className="flexDivRows">
-                                    <button style={({ color: 'gray' })}>Overwrite</button>
-                                    <button onClick={() => saveJournal(false)}>Save New</button>
-                                </div>
-                            : 
-                            <div className="flexDivRows">
+                        obj.dir === loaded.dir &&
+                            obj.filename === loaded.filename &&
+                            obj.dateTime.date === loaded.dateTime.date &&
+                            obj.dateTime.time === loaded.dateTime.time
+                            ? <div>
+                                <button style={({ color: 'gray' })}>Save</button>
+                                <button onClick={() => saveJournal(true)}>Overwrite</button>
+                            </div>
+                            : <div>
+                                <button onClick={() => saveJournal(false)}>Save</button>
                                 <button style={({ color: 'gray' })}>Overwrite</button>
-                                <button style={({ color: 'gray' })}>Save New</button>
                             </div>
                     }
                 </div>
-                <p 
-                    id="fileChange" 
-                    className='errorPopup' 
-                    style={({ cursor: 'pointer' })} 
-                    onClick={() => {
-                        setShrink(prevState => ({ ...prevState, error: !prevState.error }));
-                        fileChangeWarning();
-                        }}></p>
-                <p
-                    id="fileSave"
-                    className='popup'
-                    style={({ cursor: 'pointer' })}
-                    onClick={() => {
-                        setShrink(prevState => ({ ...prevState, save: !prevState.save }));
-                        fileSaveNotification();
-                    }}></p>
                 <textarea
                     name="journal box"
                     value={obj.payload}

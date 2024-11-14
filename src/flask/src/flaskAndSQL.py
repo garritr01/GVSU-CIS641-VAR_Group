@@ -457,7 +457,7 @@ def save_object():
 def getObject(tableName, encodedDateTime, userID, directory, filename):
     '''
     Accept tableName, userID, directory, and filename\n
-    Returns object containing UI array of objects and dateTime object
+    Returns object payload and options
     '''
     with sqlite3.connect(db_path) as connection:
         try:
@@ -478,9 +478,9 @@ def getObject(tableName, encodedDateTime, userID, directory, filename):
                 data = cursor.fetchone()
                 if data is not None:
                     print('\n\n\ndatetime',dateTime)
-                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} UI doesn't exist at the given time"}), 404
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} doesn't exist at the given time"}), 404
                 else:
-                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} UI doesn't exist"}), 404
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} doesn't exist"}), 404
 
         except Exception as e:
             return jsonify({'message':"An error occurred:"+str(e)}), 500
@@ -491,26 +491,25 @@ def saveObject():
     Save userID, directory, filename, dateTime, options, and payload to tableName
     '''
     args = request.get_json()
-    UI, dateTime, options, tableName, userID, directory, filename = \
-        json.dumps(args.get('UI')), json.dumps(args.get('dateTime')), json.dumps(args.get('options')), \
+    payload, dateTime, options, tableName, userID, directory, filename = \
+        json.dumps(args.get('payload')), json.dumps(args.get('dateTime')), json.dumps(args.get('options')), \
         args.get('table'), args.get('userID'), args.get('dir'), args.get('filename')
 
     createTable(tableName,'object')
 
-    if UI and tableName and dateTime and options and userID and directory and filename:
+    if payload and tableName and dateTime and options and userID and directory and filename:
         with sqlite3.connect(db_path) as connection:
             cursor = connection.cursor()
     
             try:
                 cursor.execute(f'INSERT INTO {tableName} (payload, options, dateTime, userID, directory, filename) \
-                                VALUES (?, ?, ?, ?, ?, ?)', (UI, options, dateTime, userID, directory, filename))
+                                VALUES (?, ?, ?, ?, ?, ?)', (payload, options, dateTime, userID, directory, filename))
                 connection.commit()
                 return {'message':f"{userID}'s {tableName}, {directory}, {filename} object saved successfully"}, 201
             except sqlite3.IntegrityError as e:
-                print('updatingUI: \n\n',UI)
                 cursor.execute(f'UPDATE {tableName} SET payload = ?, options = ? \
                                WHERE dateTime = ? AND userID = ? AND directory = ? AND filename = ?', 
-                               (UI, options, dateTime, userID, directory, filename))
+                               (payload, options, dateTime, userID, directory, filename))
                 print('affected:', cursor.rowcount)
                 connection.commit()
                 return {'message':f"{userID}'s {tableName}, {directory}, {filename} object updated successfully"}, 200
@@ -518,12 +517,12 @@ def saveObject():
                 return {'message':str(e)}, 500
     else:
         notList = []
-        if not UI:
-            notList.append('UI')
+        if not payload:
+            notList.append('payload')
         if not dateTime:
             notList.append('dateTime')
         if not options:
-            notList.append('dateTime')
+            notList.append('options')
         if not tableName:
             notList.append('tableName')
         if not userID:
@@ -602,6 +601,86 @@ def save_text():
             notList.append('directory')
         if not title:
             notList.append('title')
+        return jsonify({'message': f"missing required data: {', '.join(notList)}"}), 404
+
+@app.route('/getText/<tableName>/<encodedDateTime>/<userID>/<path:directory>/<filename>', methods=['GET'])
+def getText(tableName, encodedDateTime, userID, directory, filename):
+    '''
+    Accept tableName, userID, directory, dateTime and filename\n
+    Returns text payload and options
+    '''
+    with sqlite3.connect(db_path) as connection:
+        try:
+            dateTime = json.dumps(json.loads(encodedDateTime.replace('_','/')))
+            cursor = connection.cursor()
+            cursor.execute(f'SELECT payload, options FROM {tableName} \
+                           WHERE dateTime = ? AND userID = ? AND directory = ? AND filename = ?', 
+                           (dateTime, userID, directory, filename))
+            data = cursor.fetchone()
+            if data is not None:
+                payload = str(data[0])
+                options = json.loads(data[1])
+                return jsonify({ 'payload': payload, 'options': options, 'message': 'GET was successful' }), 200
+            else:
+                cursor.execute(f'SELECT payload, options FROM {tableName} \
+                                WHERE userID = ? AND directory = ? AND filename = ?', 
+                                (userID, directory, filename))
+                data = cursor.fetchone()
+                if data is not None:
+                    print('\n\n\ndatetime',dateTime)
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} doesn't exist at the given time"}), 404
+                else:
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} doesn't exist"}), 404
+
+        except Exception as e:
+            return jsonify({'message':"An error occurred:"+str(e)}), 500
+
+@app.route('/saveText',methods=['POST'])
+def saveText():
+    '''
+    Save userID, directory, filename, dateTime, options, and payload to tableName
+    '''
+    args = request.get_json()
+    payload, dateTime, options, tableName, userID, directory, filename = \
+        args.get('payload'), json.dumps(args.get('dateTime')), json.dumps(args.get('options')), \
+        args.get('table'), args.get('userID'), args.get('dir'), args.get('filename')
+
+    createTable(tableName,'text')
+
+    if payload and tableName and dateTime and options and userID and directory and filename:
+        with sqlite3.connect(db_path) as connection:
+            cursor = connection.cursor()
+    
+            try:
+                cursor.execute(f'INSERT INTO {tableName} (payload, options, dateTime, userID, directory, filename) \
+                                VALUES (?, ?, ?, ?, ?, ?)', (payload, options, dateTime, userID, directory, filename))
+                connection.commit()
+                return {'message':f"{userID}'s {tableName}, {directory}, {filename} object saved successfully"}, 201
+            except sqlite3.IntegrityError as e:
+                cursor.execute(f'UPDATE {tableName} SET payload = ?, options = ? \
+                               WHERE dateTime = ? AND userID = ? AND directory = ? AND filename = ?', 
+                               (payload, options, dateTime, userID, directory, filename))
+                print('affected:', cursor.rowcount)
+                connection.commit()
+                return {'message':f"{userID}'s {tableName}, {directory}, {filename} object updated successfully"}, 200
+            except Exception as e:
+                return {'message':str(e)}, 500
+    else:
+        notList = []
+        if not payload:
+            notList.append('UI')
+        if not dateTime:
+            notList.append('dateTime')
+        if not options:
+            notList.append('options')
+        if not tableName:
+            notList.append('tableName')
+        if not userID:
+            notList.append('userID')
+        if not directory:
+            notList.append('directory')
+        if not filename:
+            notList.append('filename')
         return jsonify({'message': f"missing required data: {', '.join(notList)}"}), 404
 
 @app.route('/find_string/<tableName>/<userID>/<searchStr>')
