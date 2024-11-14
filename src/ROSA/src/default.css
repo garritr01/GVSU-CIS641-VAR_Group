@@ -53,14 +53,6 @@
     margin-right: var(--smallMargin);
 }
 
-.flexDivRows> :last-child {
-    margin-left: 0;
-}
-
-.flexDivRows> :not(:first-child):not(:last-child) {
-    margin-right: 0;
-}
-
 .flexDivTable {
     display: table;
 }
@@ -90,7 +82,7 @@ input {
     background-color: white;
     position: fixed;
     top: 10%;
-    max-height: 90%;
+    max-height: 85%;
     margin: 2%;
     width: 96%;
     overflow: auto;

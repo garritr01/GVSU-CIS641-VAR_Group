@@ -11,7 +11,6 @@ import { deleteEntry, fetchObject, fetchFiles, fetchDirsAndFiles, saveObject,
 } from './generalFetch';
 
 import { Functions } from './MainMenu';
-import { flushSync } from 'react-dom';
 
 /** interface for creating a user interface for custom info - Skipped documentation here too 
  * as the simple functions are the most important for future use and I think they're relatively self explanatory
@@ -953,11 +952,13 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
 
     // Use object
     const [obj, setObj] = useState(preselectedObj);
+    // Contain loaded dir, filename, and version
+    const [loaded, setLoaded] = useState({ dir: '', filename: '', dateTime: { date: '', time: '' } })
     // Info for dropdown menus
     const [dirs, setDirs] = useState([]);
     const [fileInfo, setFileInfo] = useState([]);
     // Toggle schedule UI
-    const [schedule, setSchedule] = useState(false);
+    const [scheduleToggle, setScheduleToggle] = useState(false);
     // Contain repeat type temporarily
     const [repeatType, setRepeatType] = useState('');
     // Used to determine whether value is absolute or subject to time zones (true -> absolute)
@@ -966,12 +967,18 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     const [date1, setDate1] = useState(time);
     const [date2, setDate2] = useState(time);
     // Contain effective date being input for later conversion to object
-    const [startDate, setStartDate] = useState({ month: time.month, day: time.day, year: time.year });
-    const [endDate, setEndDate] = useState({ month: time.month, day: time.day, year: time.year });
+    const [startDate, setStartDate] = useState(time);
+    const [endDate, setEndDate] = useState(time);
     // repeatInfo is only used by weekly to specify which day and specRpt to specify how many days before repeating
     const [repeatInfo, setRepeatInfo] = useState('1');
     // elementInfo contains the text to show describing the input
     const [elementInfo, setElementInfo] = useState({ type: '', label: '', choices: null, group: 0 });
+    // object contains short output
+    const [result, setResult] = useState('');
+    // object designed to output errors
+    const [infoCheck, setInfoCheck] = useState([]);
+    // info detail toggle
+    const [detailToggle, setDetailToggle] = useState(false);
 
     // Set table to 'customUI' upon load
     // and get existing dirs, files and versions
@@ -1002,7 +1009,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     }
 
     /** Gets dirs and files where directories is all unqiue directories and
-    * files is an array of objects containing dateTime, directory, and title
+    * files is an array of objects containing dateTime, directory, and filename
     */
     const getDirsAndFiles = async () => {
         try {
@@ -1026,6 +1033,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
             if (!response.truth) {
                 console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`)
             } else {
+                setLoaded({ dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime });
                 const newObj = {
                     ...obj,
                     options: response.options,
@@ -1042,136 +1050,126 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
      * setObject
      */
     const convertScheduleIn = (newObj) => {
-        const updatedObj = {
-            ...newObj,
-            options: {
-                ...newObj.options,
-                schedule: newObj.options.schedule.map((schedule) => {
-                    // If `schedule.local` is false, convert times to UTC
-                    if (!schedule.local) {
-                        // Convert start and end to UTC with hour and minute set to midnight
-                        const startLocal = convertUTCObjToLocal(schedule.start);
-
-                        const endLocal = convertUTCObjToLocal(schedule.end);
-
-                        // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
-                        let effectiveStartLocal = schedule.effectiveStart;
-                        let effectiveEndLocal = schedule.effectiveEnd;
-
-                        if (schedule.effectiveStart.month !== 'NA') {
-                            effectiveStartLocal = convertUTCObjToLocal({
-                                day: schedule.effectiveStart.day,
-                                month: schedule.effectiveStart.month,
-                                year: schedule.effectiveStart.year,
-                                hour: '00', // Set the hour to midnight
-                                minute: '00', // Set the minute to midnight
-                            });
-                        }
-
-                        if (schedule.effectiveEnd.month !== 'NA') {
-                            effectiveEndLocal = convertUTCObjToLocal({
-                                day: schedule.effectiveEnd.day,
-                                month: schedule.effectiveEnd.month,
-                                year: schedule.effectiveEnd.year,
-                                hour: '00', // Set the hour to midnight
-                                minute: '00', // Set the minute to midnight
-                            });
-                        }
-
-                        return {
-                            ...schedule,
-                            start: startLocal,
-                            end: endLocal,
-                            effectiveStart: {
-                                day: effectiveStartLocal.day,
-                                month: effectiveStartLocal.month,
-                                year: effectiveStartLocal.year,
-                            },
-                            effectiveEnd: {
-                                day: effectiveEndLocal.day,
-                                month: effectiveEndLocal.month,
-                                year: effectiveEndLocal.year,
+        if (newObj.options) {
+            if (newObj.options.schedule) {
+                const updatedObj = {
+                    ...newObj,
+                    options: {
+                        ...newObj.options,
+                        schedule: newObj.options.schedule.map((schedule) => {
+                            // If `schedule.local` is false, convert times to UTC
+                            if (!schedule.local) {
+                                // Convert start and end to UTC with hour and minute set to midnight
+                                const startLocal = convertUTCObjToLocal(schedule.start);
+                            
+                                const endLocal = convertUTCObjToLocal(schedule.end);
+                            
+                                // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
+                                let effectiveStartLocal = schedule.effectiveStart;
+                                let effectiveEndLocal = schedule.effectiveEnd;
+                            
+                                if (schedule.effectiveStart.month !== 'NA') {
+                                    effectiveStartLocal = convertUTCObjToLocal({
+                                        day: schedule.effectiveStart.day,
+                                        month: schedule.effectiveStart.month,
+                                        year: schedule.effectiveStart.year,
+                                        hour: '00', // Set the hour to midnight
+                                        minute: '00', // Set the minute to midnight
+                                    });
+                                }
+                            
+                                if (schedule.effectiveEnd.month !== 'NA') {
+                                    effectiveEndLocal = convertUTCObjToLocal({
+                                        day: schedule.effectiveEnd.day,
+                                        month: schedule.effectiveEnd.month,
+                                        year: schedule.effectiveEnd.year,
+                                        hour: '00', // Set the hour to midnight
+                                        minute: '00', // Set the minute to midnight
+                                    });
+                                }
+                            
+                                return {
+                                    ...schedule,
+                                    start: startLocal,
+                                    end: endLocal,
+                                    effectiveStart: {
+                                        day: effectiveStartLocal.day,
+                                        month: effectiveStartLocal.month,
+                                        year: effectiveStartLocal.year,
+                                    },
+                                    effectiveEnd: {
+                                        day: effectiveEndLocal.day,
+                                        month: effectiveEndLocal.month,
+                                        year: effectiveEndLocal.year,
+                                    }
+                                };
+                            } else {
+                                // If `schedule.local` is true, leave the schedule unchanged
+                                return {
+                                    ...schedule,
+                                };
                             }
-                        };
-                    } else {
-                        // If `schedule.local` is true, leave the schedule unchanged
-                        return {
-                            ...schedule,
-                        };
+                        })
                     }
-                })
+                };
+                setObj(updatedObj);
             }
-        };
-
-        setObj(updatedObj);
+        }
     }
 
     /** Convert all options.schedules to UTC if option.schedule[i].local === false 
      * return object
     */
     const convertScheduleOut = () => {
-        const updatedObj = {
-            ...obj,
-            options: {
-                ...obj.options,
-                schedule: obj.options.schedule.map((schedule) => {
-                    // If `schedule.local` is false, convert times to UTC
-                    if (!schedule.local) {
-                        // Convert start and end to UTC with hour and minute set to midnight
-                        const startUTC = convertLocalObjToUTC(schedule.start);
-
-                        const endUTC = convertLocalObjToUTC(schedule.end);
-
-                        // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
-                        let effectiveStartUTC = schedule.effectiveStart;
-                        let effectiveEndUTC = schedule.effectiveEnd;
-
-                        if (schedule.effectiveStart.month !== 'NA') {
-                            effectiveStartUTC = convertLocalObjToUTC({
-                                day: schedule.effectiveStart.day,
-                                month: schedule.effectiveStart.month,
-                                year: schedule.effectiveStart.year,
-                                hour: '00', // Set the hour to midnight
-                                minute: '00', // Set the minute to midnight
-                            });
-                        }
-
-                        if (schedule.effectiveEnd.month !== 'NA') {
-                            effectiveEndUTC = convertLocalObjToUTC({
-                                day: schedule.effectiveEnd.day,
-                                month: schedule.effectiveEnd.month,
-                                year: schedule.effectiveEnd.year,
-                                hour: '00', // Set the hour to midnight
-                                minute: '00', // Set the minute to midnight
-                            });
-                        }
-
-                        return {
-                            ...schedule,
-                            start: startUTC,
-                            end: endUTC,
-                            effectiveStart: {
-                                day: effectiveStartUTC.day,
-                                month: effectiveStartUTC.month,
-                                year: effectiveStartUTC.year,
-                            },
-                            effectiveEnd: {
-                                day: effectiveEndUTC.day,
-                                month: effectiveEndUTC.month,
-                                year: effectiveEndUTC.year,
+        if (obj.options) {
+            if (obj.options.schedule) {
+                const updatedObj = {
+                    ...obj,
+                    options: {
+                        ...obj.options,
+                        schedule: obj.options.schedule.map((schedule) => {
+                            // If `schedule.local` is false, convert times to UTC
+                            if (!schedule.local) {
+                                // Convert start and end to UTC with hour and minute set to midnight
+                                const startUTC = convertLocalObjToUTC(schedule.start);
+                            
+                                const endUTC = convertLocalObjToUTC(schedule.end);
+                            
+                                // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
+                                let effectiveStartUTC = schedule.effectiveStart;
+                                let effectiveEndUTC = schedule.effectiveEnd;
+                            
+                                if (schedule.effectiveStart.month !== 'NA') {
+                                    effectiveStartUTC = convertLocalObjToUTC(effectiveStartUTC);
+                                }
+                            
+                                if (schedule.effectiveEnd.month !== 'NA') {
+                                    effectiveEndUTC = convertLocalObjToUTC(effectiveEndUTC);
+                                }
+                            
+                                return {
+                                    ...schedule,
+                                    start: startUTC,
+                                    end: endUTC,
+                                    effectiveStart: effectiveStartUTC,
+                                    effectiveEnd: effectiveEndUTC
+                                };
+                            } else {
+                                // If `schedule.local` is true, leave the schedule unchanged
+                                return {
+                                    ...schedule,
+                                };
                             }
-                        };
-                    } else {
-                        // If `schedule.local` is true, leave the schedule unchanged
-                        return {
-                            ...schedule,
-                        };
+                        })
                     }
-                })
+                };
+                return updatedObj;
+            } else {
+                return obj;
             }
-        };
-
-        return updatedObj;
+        } else {
+            return obj;
+        }
     }
 
     /** Save new UI or overwrite UI */
@@ -1183,12 +1181,17 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
             const response = await newSaveObject(outObj);
             if (response.truth) {
                 if (response.status === 200) {
+                    setResult('File updated.');
+                    setInfoCheck([`Updated content of ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`]);
                     getDirsAndFiles();
-                    console.log(`Updated content of ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`);
                 } else {
+                    setResult('Unknown success.');
+                    setInfoCheck([`Operated on ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`]);
                     console.error('Updated???',response);
                 }
             } else {
+                setResult('Failed to update.');
+                setInfoCheck([`Failed to update content of ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`]);
                 console.error(`Failed to update content of ${outObj.dir}/${outObj.filename} (${outObj.dateTime.date}-${outObj.dateTime.time}) in ${outObj.table}.`,response);
             }
         } else {
@@ -1196,25 +1199,92 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
             const response = await newSaveObject(objToSave);
             if (response.truth) {
                 if (response.status === 201) {
+                    setResult('File saved.');
+                    setInfoCheck([`Operated on ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
                     getDirsAndFiles();
-                    console.log(`Saved content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`);
                 } else {
+                    setResult('Unknown success.');
+                    setInfoCheck([`Saved content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
                     console.error('Updated???', response);
                 }
             } else {
+                setResult('Failed to save.');
+                setInfoCheck([`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
                 console.error(`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`, response);
             }
         }
+        // Reset version so it must be loaded to edit
+        setObj(prevState => ({ ...prevState, dateTime: 'new' }));
+    }
+
+    /** Checks that schedule information is correct number of characters and only digits 
+     * input order: ['start', 'end', 'effective start', 'effective end']
+    */
+    const checkObjValidity = (dates) => {
+
+        const names = ['start', 'end', 'effective start', 'effective end'];
+
+        setInfoCheck([]);
+        let returnTruth = true;
+        dates.forEach((item, i) => {
+            if (!/^\d{2}$/.test(item.month) && !(item.month === 'NA' && 'effective end' === names[i])) {
+                console.log('names',names[i])
+                setInfoCheck(prevState => [...prevState, `Schedule ${names[i]} month is not two-digit (${item.month})`]);
+                returnTruth = false;
+            } if (!/^\d{2}$/.test(item.day) && !(item.day === 'NA' && 'effective end' === names[i])) {
+                setInfoCheck(prevState => [...prevState, `Schedule ${names[i]} day is not two-digit (${item.day})`]);
+                returnTruth = false;
+            } if (!/^\d{4}$/.test(item.year) && !(item.year === 'NA' && 'effective end' === names[i])) {
+                setInfoCheck(prevState => [...prevState, `Schedule ${names[i]} year is not four-digit (${item.year})`]);
+                returnTruth = false;
+            } if (!/^\d{2}$/.test(item.hour) && !(item.hour === 'NA' && 'effective end' === names[i])) {
+                setInfoCheck(prevState => [...prevState, `Schedule ${names[i]} hour is not two-digit (${item.hour})`]);
+                returnTruth = false;
+            } if (!/^\d{2}$/.test(item.minute) && !(item.minute === 'NA' && 'effective end' === names[i])) {
+                setInfoCheck(prevState => [...prevState, `Schedule ${names[i]} minute is not two-digit (${item.minute})`]);
+                returnTruth = false;
+            }
+        });
+
+        if (returnTruth) {
+            setResult('Schedule applied.')
+        } else {
+            setResult('Schedule not applied.')
+        }
+
+        return returnTruth;
     }
 
     /** Add StartEndInput content to obj.options.schedule */
     const scheduleIt = () => {
+
+        // quit if invalid object
+        if (!checkObjValidity([date1, date2, startDate, endDate])) {return}
+
+        // Record save success and details
+        setResult('Scheduled.');
+        setInfoCheck([
+            `repeat: ${repeatType}`,
+            repeatType === 'specRpt' 
+                ? `days between: ${repeatInfo}`
+                : repeatType === 'weekly'
+                ? `repeats each ${getWeekdayString(parseInt(repeatInfo))}`
+                : 'no additional repeat information',
+            local
+                ? 'No conversions'
+                : 'Held as UTC and converted to local for use',
+            `Initial start: ${date1.month}/${date1.day}/${date1.year} - ${date1.hour}:${date1.minute}`,
+            `Initial end: ${date2.month}/${date2.day}/${date2.year} - ${date2.hour}:${date2.minute}`,
+            `Effective from ${startDate.month}/${startDate.day}/${startDate.year} - ${startDate.hour}:${startDate.minute}
+            until ${endDate.month}/${endDate.day}/${endDate.year} - ${endDate.hour}:${endDate.minute}`
+        ])
+
         // Format date properties to ensure two digits for day, month, hour, and minute, and four digits for year
         const formatDate = (dateObj) => {
             return {
                 day: String(dateObj.day).padStart(2, '0'),
                 month: String(dateObj.month).padStart(2, '0'),
-                year: String(dateObj.year).padStart(4, '0'),
+                year: dateObj.year !== 'NA' ? String(dateObj.year).padStart(4, '0') : dateObj.year,
                 hour: String(dateObj.hour).padStart(2, '0'),
                 minute: String(dateObj.minute).padStart(2, '0')
             };
@@ -1263,7 +1333,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
             <Functions printLevel={printLevel} selectFn={selectFn} />
             <div className="mainContainer">
                 <button onClick={() => console.log(obj)}>obj</button>
-                <button onClick={() => console.log(convertScheduleOut())}>anyLog</button>
+                <button onClick={() => console.log(fileInfo)}>anyLog</button>
                 <div className="flexDivTable">
                     {/** Directory row */}
                     <div className="flexDivRows">
@@ -1325,6 +1395,17 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                         </select>
                     </div>
                 </div>
+                { // Display issues or success
+                    detailToggle
+                    ?    <div className="bulletList" onClick={() => setDetailToggle(false)} style={{ cursor: 'pointer' }}>
+                            {
+                                infoCheck.map((item, i) => (
+                                    <p key={'userReport'+i}>{item}</p>
+                                ))
+                            }
+                        </div>
+                    :   <p onClick={() => setDetailToggle(true)} style={{ cursor: 'pointer' }}>{result}</p>
+                }
                 {/** Button row (saving, loading, resetting) */}
                 <div className="flexDivRows">
                     { // Render load content button if all necessary fields are filled
@@ -1337,11 +1418,18 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                 <button style={({ color: 'gray' })}>Load Content</button>
                             </div>
                     } { // Render overwrite button if using previous file version
-                        obj.payload && obj.dir && obj.filename ?
-                            obj.dateTime.date 
-                                ? <button onClick={() => saveCustomUI(true)}>Overwrite</button>
-                                : <button onClick={() => saveCustomUI(false)}>Save</button>
-                            : <button style={({ color: 'gray' })}>Save</button>
+                        obj.dir === loaded.dir &&
+                        obj.filename === loaded.filename &&
+                        obj.dateTime.date === loaded.dateTime.date &&
+                        obj.dateTime.time === loaded.dateTime.time 
+                            ?   <div>
+                                    <button style={({ color: 'gray' })}>Save</button>
+                                    <button onClick={() => saveCustomUI(true)}>Overwrite</button>
+                                </div>
+                            :   <div> 
+                                    <button onClick={() => saveCustomUI(false)}>Save</button>
+                                    <button style={({ color: 'gray' })}>Overwrite</button>
+                                </div>
                     } { // Render empty content button if payload || options
                         (obj.payload || obj.options) &&
                             <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null}))}>
@@ -1353,11 +1441,11 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                 <div className="flexDivRows">
                         <button 
                             className="flexDivColumns" 
-                            onClick={() => setSchedule(!schedule)}>
+                            onClick={() => setScheduleToggle(!scheduleToggle)}>
                                 Toggle Schedule
                         </button>
                     {/** Schedule repeat options */
-                        schedule &&
+                        scheduleToggle &&
                             <div>
                                 <p>Repeat Type:</p>
                                 <button className="moreLink" onClick={() => {setRepeatType('none')}}>
@@ -1418,7 +1506,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                     }
                 </div>
                 {/** Display relevant inputs for repeatType */
-                    schedule && (
+                    scheduleToggle && (
                         repeatType === 'none' ? (
                             <div>
                                 <p className="flexDivRows">Scheduled Time</p>
@@ -1445,7 +1533,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                     />
                                     <p>&nbsp;days</p>
                                 </div>
-                                <EffectiveTimeRange repeatType={repeatType}
+                                <EffectiveTimeRange 
+                                    end={date2} repeatType={repeatType}
                                     startDate={startDate} setStartDate={setStartDate}
                                     endDate={endDate} setEndDate={setEndDate}/>
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
@@ -1457,7 +1546,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                     local={local} setLocal={setLocal}
                                     date1={date1} setDate1={setDate1}
                                     date2={date2} setDate2={setDate2} />
-                                <EffectiveTimeRange repeatType={repeatType}
+                                <EffectiveTimeRange 
+                                    end={date2} repeatType={repeatType}
                                     startDate={startDate} setStartDate={setStartDate}
                                     endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
@@ -1484,7 +1574,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                             <option key={'6'} value={'6'}>Saturday</option>
                                     </select>
                                 </div>
-                                <EffectiveTimeRange repeatType={repeatType}
+                                <EffectiveTimeRange 
+                                    end={date2} repeatType={repeatType}
                                     startDate={startDate} setStartDate={setStartDate}
                                     endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
@@ -1496,7 +1587,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                     local={local} setLocal={setLocal}
                                     date1={date1} setDate1={setDate1}
                                     date2={date2} setDate2={setDate2} />
-                                <EffectiveTimeRange repeatType={repeatType}
+                                <EffectiveTimeRange 
+                                    end={date2} repeatType={repeatType}
                                     startDate={startDate} setStartDate={setStartDate}
                                     endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
@@ -1508,7 +1600,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                                     local={local} setLocal={setLocal}
                                     date1={date1} setDate1={setDate1}
                                     date2={date2} setDate2={setDate2} />
-                                <EffectiveTimeRange repeatType={repeatType}
+                                <EffectiveTimeRange 
+                                    end={date2} repeatType={repeatType}
                                     startDate={startDate} setStartDate={setStartDate}
                                     endDate={endDate} setEndDate={setEndDate} />
                                 <button onClick={() => scheduleIt()}>Schedule it!</button>
@@ -1521,7 +1614,11 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                     <p className="flexDivRows">Scheduled Dates</p>
                 }
                 {/** Display all schedule elements */
-                    <ScheduleDisplay obj={obj} setObj={setObj} />
+                    <ScheduleDisplay 
+                        obj={obj} setObj={setObj} 
+                        setScheduleToggle={setScheduleToggle} 
+                        setDate1={setDate1} setDate2={setDate2}
+                        setStartDate={setStartDate} setEndDate={setEndDate}/>
                 }
                 {/** Options to create elements */}
                 <div className="flexDivRows">
@@ -1732,7 +1829,7 @@ const StartEndInput = ({ local, setLocal, date1, setDate1, date2, setDate2 }) =>
 }
 
 /** HTML element for editing effective start and end date of schedule */
-const EffectiveTimeRange = ({ startDate, setStartDate, endDate, setEndDate, repeatType }) => {
+const EffectiveTimeRange = ({ end, startDate, setStartDate, endDate, setEndDate, repeatType }) => {
 
     // Update effective start date property with inputValue
     const uponEffectiveStartChange = (inputValue, prop) => {
@@ -1753,9 +1850,9 @@ const EffectiveTimeRange = ({ startDate, setStartDate, endDate, setEndDate, repe
                             <p>Effective Time Range</p>
                             {
                                 endDate.month !== 'NA' ?
-                                    <button onClick={() => { setEndDate({ month: 'NA', day: 'NA', year: 'NA' }) }}>Always</button>
+                                    <button onClick={() => { setEndDate({ month: 'NA', day: 'NA', year: 'NA', hour: 'NA', minute: 'NA' }) }}>Always</button>
                                     :
-                                    <button onClick={() => { setEndDate(startDate) }}>Resest</button>
+                                    <button onClick={() => { setEndDate(end); }}>Resest</button>
                             }
                         </div>
                         <div className="flexDivTable">
@@ -1781,6 +1878,20 @@ const EffectiveTimeRange = ({ startDate, setStartDate, endDate, setEndDate, repe
                                     value={startDate.year}
                                     onChange={(e) => uponEffectiveStartChange(e.target.value, 'year')}
                                 />
+                                <p className="flexDivColumns">at</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='start hour box'
+                                    value={startDate.hour}
+                                    onChange={(e) => uponEffectiveStartChange(e.target.value, 'hour')}
+                                />
+                                <p className="flexDivColumns">:</p>
+                                <input
+                                    className="fourDigitInput"
+                                    name='start minute box'
+                                    value={startDate.minute}
+                                    onChange={(e) => uponEffectiveStartChange(e.target.value, 'minute')}
+                                />
                             </div>
                             <div className="flexDivRows">
                                 <p className="flexDivColumns">End:</p>
@@ -1804,6 +1915,20 @@ const EffectiveTimeRange = ({ startDate, setStartDate, endDate, setEndDate, repe
                                     value={endDate.year}
                                     onChange={(e) => uponEffectiveEndChange(e.target.value, 'year')}
                                 />
+                                <p className="flexDivColumns">at</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='end hour box'
+                                    value={endDate.hour}
+                                    onChange={(e) => uponEffectiveEndChange(e.target.value, 'hour')}
+                                />
+                                <p className="flexDivColumns">:</p>
+                                <input
+                                    className="fourDigitInput"
+                                    name='end minute box'
+                                    value={endDate.minute}
+                                    onChange={(e) => uponEffectiveEndChange(e.target.value, 'minute')}
+                                />
                             </div>
                         </div>
                     </div>
@@ -1817,7 +1942,7 @@ const EffectiveTimeRange = ({ startDate, setStartDate, endDate, setEndDate, repe
 }
 
 /** HTML element for displaying schedules that will be saved with UI */
-const ScheduleDisplay = ({ obj, setObj }) => {
+const ScheduleDisplay = ({ obj, setObj, setScheduleToggle, setDate1, setDate2, setStartDate, setEndDate }) => {
 
     /** Remove content from obj.options.schedule */
     const removeSchedule = (index) => {
@@ -1832,10 +1957,34 @@ const ScheduleDisplay = ({ obj, setObj }) => {
         obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
             obj.options.schedule.map((schedule, index) => (
                 <div key={'fullSchedule' + index}>
-                    <div className="flexDivRows" key={'Schedule' + index}>
-                        <p
-                            style={({ cursor: 'pointer' })}
-                            onClick={() => { removeSchedule(index) }}>
+                    <div className="flexDivRows" key={"schedule" + index}>
+                        <p>Schedule {index+1}</p>
+                        <button onClick={() => {removeSchedule(index)}}>Remove</button>
+                        <button onClick={() => {
+                            setScheduleToggle(true);
+                            setDate1(schedule.start);
+                            setDate2(schedule.end);
+                            setStartDate(schedule.effectiveStart);
+                            setEndDate(schedule.effectiveEnd);
+                            removeSchedule(index);}}>
+                            Edit
+                        </button>
+                    </div>
+                    {
+                        schedule.repeatType !== 'none' &&
+                        <div className="flexDivRows" key={'effectiveSchedule' + index}>
+                            <p>
+                                {schedule.effectiveEnd.month !== 'NA' ? (<>
+                                    Effective from {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}
+                                    &nbsp;- {schedule.effectiveEnd.month}/{schedule.effectiveEnd.day}/{schedule.effectiveEnd.year} at {schedule.effectiveEnd.hour}:{schedule.effectiveEnd.minute}
+                                </>) : (<>Effective indefinitely after {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}:</>)
+                                }
+                            </p>
+                        </div>
+                    }
+                    <div className="flexDivRows" key={'referenceSchedule' + index}>
+                        <p>
+                            Reference Dates:&nbsp;
                             {schedule.start.month}/{schedule.start.day}/{schedule.start.year}&nbsp;
                             {schedule.start.hour}:{schedule.start.minute}&nbsp;
                             -&nbsp;
@@ -1853,48 +2002,27 @@ const ScheduleDisplay = ({ obj, setObj }) => {
                         </p>
                         {
                             schedule.repeatType === 'specRpt' ? (
-                                <span
-                                    style={({ cursor: 'pointer' })}
-                                    onClick={() => { removeSchedule(index) }}>
+                                <span>
                                     &nbsp;repeats every {schedule.repeatInfo} days
                                 </span>
                             ) : schedule.repeatType === 'daily' ? (
-                                <span
-                                    style={({ cursor: 'pointer' })}
-                                    onClick={() => { removeSchedule(index) }}>
+                                <span>
                                     &nbsp;repeats daily
                                 </span>
                             ) : schedule.repeatType === 'weekly' ? (
-                                <span
-                                    style={({ cursor: 'pointer' })}
-                                    onClick={() => { removeSchedule(index) }}>
+                                <span>
                                     &nbsp;repeats every {getWeekdayString(parseInt(schedule.repeatInfo))}
                                 </span>
                             ) : schedule.repeatType === 'monthly' ? (
-                                <span
-                                    style={({ cursor: 'pointer' })}
-                                    onClick={() => { removeSchedule(index) }}>
+                                <span>
                                     &nbsp;repeats monthly
                                 </span>
                             ) : schedule.repeatType === 'annually' ? (
-                                <span
-                                    style={({ cursor: 'pointer' })}
-                                    onClick={() => { removeSchedule(index) }}>
+                                <span>
                                     &nbsp;repeats annually
                                 </span>
                             ) : (null)
                         }
-                    </div>
-                    <div className="flexDivRows" key={'effectiveSchedule' + index}>
-                        <p
-                            style={({ cursor: 'pointer' })}
-                            onClick={() => { removeSchedule(index) }}>
-                            {schedule.effectiveEnd.month !== 'NA' ? (<>
-                                Effective {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year}
-                                &nbsp;- {schedule.effectiveEnd.month}/{schedule.effectiveEnd.day}/{schedule.effectiveEnd.year}
-                            </>) : (<>Effective indefinitely starting: {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year}</>)
-                            }
-                        </p>
                     </div>
                 </div>
         ))
