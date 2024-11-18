@@ -1,6 +1,6 @@
 Team Name: VAR GROUP
 Members Present: Festus Asante, Garrit Reynolds
-Date: 10/22/24
+Date: 11/03/24
 Time: 2:00 PM - 4:15 PM
 
 Discussion Points:
