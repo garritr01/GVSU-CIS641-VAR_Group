@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef
 } from 'react';
 
 import {getDateString, getTimeString, chooseMostRecent, 
-    convertUTCstringsToLocal, convertLocalStringsToUTC, parseDateObject
+    convertUTCstringsToLocal, convertLocalStringsToUTC, parseDateObject,
+    convertUTCObjToLocal, convertLocalObjToUTC, getCurrentDateStrings
 } from './oddsAndEnds';
 
 import { fetchDateTime, deleteEntry, fetchObject, 
-    fetchFiles, saveObject, recordDateTime 
+    fetchFiles, saveObject, recordDateTime, newFetchObject, newSaveObject,
+    newFetchDirsAndFiles
 } from './generalFetch';
 
 import { differenceInHours
@@ -728,6 +730,449 @@ export const CustomInput = ({ printLevel, selectFn, preselectedDir, preselectedT
                 }
                 <button onClick={() => closeCustomInput(false, true)}>Cancel</button>
             </div>
+        </div>
+    );
+}
+
+export const NewCustomInput = ({ printLevel, preselectedObj }) => {
+
+    // Get object with local month, day, year, hour, minute
+    const time = getCurrentDateStrings(true);
+
+    // Determines whether editing or loading
+    const [tableToUse, setTableToUse] = useState(preselectedObj.table || 'customUI');
+    // Contain entire custom input object
+    const [obj, setObj] = useState(preselectedObj);
+    // Contain directories and files within 'customInfo' table
+    const [dirs, setDirs] = useState([]);
+    const [fileInfo, setFileInfo] = useState([]);
+    // Contain information about loaded file
+    const [loaded, setLoaded] = useState({ dir: '', filename: '', dateTime: { date: '', time: '' } });
+    // object contains short output
+    const [result, setResult] = useState('');
+    // object designed to output errors
+    const [infoCheck, setInfoCheck] = useState([]);
+    // info detail toggle
+    const [detailToggle, setDetailToggle] = useState(false);
+    // contain start date and end date
+    const [start, setStart] = useState(time);
+    const [end, setEnd] = useState(time);
+
+    useEffect(() => {
+        getDirsAndFiles();
+    },[tableToUse]);
+
+    /** Update object property with inputValue */
+    const uponInputChange = (inputValue, prop) => {
+        setObj(prevState => ({ ...prevState, [prop]: inputValue }));
+    }
+
+    /** Update object property (which is also an object) with inputValue */
+    const uponObjectInputChange = (inputValue, prop) => {
+        let parsedObj;
+        // Attempt to parse and notify upon uncaught failure
+        try {
+            parsedObj = JSON.parse(inputValue);
+        } catch (err) {
+            if (prop === 'dateTime') {
+                parsedObj = { date: '', time: '' };
+            } else {
+                console.error("No catch for unparseable object!");
+            }
+        }
+        setObj(prevState => ({ ...prevState, [prop]: parsedObj }));
+    }
+
+    /** Gets dirs and files where directories is all unqiue directories and
+    * files is an array of objects containing dateTime, directory, and filename
+    */
+    const getDirsAndFiles = async () => {
+        try {
+            const response = await newFetchDirsAndFiles(tableToUse, obj.userID);
+            if (response.truth) {
+                setFileInfo(response.files);
+                setDirs(response.dirs);
+            } else {
+                console.error(`${response.status}: ${response.msg}`);
+            }
+        } catch (err) {
+            console.error('Error fetching customUI dirs and files:', err);
+        }
+    };
+
+    /** Get payload and options given relevant arguments */
+    const getPayload = async () => {
+        try {
+            const response = await newFetchObject({ ...obj, table: tableToUse });
+
+            if (!response.truth) {
+                console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`)
+            } else {
+                setLoaded({ dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime });
+                setObj({
+                    ...obj,
+                    options: response.options,
+                    payload: response.payload
+                });
+            }
+        } catch {
+            console.error('Error getting content with ', obj);
+        }
+    }
+
+    /** Save new UI or overwrite UI */
+    const saveCustomRecord = async (overwrite) => {
+
+        if (overwrite) {
+            const response = await newSaveObject(obj);
+            if (response.truth) {
+                if (response.status === 200) {
+                    setResult('File updated.');
+                    setInfoCheck([`Updated content of ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`]);
+                    getDirsAndFiles();
+                } else {
+                    setResult('Unknown success.');
+                    setInfoCheck([`Operated on ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`]);
+                    console.error('Updated???', response);
+                }
+            } else {
+                setResult('Failed to update.');
+                setInfoCheck([`Failed to update content of ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`]);
+                console.error(`Failed to update content of ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`, response);
+            }
+        } else {
+            const objToSave = { ...obj, dateTime: { date: getDateString(), time: getTimeString() } };
+            const response = await newSaveObject(objToSave);
+            if (response.truth) {
+                if (response.status === 201) {
+                    setResult('File saved.');
+                    setInfoCheck([`Operated on ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
+                    getDirsAndFiles();
+                } else {
+                    setResult('Unknown success.');
+                    setInfoCheck([`Saved content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
+                    console.error('Updated???', response);
+                }
+            } else {
+                setResult('Failed to save.');
+                setInfoCheck([`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
+                console.error(`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`, response);
+            }
+        }
+        // Reset version so it must be loaded to edit
+        setObj(prevState => ({ ...prevState, dateTime: 'new' }));
+    }    
+
+    return (
+        <div className="mainContainer">
+            <button onClick={() => console.log(obj)}>Log Object</button>
+            <button 
+                style={{ color: tableToUse === 'customUI' ? 'gray' : 'black' }}
+                onClick={() => setTableToUse('customUI')}>
+                Use UIs
+            </button>
+            <button 
+                style={{ color: tableToUse === 'record' ? 'gray' : 'black' }}
+                onClick={() => setTableToUse('record')}>
+                Use Records
+            </button>
+            <div className="flexDivTable">
+                {/** Directory row */}
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Directory:</p>
+                    <input
+                        className="flexDivColumns"
+                        name='directory box'
+                        list='dirs'
+                        value={obj.dir}
+                        onChange={(e) => uponInputChange(e.target.value, 'dir')}
+                    />
+                    <datalist id='dirs'>
+                        {dirs.length > 0 &&
+                            [...new Set(
+                                dirs.map((dir) => {
+                                    if (obj.dir === '') {
+                                        return dir.split('/')[0];
+                                    } else if (dir.split('/').slice(0, obj.dir.split('/').length).join('/') === obj.dir) {
+                                        return dir.split('/').slice(0, obj.dir.split('/').length + 1).join('/');
+                                    } else {
+                                        return null;
+                                    }
+                                })
+                            )].map((name, index) => (
+                                <option key={'dir' + index} value={name} />
+                            ))}
+                    </datalist>
+                </div>
+                {/** Filename row */}
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Filename:</p>
+                    <input
+                        className="flexDivColumns"
+                        name='filename box'
+                        list='filenames'
+                        value={obj.filename}
+                        onChange={(e) => uponInputChange(e.target.value, 'filename')}
+                    />
+                    <datalist id='filenames'>
+                        {fileInfo.length > 0 &&
+                            fileInfo.filter((file) => file.directory === obj.dir
+                            ).filter((obj, index, self) =>
+                                index === self.findIndex((o) => o.filename === obj.filename)
+                            ).map((file, index) => (
+                                <option key={'filename' + index} value={file.filename} />
+                            ))}
+                    </datalist>
+                </div>
+                {/** Version row */}
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Version:</p>
+                    <select
+                        value={JSON.stringify(obj.dateTime)}
+                        onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}>
+                        <option key={'new'} value={'new'}>New</option>
+                        { // Create option for each version and set to last saved in database initially
+                            fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
+                                if (file.filename === obj.filename && file.directory === obj.dir) {
+                                    return (
+                                        <option key={'version' + index} value={JSON.stringify(file.dateTime)}>
+                                            {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
+                                        </option>
+                                    );
+                                } else {
+                                    return null;
+                                }
+                            })
+                        }
+                    </select>
+                </div>
+            </div>
+            { // Display issues or success
+                detailToggle
+                    ? <div className="bulletList" onClick={() => setDetailToggle(false)} style={{ cursor: 'pointer' }}>
+                        {
+                            infoCheck.map((item, i) => (
+                                <p key={'userReport' + i}>{item}</p>
+                            ))
+                        }
+                    </div>
+                    : <p onClick={() => setDetailToggle(true)} style={{ cursor: 'pointer' }}>{result}</p>
+            }
+            {/** Button row (saving, loading, resetting) */}
+            <div className="flexDivRows">
+                { // Render load content button if all necessary fields are filled
+                    obj.dir && obj.filename && obj.dateTime.date ?
+                        <div>
+                            <button onClick={() => getPayload()}>Load Content</button>
+                        </div>
+                        :
+                        <div>
+                            <button style={({ color: 'gray' })}>Load Content</button>
+                        </div>
+                } { // Render overwrite button if using previous file version
+                    obj.dir === loaded.dir &&
+                        obj.filename === loaded.filename &&
+                        obj.dateTime.date === loaded.dateTime.date &&
+                        obj.dateTime.time === loaded.dateTime.time
+                        ? <div>
+                            <button style={({ color: 'gray' })}>Save</button>
+                            <button onClick={() => saveCustomRecord(true)}>Overwrite</button>
+                        </div>
+                        : <div>
+                            <button onClick={() => saveCustomRecord(false)}>Save</button>
+                            <button style={({ color: 'gray' })}>Overwrite</button>
+                        </div>
+                } { // Render empty content button if payload || options
+                    (obj.payload || obj.options) &&
+                    <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null }))}>
+                        Empty Content
+                    </button>
+                }
+            </div>
+            { /** Display customized info interface */
+                obj.payload &&
+                    <div>
+                        <UI UI={obj.payload} setObj={setObj} />
+                        <div className="flexDivTable">
+                            { /** Display start date inputs */
+                                obj.options?.startInfo === true &&
+                                    <DateInput date={start} setDate={setStart} preText={'Start'} />
+                            } { /** Display end date inputs */
+                                    <DateInput date={end} setDate={setEnd} preText={'End'} />
+                            }
+                        </div>
+                    </div>
+            } 
+        </div>
+    );
+}
+
+const UI = ({ UI, setObj }) => {
+
+    /** Update payload with value */
+    const updatePayload = (index, index2, inValue) => {
+        if (index2 === null) {
+            setObj(prevState => {
+                const newPayload = [...prevState.payload];
+                newPayload[index] = { ...newPayload[index], value: inValue };
+                return {
+                    ...prevState,
+                    payload: newPayload
+                }
+            });
+        } else {
+            setObj(prevState => {
+                const newPayload = [...prevState.payload];
+                const newValue = [...newPayload[index].value];
+                newValue[index2] = inValue;
+                newPayload[index] = { ...newPayload[index], value: newValue };
+                return {
+                    ...prevState,
+                    payload: newPayload
+                }
+            });
+        }
+    }
+
+    /** add '' to grouped value */
+    const addToGroup = (group) => {
+        setObj(prevState => {
+            const newPayload = prevState.payload.map(item => {
+                if (item.group === group) { // Check if the group matches
+                    return {
+                        ...item,
+                        value: [...item.value, ''] // Add an empty string to the value array
+                    };
+                }
+                return item; // Return unchanged for non-matching groups
+            });
+            return {
+                ...prevState,
+                payload: newPayload // Update the state with the modified payload
+            };
+        })
+    }
+
+    /** Remove index from grouped value */
+    const removeFromGroup = (group, index) => {
+        setObj(prevState => {
+            const newPayload = prevState.payload.map(item => {
+                if (item.group === group) { // Check if the group matches
+                    return {
+                        ...item,
+                        value: item.value.filter((_, i) => i !== index) // Remove the element at the given index
+                    };
+                }
+                return item; // Return unchanged for non-matching groups
+            });
+
+            return {
+                ...prevState,
+                payload: newPayload // Update the state with the modified payload
+            };
+        });
+    }
+
+
+    return (
+        <div>
+            {/** Display different types of UI elements */
+                UI.map((element, i) => (
+                    element?.type === "toggle" ?
+                        <button 
+                            key={i} 
+                            className="flexDivRows"
+                            style={{ color: element.value ? 'gray' : 'black' }}
+                            onClick={() => updatePayload(i, null, !element.value)}>
+                        </button>
+                    : element?.type === "choice" ?
+                        <div key={i} className="flexDivRows">
+                            <p>{element.label}</p>
+                            { /** Buttons for multiple choice question */
+                                element.choices.map((choice, iChoice) => (
+                                    <button 
+                                        key={i+'-'+iChoice}
+                                        style={{ color: element.value === choice ? 'gray' : 'black' }}
+                                        onClick={() => updatePayload(i, null, choice)}>
+                                        {choice}
+                                    </button>
+                                ))
+                            }
+                        </div>
+                    : element?.type === "input" ?
+                        <div key={i} className="flexDivRows">
+                            <p>{element.label}</p>
+                            { /** Inputs */
+                                element.value.map((inVal, iVal) => (
+                                    <div key={i + '-' + iVal}>
+                                        <input
+                                            value={inVal}
+                                            onChange={(e) => updatePayload(i, iVal, e.target.value)} />
+                                        <button onClick={() => removeFromGroup(element.group, iVal)}>-</button>
+                                    </div>
+                                ))
+                            }
+                            <button onClick={() => addToGroup(element.group)}>+</button>
+                        </div>
+                    : element?.type === "text" ?
+                        <div key={i}>
+                            <p>{element.label}</p>
+                            <textarea
+                                value={element.value}
+                                onChange={(e) => updatePayload(i, null, e.target.value)}/>
+                        </div>
+                    : <p>Unrecognized element {JSON.stringify(element)}</p>
+                ))
+            }
+        </div>
+    );
+}
+
+/** HTML element for editing start and end date/time of schedule */
+const DateInput = ({ date, setDate, preText }) => {
+
+    /** Update date property with inputValue */
+    const uponDateChange = (inputValue, prop) => {
+        setDate(prevState => ({ ...prevState, [prop]: inputValue }));
+    }
+
+    return (
+        <div className="flexDivRows">
+            <p className="flexDivColumns">{preText}:</p>
+            <input
+                className="twoDigitInput flexDivColumns"
+                name='month1 box'
+                value={date.month}
+                onChange={(e) => uponDateChange(e.target.value, 'month')}
+            />
+            <p className="flexDivColumns">/</p>
+            <input
+                className="twoDigitInput"
+                name='day1 box'
+                value={date.day}
+                onChange={(e) => uponDateChange(e.target.value, 'day')}
+            />
+            <p className="flexDivColumns">/</p>
+            <input
+                className="fourDigitInput flexDivColumns"
+                name='year1 box'
+                value={date.year}
+                onChange={(e) => uponDateChange(e.target.value, 'year')}
+            />
+            <p className="flexDivColumns">at</p>
+            <input
+                className="twoDigitInput flexDivColumns"
+                name='hour1 box'
+                value={date.hour}
+                onChange={(e) => uponDateChange(e.target.value, 'hour')}
+            />
+            <p className="flexDivColumns">:</p>
+            <input
+                className="twoDigitInput flexDivColumns"
+                name='minute1 box'
+                value={date.minute}
+                onChange={(e) => uponDateChange(e.target.value, 'minute')}
+            />
         </div>
     );
 }
