@@ -10,6 +10,8 @@
     box-sizing: border-box;
 }
 
+/* ------------- BULLETED LIST STYLES ------------ */
+
 .bulletList {
     display: block;
     padding-left: 8px;
@@ -23,10 +25,68 @@
     content: '•';
 }
 
+/* --- */
+
+/* ------------- CSS CLASS STYLES ---------------- */
+
+input {
+    height: 20px;
+}
+
+textarea {
+    width: 100%;
+    height: auto;
+}
+
+/* --- */
+
+/* ------------- CONTAINER STYLES ---------------- */
+
+.loginContainer {
+    background-color: white;
+    margin: 2%;
+}
+
+.mainContainer {
+    background-color: white;
+    position: fixed;
+    top: 10%;
+    height: 85%;
+    margin: 2%;
+    width: 96%;
+    overflow: auto;
+}
+
+.fileAccessContainer {
+    background-color: white;
+    position: relative;
+    top: 0%;
+    height: 100px;
+    width: 100%;
+    overflow: auto;
+}
+
+.postFileAccessContainer {
+    background-color: white;
+    position: relative;
+    top: 0%;
+    height: calc(90% - 100px);
+    width: 96%;
+    overflow-y: auto;
+}
+
+/* --- */
+
+/* ------------- ERROR DISPLAY STYLES ------------ */
+
 .errorP {
     color: rgb(245, 10, 10);
     font-weight: bold;
 }
+
+/* --- */
+
+/* ------------- FLEX DISPLAY STYLES ------------- */
 
 .flexDivColumns {
     display: flex;
@@ -53,40 +113,56 @@
     display: table-row;
 }
 
-.fourDigitInput {
-    width: 40px;
+/* --- */
+
+/* ------------- FILE ACCESS STYLES -------------- */
+
+input:focus+.moreRightLink .moreRight {
+    display: block;
 }
 
-input {
-    height: 20px;
+input:not(:focus)+.moreRightLink {
+    display: none;
 }
 
-.loginContainer {
+.moreRightLink {
+    position: relative;
+    cursor: pointer;
+}
+
+.moreRightLink::before {
+    content: "►";
+}
+
+.moreRight {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0%;
+    cursor: pointer;
     background-color: white;
-    margin: 2%;
+    z-index: 1;
 }
 
-.mainContainer {
+/* --- */
+
+/* ------------- MORE INFO STYLES ---------------- */
+
+.more {
+    display: none;
+    position: absolute;
+    left: 0%;
     background-color: white;
-    position: fixed;
-    top: 10%;
-    max-height: 85%;
-    margin: 2%;
-    width: 96%;
-    overflow: auto;
+    z-index: 1;
 }
 
 .moreLink:hover .more {
     display: block;
 }
 
-.more {
-    display: none;
-    position: absolute;
-    left: 0;
-    background-color: white;
-    z-index: 1;
-}
+/* --- */
+
+/* ------------- OVERLAY STYLES ------------------ */
 
 .overlay {
     position: fixed;
@@ -101,17 +177,28 @@ input {
     z-index: 10;
 }
 
-.overlay> * {
+.overlay>* {
     background-color: white;
     align-items: center;
     word-break: break-word;
     width: 80vw;
 }
 
-.popup {
-    font-weight: bold;
-    white-space: pre-wrap;
+/* --- */
+
+/* ------------- SIZED INPUT STYLES -------------- */
+
+.fourDigitInput {
+    width: 40px;
 }
+
+.twoDigitInput {
+    width: 20px;
+}
+
+/* --- */
+
+/* ------------- STICKY HEADER STYLES ------------ */
 
 .stickyHeader {
     display: flex;
@@ -130,19 +217,12 @@ input {
     margin-right: var(--smallMargin);
 }
 
-.stickyHeader> button:first-child {
+.stickyHeader>button:first-child {
     margin-left: 0;
 }
 
-.stickyHeader> button:last-child {
+.stickyHeader>button:last-child {
     margin-right: 0;
 }
 
-textarea {
-    width: 100%;
-    height: auto;
-}
-
-.twoDigitInput {
-    width: 20px;
-}
+/* --- */
