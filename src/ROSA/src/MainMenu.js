@@ -1,80 +1,48 @@
 import React, { useState, useEffect, useRef 
 } from 'react';
 
-import { getDateString, getTimeString, chooseMostRecent 
+import { getDateString, getTimeString, chooseMostRecent, logCheck
 } from './oddsAndEnds';
 
-import { deleteEntry, fetchObject, fetchFiles 
+import { deleteEntry, fetchObject, fetchFiles, newSaveObject
 } from './generalFetch';
 
 import { ScheduleView 
 } from './Calendar';
 
-//ClockOutOptions and QuickNotes still need updating
-
 /** Renders the main menu and handles selection */
-export const MainMenu = ({ printLevel, selectFn, selectResolutionInfo, selectDirTitleAndVersion }) => {
+export const MainMenu = ({ printLevel }) => {
+
+    // Holds the quantity for massProduce
+    const [numSaves, setNumSaves] = useState(20);
+
+    // Log the printLevel if 'bv' or 'pv' (basic verbose, parameter verbose)
+    useEffect(() => {
+        if (logCheck(printLevel, ['b', 'p']) === 2) { console.log('printLevel:', printLevel) }
+    }, []);
 
     // Renders military time and all main menu functions
     return (
-        <div>
-            <Functions printLevel={printLevel} selectFn={selectFn} />
-            <div className="mainContainer">
-                <h1>ROSA</h1>
-                <div className="flexDivRows">
-                    <p>{getDateString()}</p>
-                    <p>-{getTimeString()}</p>
-                </div>
-                <ClockOutOptions printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
-                <ScheduleView printLevel={printLevel} selectFn={selectFn} selectResolutionInfo={selectResolutionInfo} selectDirTitleAndVersion={selectDirTitleAndVersion} mode={'mainMenu'} />
-                <QuickNotes printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
+        <div className="mainContainer">
+            <h1>ROSA</h1>
+            <div className="flexDivRows">
+                <p>{getDateString()}</p>
+                <p>-{getTimeString()}</p>
             </div>
+            <div className="flexDivRows">
+                <button onClick={() => { massProduce('customUI', numSaves) }}>Save {numSaves} RNG CustomUIs</button>
+                <input value={numSaves} onChange={(e) => setNumSaves(e.target.value)} />
+            </div>
+            {/*
+            <ClockOutOptions printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
+            <ScheduleView printLevel={printLevel} selectFn={selectFn} selectResolutionInfo={selectResolutionInfo} selectDirTitleAndVersion={selectDirTitleAndVersion} mode={'mainMenu'} />
+            <QuickNotes printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
+            */}
         </div>
     );
 }
 
-/** Renders the buttons for choosing functions on the main menu */
-export const Functions = ({ printLevel, selectFn }) => {
-
-    //select a function based on funcName
-    const anyPress = (funcName) => {
-        printLevel > 0 && console.log('selected function: ', funcName);
-        selectFn(funcName);
-    };
-
-    //renders the buttons for selecting different functions on the main menu
-    return (
-        <div className="stickyHeader">
-            <div style={({ width: '90%' })}>
-                <button onClick={() => anyPress("main")}>Main Menu</button>
-                <button onClick={() => anyPress("file manager")}>File Manager</button>
-                {/* <button onClick={() => anyPress("journals")}>Journal</button> */}
-                <button onClick={() => anyPress("new journal")}>Journal</button>
-                <button onClick={() => anyPress("customInfo")}>Custom Record</button>
-                <button onClick={() => anyPress("customClockIn")}>Clock In</button>
-                {/* <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button> */}
-                <button onClick={() => anyPress("new customUI")}>Custom UI</button>
-                <button onClick={() => anyPress("quick note")}>Quick Note</button>
-                <button onClick={() => anyPress("schedule view")}>Calendar</button>
-                {/* The below buttons can be rendered for infrequently used functions. Code found in manualEdit.js*/}
-                {/*<button onClick={() => alterMatches("CustomUI", null, null,"Earning ($)","Earning ($)", "earning")}>Alter UI</button>*/}
-                {/*<button onClick={() => createCustomUIDropdown()}>CustomUI Dropdown</button>*/}
-                {/*<button onClick={() => createCustomInfoDropdowns()}>CustomInfo Dropdowns</button>*/}
-                {/*<button onClick={() => convertSchedules()}>Convert Schedules</button>*/}
-                {/*<button onClick={() => moveTables()}>Move Tables</button>*/}
-            </div>
-            <div style={({ width: '10%' })}>
-                <button
-                    onClick={() => selectFn("login")}
-                    >
-                    Log Out
-                </button>
-            </div>
-        </div>
-    );
-}
-
-/** Handles display and resolution of events clocked-into */
+/** Handles display and resolution of events clocked-into
 export const ClockOutOptions = ({ printLevel, selectFn, selectDirTitleAndVersion }) => {
 
     // Array holding objects representing events on the clock
@@ -107,8 +75,9 @@ export const ClockOutOptions = ({ printLevel, selectFn, selectDirTitleAndVersion
         </div>
     );
 }
+*/
 
-/** Handles display and resolution shortcut for quick notes feature */
+/** Handles display and resolution shortcut for quick notes feature
 export const QuickNotes = ({ printLevel, selectFn, selectDirTitleAndVersion }) => {
 
     const [quickNotes, setQuickNotes] = useState([]);
@@ -197,4 +166,64 @@ export const QuickNotes = ({ printLevel, selectFn, selectDirTitleAndVersion }) =
             ))}
         </div>
     );
+}
+*/
+
+const massProduce = (type, qty) => {
+
+    const randString = ['alpha', 'beta', 'kappa', 'omega', 'sigma', 'nu', 'mu',
+        'garden', 'party', 'spain', 'grogu', 'mando', 'skipper', 'JaredGoff',
+        'eclipse', 'massEffect3', 'Riften', 'Falkreath', 'Solitude', 'WHITERUN',
+        'Riverwood', 'Alduin', 'thePale', 'Shadowmere', 'Lydia', 'Greybeard'];
+
+    if (type === 'customUI') {
+        /** Save new UI or overwrite UI */
+        const saveCustomUI = async () => {
+
+            const obj = {
+                userID: 'garritr01',
+                options: { startInfo: true },
+                table: 'customUI',
+                payload: [
+                    { type: 'input', label: 'Label?', value: 'inpVal', choices: null, group: 0 },
+                    { type: 'text', label: 'Label?', value: 'textVal', choices: null, group: 0 },
+                    { type: 'choice', label: 'Label?', value: 'c1', choices: ['c1', 'c2'], group: 0 },
+                    { type: 'toggle', label: 'Label?', value: true, choices: null, group: 1 },
+                ]
+            };
+
+            for (let i = 0; i < qty; i++) {
+
+                const randDirLength = Math.floor(Math.random() * 5) + 1;
+                const randDir = [...randString].sort(() => 0.5 - Math.random()).slice(0, randDirLength).join('/');
+                const randFilename = [...randString].sort(() => 0.5 - Math.random()).slice(0, 2).join('-');
+                const randDate = {
+                    date:
+                        `${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}/${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}/${String(Math.floor(Math.random() * 51) + 2000)}`,
+                    time:
+                        `${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`
+                }
+
+                try {
+                    const response = await newSaveObject({
+                        ...obj,
+                        dir: randDir, filename: randFilename, dateTime: randDate
+                    });
+                    if (response.truth) {
+                        if (response.status === 201) {
+                            console.log(`Saved random object.`);
+                        } else {
+                            throw new Error(`${response.status} Unexpected Success: ${response.msg}`);
+                        }
+                    } else {
+                        throw new Error(`${response.status} Error: ${response.msg}`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        }
+    } else {
+        console.error(`Cannot mass produce '${type}'`);
+    }
 }
