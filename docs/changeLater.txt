@@ -1,9 +1,10 @@
 1. All instances of 'title' must be changed to 'filename'
 2. All instances of 'directory' must be changed to 'dir'
-3. Add delete functionality to NewJournal
 4. Remove 'New' from function titles when done (.js)
 4b. Remove all non-camelcase functions when done (.py)
 5. Remove 'Log' buttons from the beginning of functions when done
-6. Set initial function to 'Login' and remove 'garritr01' as automatic userID
-
-A. RETURN TO JOURNAL AND SET UP OVERWRITE OR SAVE AS ONLY ONE OPTION AT A TIME LIKE CUSTOMUI
+7. Add check that filename and dir are not empty on save
+8. Work on the 'loaded' functionality in journals, customUI, CustomInput
+  a. Needs to trigger overwrite or save new correctly
+  b. (customInfo) Needs to remove clockIn if clocking out
+  c. (customInfo) Needs to set overwrite only when imported from records
