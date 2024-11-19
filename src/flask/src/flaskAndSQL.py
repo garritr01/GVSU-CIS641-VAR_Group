@@ -755,12 +755,61 @@ def remove_entry(tableName, encodedDateTime, userID, directory, title):
         print('\n\n',e)
         return jsonify({'message': str(e)}), 404
 
+@app.route('/removeEntry/<tableName>/<encodedFilename>/<encodedDateTime>/<userID>/<path:directory>', methods=['DELETE'])
+def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
+    '''
+    Remove entry from tableName based on userID, directory, filename, and dateTime.
+    Removes:
+    - All entries with userID and directory if filename isn't defined.
+    - All entries with userID, directory, and filename if dateTime isn't defined.
+    - The entry with all parameters if all are defined.
+    '''
+    try:
+        with sqlite3.connect(db_path) as connection:
+            # Decode the encoded dateTime
+            dateTime = json.loads(encodedDateTime.replace('_', '/'))
+            filename = json.loads(encodedFilename)
+            print(encodedFilename,'-', filename)
+            cursor = connection.cursor()
+
+            # Determine which conditions to apply:
+            if filename and dateTime:
+                # If all are defined, delete entry with userID, directory, filename, and dateTime
+                cursor.execute(f'SELECT id FROM {tableName} WHERE userID = ? AND directory = ? AND filename = ? AND dateTime = ?',
+                               (userID, directory, filename, json.dumps(dateTime)))
+            elif filename:
+                # If filename is defined, but datetime is not, remove entries with userID, directory, and filename
+                cursor.execute(f'SELECT id FROM {tableName} WHERE userID = ? AND directory = ? AND filename = ?',
+                               (userID, directory, filename))
+            elif dateTime:
+                # If dateTime is defined, but filename is not, return an error
+                return jsonify({'message': f"Unexpected dateTime definitions. No entries deleted for {userID} in {tableName}, {directory}, {filename if filename else ''}, {dateTime if dateTime else ''}"}), 500
+            else:
+                # If neither filename nor dateTime are defined, remove entries with userID and directory (including subdirectories)
+                cursor.execute(f'SELECT id FROM {tableName} WHERE userID = ? AND (directory = ? OR directory LIKE ?)',
+                               (userID, directory, f'{directory}%'))
+
+            # Fetch all the rows to delete
+            rows = cursor.fetchall()
+            rowsAffected = 0
+            for row in rows:
+                id = row[0]
+                rowsAffected += cursor.execute(f'DELETE FROM {tableName} WHERE id = ?', (id,)).rowcount
+
+            if rowsAffected > 0:
+                return jsonify({'message': f"{rowsAffected} entries deleted successfully for {userID} in {tableName}, {directory}, {filename if filename else ''}, {dateTime if dateTime else ''}"}), 200
+            else:
+                return jsonify({'message': f"No entries found to delete for {userID} in {tableName}, {directory}, {filename if filename else ''}, {dateTime if dateTime else ''}"}), 404
+    except Exception as e:
+        print('\n\n', e)
+        return jsonify({'message': str(e)}), 500
+
 
 #create_table('miscDropdowns','object')
 
 #Prints out table info
 #Use table name for detailed printout of just that table
-tablePrintout('journals')
+#tablePrintout('journals')
 #remove_messed_up_entry('miscDropdowns','Garrit','CustomInfo/Chores','Taking Dogs Out')
 #selection_test('loginInfo','Health','Gym')
 #find_string('customInfo','Garrit','ldes')
