@@ -12,7 +12,7 @@
 
 .bulletList {
     display: block;
-    padding-left: 16px;
+    padding-left: 8px;
 }
 
 .bulletList p {
@@ -28,13 +28,6 @@
     font-weight: bold;
 }
 
-.errorPopup {
-    display: none;
-    color: rgb(245, 10, 10);
-    font-weight: bold;
-    white-space: pre-wrap;
-}
-
 .flexDivColumns {
     display: flex;
     flex-direction: column;
@@ -43,14 +36,9 @@
 .flexDivRows {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: center stretch;
     max-width: 100%;
     flex-wrap: wrap;
-}
-
-.flexDivRows> :first-child {
-    margin-left: var(--smallMargin);
-    margin-right: var(--smallMargin);
 }
 
 .flexDivTable {
@@ -98,6 +86,26 @@ input {
     left: 0;
     background-color: white;
     z-index: 1;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.overlay> * {
+    background-color: white;
+    align-items: center;
+    word-break: break-word;
+    width: 80vw;
 }
 
 .popup {
