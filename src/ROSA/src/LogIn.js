@@ -4,15 +4,16 @@ import React, { useState, useEffect, useRef
 import { createNewUser, checkLoginInfo 
 } from './generalFetch';
 
-import { BASE_URL } from './config'
+import { logCheck } from './oddsAndEnds';
+
+import { BASE_URL } from './config';
 
 /** Renders the login UI */
-export const LogIn = ({ printLevel, selectFn, setCurrentObj }) => {
+export const LogIn = ({ printLevel, selectFn, setUserID }) => {
 
     //Create empty userName, password, and popup variables
     const [userName, setUserName] = useState('');
     const [password, setPassword] = useState('');
-    const [popupErr, setPopupErr] = useState('');
     const [passwordVisibility, setPasswordVisibilty] = useState(false);
 
     /** Update input value upon change given variable and setVariable */
@@ -20,12 +21,51 @@ export const LogIn = ({ printLevel, selectFn, setCurrentObj }) => {
         setInputValue(inputValue);
     };
 
+    /** Toggle password visibility between true and false */
     const togglePasswordVisibility = () => {
+        if (logCheck(printLevel,['s']) === 2) {console.log(`Password visibility toggled to '${!passwordVisibility}'`)}
         setPasswordVisibilty(!passwordVisibility);
     }
 
-    /** Prompt general fetch to prompt database to check login information */
+    /** Add <p> child to "info" div
+     * @param {string} issue - text content within <p>
+     * @param {string} pClass - class assigned to <p>
+     */
+    const updateIssueLog = (issue, pClass = '') => {
+        const popupDiv = document.getElementById('info');
+        if (popupDiv) {
+            const p = document.createElement('p');
+            if (logCheck(printLevel,['e']) === 2) {console.log(`Adding info to log with class: '${pClass}'\n info: ${issue}`)}
+            if (pClass) {
+                p.className = pClass;
+            }
+            p.textContent = issue;
+            popupDiv.appendChild(p);
+        } else {
+            console.error('popup div (id="info") not found.');
+        }
+    }
+
+    /**
+     * Prompts a general fetch request to the database to check the login information.
+     * Clears the popup information and attempts to verify the user's credentials.
+     * If successful, it updates the current user ID and navigates to the main menu.
+     * In case of failure, it reports the error and throws an error based on the response status.
+     *
+     * @async
+     * @function checkCombo
+     * @throws {Error} Throws an error if the login information is incorrect or missing.
+     */
     const checkCombo = async () => {
+
+        // Clear popup info upon attempt to create user
+        const popupDiv = document.getElementById('info');
+        if (popupDiv) {
+            popupDiv.innerHTML = '';
+        } else {
+            console.error('popup div (id="info") not found.');
+        }
+
         //Attempt login info check and report any failures
         try {
             //Make sure userName and password exist
@@ -34,35 +74,40 @@ export const LogIn = ({ printLevel, selectFn, setCurrentObj }) => {
                 const response = await checkLoginInfo(userName, password);
                 //Output errors by specific code or open main menu and update userID
                 if (response.truth) {
-                    setCurrentObj(prevState => ({ ...prevState, userID: userName}));
+                    if (logCheck(printLevel,['b','d']) > 0) {console.log(`'${userName}' successfully logged in.`)}
+                    setUserID(userName);
                     selectFn('main');
                 } else if (response.status === 403) {
-                    setPopupErr('Incorrect password provided!');
+                    updateIssueLog('Incorrect password provided!','errorP');
+                    throw new Error('Incorrect password.');
                 } else {
-                    setPopupErr('Error most likely caused by incorrect username!');
+                    updateIssueLog('Error most likely caused by incorrect username!','errorP');
+                    if (logCheck(printLevel,['d','e']) === 2) {
+                        throw new Error(`Unexpected ${response.status} error occurred:\n ${response.msg}`)
+                    } else {throw new Error('Probably incorrect username.')}
                 }
             } else {
                 if (!userName && password) {
-                    setPopupErr('Enter a username');
+                    updateIssueLog('Enter a username','errorP');
+                    throw new Error('No username input');
                 } else if (!password && userName) {
-                    setPopupErr('Enter a password');
+                    updateIssueLog('Enter a password','errorP');
+                    throw new Error('No password input');
                 } else {
-                    setPopupErr('Enter a username and password');
+                    updateIssueLog('Enter a username and password','errorP');
+                    throw new Error('No username or password input');
                 }
             }
         } catch (err) {
-            console.error('login error: ', err);
+            console.error('Error loggin in: ', err);
         }
     }
 
     return (
         <div className="loginContainer">
             <h2>Welcome to ROSA</h2>
-            { /** Display popupError if exists */
-                popupErr === '' ? <p>Enter Username and Password</p>
-                    : <p className="errorPopup">{popupErr}</p>
-            }
             <div className="flexDivTable">
+                {/** Username row */}
                 <div className="flexDivRows">
                     <p className="flexDivColumns">Username:</p>
                     <input
@@ -71,6 +116,7 @@ export const LogIn = ({ printLevel, selectFn, setCurrentObj }) => {
                         onChange={(e) => uponInputChange(e.target.value, setUserName)}
                     />
                 </div>
+                {/** Password row */}
                 <div className="flexDivRows">
                     <p className="flexDivColumns" style={({ height: '20px' })}>Password:</p>
                     <div className="flexDivColumns">
@@ -92,6 +138,7 @@ export const LogIn = ({ printLevel, selectFn, setCurrentObj }) => {
                 <button onClick={() => checkCombo()}>Enter</button>
                 <button onClick={() => selectFn('signup')}>Sign Up</button>
             </div>
+            <div id="info" className="bulletList"></div>
         </div>
     );
 }
@@ -107,7 +154,7 @@ export const SignUp = ({ printLevel, selectFn }) => {
     /** Update input value upon change given variable and setVariable */
     const uponInputChange = (inputValue, setInputValue) => {
         setInputValue(inputValue);
-    };
+    }
 
     /** Add <p> child to "info" div
      * @param {string} issue - text content within <p>
@@ -117,58 +164,85 @@ export const SignUp = ({ printLevel, selectFn }) => {
         const popupDiv = document.getElementById('info');
         if (popupDiv) {
             const p = document.createElement('p');
+            if (logCheck(printLevel,['e']) === 2) {console.log(`Adding info to log with class: '${pClass}'\n info: ${issue}`)}
             if (pClass) {
                 p.className = pClass;
             }
             p.textContent = issue;
             popupDiv.appendChild(p);
+        } else {
+            console.error('popup div (id="info") not found.');
         }
     }
 
-    /** Perform preliminary checks to check input properties */
+    /**
+     * Performs preliminary checks to validate the username and password input.
+     * The checks include ensuring the username is at least 6 characters long, 
+     * the password is at least 12 characters long, contains both uppercase and lowercase letters, 
+     * includes a number and a symbol, and that both passwords match.
+     * Logs error messages if any of the checks fail.
+     *
+     * @function checkInputs
+     * @returns {boolean} - Returns true if all input constraints are met, otherwise false.
+     */
     const checkInputs = () => {
         let constraintsMet = true;
 
         // Check lengths and password contains caps, lowercase, numbers, and symbols respectively
         if (userName.length < 6) {
             constraintsMet = false;
+            if (logCheck(printLevel, ['e']) === 2) {console.log(`username: '${userName}' shorter than 6 characters.`)} 
             updateIssueLog('Username must be at least 6 characters!','errorP');
-        } 
-        if (password.length < 12) {
+        } if (password.length < 12) {
             constraintsMet = false;
+            if (logCheck(printLevel, ['e']) === 2) { console.log(`password: '${password}' shorter than 12 characters.`) } 
             updateIssueLog('Password must be at least 12 characters!','errorP');
-        } 
-        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password)) {
+        } if (!/[A-Z]/.test(password) || !/[a-z]/.test(password)) {
             constraintsMet = false;
+            if (logCheck(printLevel, ['e']) === 2) { console.log(`password: '${password}' must contain at least 1 uppercase and lowercase character.\n Uppercase: '${/[A-Z]/.test(password)}'\n Lowercase: '${/[a-z]/.test(password)}'`) } 
             updateIssueLog('Password must contain at least 1 lowercase and 1 uppercase character!','errorP');
-        } 
-        if (!/[0-9]/.test(password)) {
+        } if (!/[0-9]/.test(password)) {
             constraintsMet = false;
+            if (logCheck(printLevel, ['e']) === 2) { console.log(`password: '${password}' must contain at least 1 numerical character.`) } 
             updateIssueLog('Password must contain at least 1 numerical character!','errorP');
-        } 
-        if (!/[^a-zA-Z0-9]/.test(password)) {
+        } if (!/[^a-zA-Z0-9]/.test(password)) {
             constraintsMet = false;
+            if (logCheck(printLevel, ['e']) === 2) { console.log(`password: '${password}' must contain at least 1 symbol.`) } 
             updateIssueLog('Password must contain at least 1 symbol!','errorP');
         }
         // Check if password2 matches password
         if (password2 !== password) {
             constraintsMet = false;
+            if (logCheck(printLevel, ['e']) === 2) { console.log(`passwords must match. '${password}' !== '${password2}'`) } 
             updateIssueLog('Passwords do not match!','errorP');
         }
 
         // Return true if both username and password meet constraints
         if (constraintsMet) {
+            if (logCheck(printLevel, ['e']) === 2) { console.log('Sign up info meets constraints.') } 
             return true;
         } else {
             return false;
         }
     }
 
-    /** Prompt general fetch to sign user up with given userName and password */
+    /**
+    * Prompts a general fetch request to sign the user up with the provided username and password.
+    * It performs preliminary input validation using `checkInputs`. If the inputs meet the constraints,
+    * it attempts to create a new user via `createNewUser`. Depending on the response, it logs success, errors,
+    * or throws appropriate errors for specific issues like a duplicate username or unexpected errors.
+    *
+    * @async
+    * @function createUser
+    * @throws {Error} Throws an error if the username and password do not meet constraints or if an error occurs during user creation.
+    */
     const createUser = async () => {
+        // Clear popup info upon attempt to create user
         const popupDiv = document.getElementById('info');
         if (popupDiv) {
             popupDiv.innerHTML = '';
+        } else {
+            console.error('popup div (id="info") not found.');
         }
 
         try {
@@ -177,24 +251,36 @@ export const SignUp = ({ printLevel, selectFn }) => {
                 if (checkInputs()) {
                     const response = await createNewUser(userName, password);
                     if (response.truth) {
+                        if (logCheck(printLevel, ['d']) === 1) {console.log(`${userName}'s profile created.`)} else if (logCheck(printLevel, ['d']) === 2) {console.log(`${userName}'s profile created.\n response: ${response.status} - ${response.msg}`)}
                         updateIssueLog(`${userName}'s profile created. Return to login.`);
                     } else if (response.status === 403) {
                         updateIssueLog('Username already in use!', 'errorP');
+                        throw new Error(`${userName} already in use.`);
                     } else {
-                        updateIssueLog(`Unexpected Error occurred:\n\n\t ${response.msg}!`, 'errorP');
+                        updateIssueLog(`Unexpected ${response.status} Error occurred.`, 'errorP');
+                        if (logCheck(printLevel,['d','e']) === 2) {
+                            throw new Error(`Unexpected ${response.status} error`);
+                        } else {
+                            throw new Error(`Unexpected ${response.status} error:\n ${response.msg}`);
+                        }
                     }
+                } else {
+                    throw new Error('username and password do not meet constraints.');
                 }
             } else {
                 if (!userName) {
                     updateIssueLog('Enter a username!', 'errorP');
+                    throw new Error(`username DNE`);
                 } if (!password) {
                     updateIssueLog('Enter a password!', 'errorP');
+                    throw new Error(`password DNE`);
                 } if (!password2) {
                     updateIssueLog('Re-enter your password!', 'errorP');
+                    throw new Error(`password2 DNE`);
                 }
             }
         } catch (err) {
-            console.error('create user error: ', err);
+            console.error('Error creating user: ', err);
         }
     }
 
