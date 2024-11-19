@@ -10,8 +10,6 @@ import { deleteEntry, fetchObject, fetchFiles, fetchDirsAndFiles, saveObject,
     newSaveObject, newFetchObject, newFetchDirsAndFiles
 } from './generalFetch';
 
-import { Functions } from './MainMenu';
-
 /** interface for creating a user interface for custom info - Skipped documentation here too 
  * as the simple functions are the most important for future use and I think they're relatively self explanatory
 */
@@ -945,7 +943,7 @@ export const CustomUI = ({ printLevel, selectFn, preselectedDir, preselectedTitl
 }
 
 /** Interface for creating UIs to use in CustomInput */
-export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
+export const NewCustomUI = ({ printLevel, preselectedObj }) => {
     
     // Get object with local month, day, year, hour, minute
     const time = getCurrentDateStrings(true);
@@ -953,7 +951,7 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     // Use object
     const [obj, setObj] = useState(preselectedObj);
     // Contain loaded dir, filename, and version
-    const [loaded, setLoaded] = useState({ dir: '', filename: '', dateTime: { date: '', time: '' } })
+    const [loaded, setLoaded] = useState({ dir: '', filename: '', dateTime: { date: '', time: '' } });
     // Info for dropdown menus
     const [dirs, setDirs] = useState([]);
     const [fileInfo, setFileInfo] = useState([]);
@@ -980,10 +978,18 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     // info detail toggle
     const [detailToggle, setDetailToggle] = useState(false);
 
-    // Set table to 'customUI' upon load
-    // and get existing dirs, files and versions
+    /** Set table to 'customUI' upon load
+    * Set options.startInfo to false if DNE
+    * and get existing dirs, files and versions
+    */
     useEffect(() => {
         setObj(prevState => ({ ...prevState, table: 'customUI' }));
+        if (!obj.options || !obj.options.startInfo) {
+            setObj(prevState => ({ 
+                ...prevState, 
+                options: { ...prevState.options, startInfo: false } 
+            }));
+        }
         getDirsAndFiles();
     }, []);
 
@@ -1039,7 +1045,8 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
                     options: response.options,
                     payload: response.payload
                 };
-                const updatedObj = convertScheduleIn(newObj);
+                const newOptions = convertScheduleIn(newObj.options);
+                setObj({ ...newObj, options: newOptions });
             }
         } catch {
             console.error('Error getting content with ', obj);
@@ -1049,71 +1056,49 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     /** Convert all options.schedules to to local if option.schedule[i].local === false
      * setObject
      */
-    const convertScheduleIn = (newObj) => {
-        if (newObj.options) {
-            if (newObj.options.schedule) {
-                const updatedObj = {
-                    ...newObj,
-                    options: {
-                        ...newObj.options,
-                        schedule: newObj.options.schedule.map((schedule) => {
-                            // If `schedule.local` is false, convert times to UTC
-                            if (!schedule.local) {
-                                // Convert start and end to UTC with hour and minute set to midnight
-                                const startLocal = convertUTCObjToLocal(schedule.start);
-                            
-                                const endLocal = convertUTCObjToLocal(schedule.end);
-                            
-                                // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
-                                let effectiveStartLocal = schedule.effectiveStart;
-                                let effectiveEndLocal = schedule.effectiveEnd;
-                            
-                                if (schedule.effectiveStart.month !== 'NA') {
-                                    effectiveStartLocal = convertUTCObjToLocal({
-                                        day: schedule.effectiveStart.day,
-                                        month: schedule.effectiveStart.month,
-                                        year: schedule.effectiveStart.year,
-                                        hour: '00', // Set the hour to midnight
-                                        minute: '00', // Set the minute to midnight
-                                    });
-                                }
-                            
-                                if (schedule.effectiveEnd.month !== 'NA') {
-                                    effectiveEndLocal = convertUTCObjToLocal({
-                                        day: schedule.effectiveEnd.day,
-                                        month: schedule.effectiveEnd.month,
-                                        year: schedule.effectiveEnd.year,
-                                        hour: '00', // Set the hour to midnight
-                                        minute: '00', // Set the minute to midnight
-                                    });
-                                }
-                            
-                                return {
-                                    ...schedule,
-                                    start: startLocal,
-                                    end: endLocal,
-                                    effectiveStart: {
-                                        day: effectiveStartLocal.day,
-                                        month: effectiveStartLocal.month,
-                                        year: effectiveStartLocal.year,
-                                    },
-                                    effectiveEnd: {
-                                        day: effectiveEndLocal.day,
-                                        month: effectiveEndLocal.month,
-                                        year: effectiveEndLocal.year,
-                                    }
-                                };
+    const convertScheduleIn = (newOptions) => {
+        if (newOptions) {
+            if (newOptions.schedule) {
+                const updatedOptions = {
+                    ...newOptions,
+                    schedule: newOptions.schedule.map((schedule) => {
+                        // If `schedule.local` is false, convert times to UTC
+                        if (!schedule.local) {
+                            // Convert start and end to UTC with hour and minute set to midnight
+                            const startLocal = convertUTCObjToLocal(schedule.start);
+                        
+                            const endLocal = convertUTCObjToLocal(schedule.end);
+                        
+                            const effectiveStartLocal = convertUTCObjToLocal(schedule.effectiveStart);
+                        
+                            let effectiveEndLocal;
+                            if (schedule.effectiveEnd.month !== 'NA') {
+                                effectiveEndLocal = convertUTCObjToLocal(schedule.effectiveEnd);
                             } else {
-                                // If `schedule.local` is true, leave the schedule unchanged
-                                return {
-                                    ...schedule,
-                                };
+                                effectiveEndLocal = schedule.effectiveEnd;
                             }
-                        })
-                    }
-                };
-                setObj(updatedObj);
+                        
+                            return {
+                                ...schedule,
+                                start: startLocal,
+                                end: endLocal,
+                                effectiveStart: effectiveStartLocal,
+                                effectiveEnd: effectiveEndLocal
+                            };
+                        } else {
+                            // If `schedule.local` is true, leave the schedule unchanged
+                            return {
+                                ...newOptions,
+                            };
+                        }
+                    })
+                }
+                return updatedOptions;
+            } else {
+                return newOptions;
             }
+        } else {
+            return null;
         }
     }
 
@@ -1329,375 +1314,458 @@ export const NewCustomUI = ({ printLevel, selectFn, preselectedObj }) => {
     }
 
     return (
-        <div>
-            <Functions printLevel={printLevel} selectFn={selectFn} />
-            <div className="mainContainer">
-                <button onClick={() => console.log(obj)}>obj</button>
-                <button onClick={() => console.log(fileInfo)}>anyLog</button>
-                <div className="flexDivTable">
-                    {/** Directory row */}
-                    <div className="flexDivRows">
-                        <p className="flexDivColumns">Directory:</p>
-                        <input
-                            className="flexDivColumns"
-                            name='directory box'
-                            list='dirs'
-                            value={obj.dir}
-                            onChange={(e) => uponInputChange(e.target.value, 'dir')}
-                        />
-                        <datalist id='dirs'>
-                            {dirs.length > 0 &&
-                                dirs.map((name, index) => (
-                                    <option key={'dir'+index} value={name} />
-                                ))}
-                        </datalist>
-                    </div>
-                    {/** Filename row */}
-                    <div className="flexDivRows">
-                        <p className="flexDivColumns">Filename:</p>
-                        <input
-                            className="flexDivColumns"
-                            name='filename box'
-                            list='filenames'
-                            value={obj.filename}
-                            onChange={(e) => uponInputChange(e.target.value, 'filename')}
-                        />
-                        <datalist id='filenames'>
-                            {fileInfo.length > 0 &&
-                                fileInfo.filter((file) => file.directory === obj.dir
-                                ).filter((obj, index, self) =>
-                                    index === self.findIndex((o) => o.filename === obj.filename)
-                                ).map((file, index) => (
-                                    <option key={'filename'+index} value={file.filename} />
-                                ))}
-                        </datalist>
-                    </div>
-                    {/** Version row */}
-                    <div className="flexDivRows">
-                        <p className="flexDivColumns">Version:</p>
-                        <select
-                            value={JSON.stringify(obj.dateTime)}
-                            onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}>
-                            <option key={'new'} value={'new'}>New</option>
-                            { // Create option for each version and set to last saved in database initially
-                                fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
-                                    if (file.filename === obj.filename && file.directory === obj.dir) {
-                                        return (
-                                            <option key={'version'+index} value={JSON.stringify(file.dateTime)}>
-                                                {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
-                                            </option>
-                                        );
+        <div className="mainContainer">
+            <button onClick={() => console.log(obj)}>obj</button>
+            <button onClick={() => console.log(dirs)}>dir</button>
+            <div className="flexDivTable">
+                {/** Directory row */}
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Directory:</p>
+                    <input
+                        className="flexDivColumns"
+                        name='directory box'
+                        list='dirs'
+                        value={obj.dir}
+                        onChange={(e) => uponInputChange(e.target.value, 'dir')}
+                    />
+                    <datalist id='dirs'>
+                        {dirs.length > 0 && 
+                            [...new Set (
+                                dirs.map((dir) => {
+                                    if (obj.dir === '') {
+                                        return dir.split('/')[0];
+                                    } else if (dir.split('/').slice(0, obj.dir.split('/').length).join('/') === obj.dir) {
+                                        return dir.split('/').slice(0, obj.dir.split('/').length + 1).join('/');
                                     } else {
                                         return null;
                                     }
                                 })
-                            }
-                        </select>
-                    </div>
+                            )]
+                            .map((name, index) => (
+                                <option key={'dir'+index} value={name} />
+                            ))}
+                    </datalist>
                 </div>
-                { // Display issues or success
-                    detailToggle
-                    ?    <div className="bulletList" onClick={() => setDetailToggle(false)} style={{ cursor: 'pointer' }}>
-                            {
-                                infoCheck.map((item, i) => (
-                                    <p key={'userReport'+i}>{item}</p>
+                {/** Filename row */}
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Filename:</p>
+                    <input
+                        className="flexDivColumns"
+                        name='filename box'
+                        list='filenames'
+                        value={obj.filename}
+                        onChange={(e) => uponInputChange(e.target.value, 'filename')}
+                    />
+                    <datalist id='filenames'>
+                        {fileInfo.length > 0 &&
+                            fileInfo.filter((file) => file.directory === obj.dir
+                            ).filter((obj, index, self) =>
+                                index === self.findIndex((o) => o.filename === obj.filename)
+                            ).map((file, index) => (
+                                <option key={'filename'+index} value={file.filename} />
+                            ))}
+                    </datalist>
+                </div>
+                {/** Version row */}
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Version:</p>
+                    <select
+                        value={JSON.stringify(obj.dateTime)}
+                        onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}>
+                        <option key={'new'} value={'new'}>New</option>
+                        { // Create option for each version and set to last saved in database initially
+                            fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
+                                if (file.filename === obj.filename && file.directory === obj.dir) {
+                                    return (
+                                        <option key={'version'+index} value={JSON.stringify(file.dateTime)}>
+                                            {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
+                                        </option>
+                                    );
+                                } else {
+                                    return null;
+                                }
+                            })
+                        }
+                    </select>
+                </div>
+            </div>
+            { // Display issues or success
+                detailToggle
+                ?    <div className="bulletList" onClick={() => setDetailToggle(false)} style={{ cursor: 'pointer' }}>
+                        {
+                            infoCheck.map((item, i) => (
+                                <p key={'userReport'+i}>{item}</p>
+                            ))
+                        }
+                    </div>
+                :   <p onClick={() => setDetailToggle(true)} style={{ cursor: 'pointer' }}>{result}</p>
+            }
+            {/** Button row (saving, loading, resetting) */}
+            <div className="flexDivRows">
+                { // Render load content button if all necessary fields are filled
+                    obj.dir && obj.filename && obj.dateTime.date ?
+                        <div>
+                            <button onClick={() => getPayload()}>Load Content</button>
+                        </div>
+                        :
+                        <div>
+                            <button style={({ color: 'gray' })}>Load Content</button>
+                        </div>
+                } { // Render overwrite button if using previous file version
+                    obj.dir === loaded.dir &&
+                    obj.filename === loaded.filename &&
+                    obj.dateTime.date === loaded.dateTime.date &&
+                    obj.dateTime.time === loaded.dateTime.time 
+                        ?   <div>
+                                <button style={({ color: 'gray' })}>Save</button>
+                                <button onClick={() => saveCustomUI(true)}>Overwrite</button>
+                            </div>
+                        :   <div> 
+                                <button onClick={() => saveCustomUI(false)}>Save</button>
+                                <button style={({ color: 'gray' })}>Overwrite</button>
+                            </div>
+                } { // Render empty content button if payload || options
+                    (obj.payload || obj.options) &&
+                        <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null}))}>
+                            Empty Content
+                        </button>
+                }
+            </div>
+            {/** Initial Scheduling Row */}
+            <div className="flexDivRows">
+                    <button 
+                        className="flexDivColumns" 
+                        onClick={() => setScheduleToggle(!scheduleToggle)}>
+                            Toggle Schedule
+                    </button>
+                {/** Schedule repeat options */
+                    scheduleToggle &&
+                        <div>
+                            <p>Repeat Type:</p>
+                            <button className="moreLink" onClick={() => {setRepeatType('none')}}>
+                                Specific
+                                <span className="more bulletList">
+                                    <h3>Specific Behavior</h3>
+                                    <p>Start and end define one event</p>
+                                </span>
+                            </button>
+                            <button className="moreLink" onClick={() => {setRepeatType('specRpt')}}>
+                                Specific Repeat
+                                <span className="more bulletList">
+                                    <h3>Specific Repeat Behavior</h3>
+                                    <p>Start and end serve as initial date</p>
+                                    <p>Events will repeat the specified number of days apart</p>
+                                    <p>Events will repeat in the past and future within the inclusive bounds of effective start and end</p>
+                                </span>
+                            </button>
+                            <button className="moreLink" onClick={() => {setRepeatType('daily')}}>
+                                Daily
+                                <span className="more bulletList">
+                                    <h3>Daily Repeat Behavior</h3>
+                                    <p>Start and end are only relevant for the starting time and time span</p>
+                                    <p>If the start and end dates are different events will span multiple days</p>
+                                    <p>Events will repeat each day in the past and future within the inclusive bounds of effective start and end</p>
+                                </span>
+                            </button>
+                            <button className="moreLink" onClick={() => {setRepeatType('weekly'); setRepeatInfo('1');}}>
+                                Weekly
+                                <span className="more bulletList">
+                                    <h3>Weekly Repeat Behavior</h3>
+                                    <p>Start and end are only relevant for the starting time and time span</p>
+                                    <p>If the start and end date are different each event will span multiple days and the start date will use the given day of the week</p>
+                                    <p>Events will repeat each week in the past and future within the inclusive bounds of effective start and end</p>
+                                </span>
+                            </button>
+                            <button className="moreLink" onClick={() => {setRepeatType('monthly')}}>
+                                Monthly
+                                <span className="more bulletList">
+                                    <h3>Monthly Repeat Behavior</h3>
+                                    <p>Start and end are only relevant for the day, and time</p>
+                                    <p>If the start and end date are different each event will span multiple days</p>
+                                    <p>If day used is not in a certain month the last day of the month will be used</p>
+                                    <p>Events will repeat each month in the past and future within the bounds of effective start and end</p>
+                                </span>
+                            </button>
+                            <button className="moreLink" onClick={() => {setRepeatType('annually')}}>
+                                Annually
+                                <span className="more bulletList">
+                                    <h3>Annually Repeat Behavior</h3>
+                                    <p>Start and end are only relevant for the month, day, and time</p>
+                                    <p>If the start and end date are different each event will span multiple days</p>
+                                    <p>If month/day set to 2/29, 2/28 will be used on non-leap years</p>
+                                    <p>Events will repeat each year in the past and future within the bounds of effective start and end</p>
+                                </span>
+                            </button>
+                        </div>
+                }
+            </div>
+            {/** Display relevant inputs for repeatType */
+                scheduleToggle && (
+                    repeatType === 'none' ? (
+                        <div>
+                            <p className="flexDivRows">Scheduled Time</p>
+                            <StartEndInput 
+                                local={local} setLocal={setLocal} 
+                                date1={date1} setDate1={setDate1} 
+                                date2={date2} setDate2={setDate2}/>
+                            <button onClick={() => scheduleIt()}>Schedule it!</button>
+                        </div>
+                    ) : repeatType === 'specRpt' ? (
+                        <div>
+                            <p className="flexDivRows">Scheduled Time</p>
+                            <StartEndInput
+                                local={local} setLocal={setLocal}
+                                date1={date1} setDate1={setDate1}
+                                date2={date2} setDate2={setDate2} />
+                            <div className="flexDivRows">
+                                <p>Repeat every&nbsp;</p>
+                                <input
+                                    className="twoDigitInput"
+                                    name='specific repeat box'
+                                    value={repeatInfo}
+                                    onChange={(e) => setRepeatInfo(e.target.value)}
+                                />
+                                <p>&nbsp;days</p>
+                            </div>
+                            <EffectiveTimeRange 
+                                end={date2} repeatType={repeatType}
+                                startDate={startDate} setStartDate={setStartDate}
+                                endDate={endDate} setEndDate={setEndDate}/>
+                            <button onClick={() => scheduleIt()}>Schedule it!</button>
+                        </div>
+                    ) : repeatType === 'daily' ? (
+                        <div>
+                            <p className="flexDivRows">Scheduled Time</p>
+                            <StartEndInput
+                                local={local} setLocal={setLocal}
+                                date1={date1} setDate1={setDate1}
+                                date2={date2} setDate2={setDate2} />
+                            <EffectiveTimeRange 
+                                end={date2} repeatType={repeatType}
+                                startDate={startDate} setStartDate={setStartDate}
+                                endDate={endDate} setEndDate={setEndDate} />
+                            <button onClick={() => scheduleIt()}>Schedule it!</button>
+                        </div>
+                    ) : repeatType === 'weekly' ? (
+                        <div>
+                            <p className="flexDivRows">Scheduled Time</p>
+                            <StartEndInput
+                                local={local} setLocal={setLocal}
+                                date1={date1} setDate1={setDate1}
+                                date2={date2} setDate2={setDate2} />
+                            <div className="flexDivRows">
+                                <p>Repeat every&nbsp;</p>
+                                <select
+                                    name='weekly repeat box'
+                                    value={repeatInfo}
+                                    onChange={(e) => setRepeatInfo(e.target.value)}>
+                                        <option key={'0'} value={'0'}>Sunday</option>
+                                        <option key={'1'} value={'1'}>Monday</option>
+                                        <option key={'2'} value={'2'}>Tuesday</option>
+                                        <option key={'3'} value={'3'}>Wednesday</option>
+                                        <option key={'4'} value={'4'}>Thursday</option>
+                                        <option key={'5'} value={'5'}>Friday</option>
+                                        <option key={'6'} value={'6'}>Saturday</option>
+                                </select>
+                            </div>
+                            <EffectiveTimeRange 
+                                end={date2} repeatType={repeatType}
+                                startDate={startDate} setStartDate={setStartDate}
+                                endDate={endDate} setEndDate={setEndDate} />
+                            <button onClick={() => scheduleIt()}>Schedule it!</button>
+                        </div>
+                    ) : repeatType === 'monthly' ? (
+                        <div>
+                            <p className="flexDivRows">Scheduled Time</p>
+                            <StartEndInput
+                                local={local} setLocal={setLocal}
+                                date1={date1} setDate1={setDate1}
+                                date2={date2} setDate2={setDate2} />
+                            <EffectiveTimeRange 
+                                end={date2} repeatType={repeatType}
+                                startDate={startDate} setStartDate={setStartDate}
+                                endDate={endDate} setEndDate={setEndDate} />
+                            <button onClick={() => scheduleIt()}>Schedule it!</button>
+                        </div>
+                    ) : repeatType === 'annually' ? (
+                        <div>
+                            <p className="flexDivRows">Scheduled Time</p>
+                            <StartEndInput
+                                local={local} setLocal={setLocal}
+                                date1={date1} setDate1={setDate1}
+                                date2={date2} setDate2={setDate2} />
+                            <EffectiveTimeRange 
+                                end={date2} repeatType={repeatType}
+                                startDate={startDate} setStartDate={setStartDate}
+                                endDate={endDate} setEndDate={setEndDate} />
+                            <button onClick={() => scheduleIt()}>Schedule it!</button>
+                        </div>
+                    ) : (null)
+                )
+            }
+            {/** Only show Scheduled Dates if there are any */
+                obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
+                <p className="flexDivRows">Scheduled Dates</p>
+            }
+            {/** Display all schedule elements */
+                <ScheduleDisplay 
+                    obj={obj} setObj={setObj} 
+                    setScheduleToggle={setScheduleToggle} 
+                    setDate1={setDate1} setDate2={setDate2}
+                    setStartDate={setStartDate} setEndDate={setEndDate}/>
+            }
+            {/** Options to create elements */}
+            <div className="flexDivRows">
+                <button
+                    style={{ color: obj.options?.startInfo === true ? 'gray' : 'black'}}
+                    onClick={() => setObj({ ...obj, options: { ...obj.options, startInfo: obj.options?.startInfo === true ? false : true } })}>
+                    Add Start Time
+                </button>
+                <button onClick={() => setElementInfo(({ type: 'toggle', label: '', value: false, choices: null, group: 0 }))}>Add Button</button>
+                <button onClick={() => setElementInfo(({ type: 'choice', label: '', value: '', choices: [''], group: 0 }))}>Add Multiple Choice</button>
+                <button onClick={() => setElementInfo(({ type: 'input', label: '', value: [''], choices: null, group: 0 }))}>Add Input Box</button>
+                <button onClick={() => setElementInfo(({ type: 'text', label: '', value: '', choices: null, group: 0 }))}>Add Text Box</button>
+            </div>
+            {/** Element creation UI */
+                elementInfo.type === 'toggle' ? (
+                    <div className="flexDivRows">
+                        <p>Button Label:</p>
+                        <input
+                            name='toggle label box'
+                            value={elementInfo.label}
+                            onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                        />
+                        <button onClick={() => addElement()}>Add it!</button>
+                    </div>
+                ) : elementInfo.type === 'choice' ? (
+                    <div>
+                        <div className="flexDivRows">
+                            <p>Multiple Choice Question:</p>
+                            <input
+                                name='choice label box'
+                                value={elementInfo.label}
+                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                            />
+                        </div>
+                        <div className="flexDivRows">
+                            <p>Choices:</p>
+                            <button onClick={() => setElementInfo(prevState => ({ ...prevState, choices: prevState.choices.slice(0, prevState.choices.length - 1) }))}>-</button>
+                            <button onClick={() => setElementInfo(prevState => ({ ...prevState, choices: [...prevState.choices, ''] }))}>+</button>
+                            {/** Shows input for each existing choice and edits them based on their index */
+                                elementInfo.choices.map((choice, index) => (
+                                    <input
+                                        key={'multChoice'+index}
+                                        name={`choice box${index}`}
+                                        value={choice}
+                                        onChange={(e) => 
+                                            setElementInfo(prevState => 
+                                                ({ ...prevState, 
+                                                    choices: prevState.choices.map((c, i) =>
+                                                        i === index ? e.target.value : c
+                                                    )
+                                                })
+                                            )}
+                                    />
                                 ))
                             }
                         </div>
-                    :   <p onClick={() => setDetailToggle(true)} style={{ cursor: 'pointer' }}>{result}</p>
-                }
-                {/** Button row (saving, loading, resetting) */}
-                <div className="flexDivRows">
-                    { // Render load content button if all necessary fields are filled
-                        obj.dir && obj.filename && obj.dateTime.date ?
-                            <div>
-                                <button onClick={() => getPayload()}>Load Content</button>
-                            </div>
-                            :
-                            <div>
-                                <button style={({ color: 'gray' })}>Load Content</button>
-                            </div>
-                    } { // Render overwrite button if using previous file version
-                        obj.dir === loaded.dir &&
-                        obj.filename === loaded.filename &&
-                        obj.dateTime.date === loaded.dateTime.date &&
-                        obj.dateTime.time === loaded.dateTime.time 
-                            ?   <div>
-                                    <button style={({ color: 'gray' })}>Save</button>
-                                    <button onClick={() => saveCustomUI(true)}>Overwrite</button>
-                                </div>
-                            :   <div> 
-                                    <button onClick={() => saveCustomUI(false)}>Save</button>
-                                    <button style={({ color: 'gray' })}>Overwrite</button>
-                                </div>
-                    } { // Render empty content button if payload || options
-                        (obj.payload || obj.options) &&
-                            <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null}))}>
-                                Empty Content
-                            </button>
-                    }
-                </div>
-                {/** Initial Scheduling Row */}
-                <div className="flexDivRows">
-                        <button 
-                            className="flexDivColumns" 
-                            onClick={() => setScheduleToggle(!scheduleToggle)}>
-                                Toggle Schedule
-                        </button>
-                    {/** Schedule repeat options */
-                        scheduleToggle &&
-                            <div>
-                                <p>Repeat Type:</p>
-                                <button className="moreLink" onClick={() => {setRepeatType('none')}}>
-                                    Specific
-                                    <span className="more bulletList">
-                                        <h3>Specific Behavior</h3>
-                                        <p>Start and end define one event</p>
-                                    </span>
-                                </button>
-                                <button className="moreLink" onClick={() => {setRepeatType('specRpt')}}>
-                                    Specific Repeat
-                                    <span className="more bulletList">
-                                        <h3>Specific Repeat Behavior</h3>
-                                        <p>Start and end serve as initial date</p>
-                                        <p>Events will repeat the specified number of days apart</p>
-                                        <p>Events will repeat in the past and future within the inclusive bounds of effective start and end</p>
-                                    </span>
-                                </button>
-                                <button className="moreLink" onClick={() => {setRepeatType('daily')}}>
-                                    Daily
-                                    <span className="more bulletList">
-                                        <h3>Daily Repeat Behavior</h3>
-                                        <p>Start and end are only relevant for the starting time and time span</p>
-                                        <p>If the start and end dates are different events will span multiple days</p>
-                                        <p>Events will repeat each day in the past and future within the inclusive bounds of effective start and end</p>
-                                    </span>
-                                </button>
-                                <button className="moreLink" onClick={() => {setRepeatType('weekly'); setRepeatInfo('1');}}>
-                                    Weekly
-                                    <span className="more bulletList">
-                                        <h3>Weekly Repeat Behavior</h3>
-                                        <p>Start and end are only relevant for the starting time and time span</p>
-                                        <p>If the start and end date are different each event will span multiple days and the start date will use the given day of the week</p>
-                                        <p>Events will repeat each week in the past and future within the inclusive bounds of effective start and end</p>
-                                    </span>
-                                </button>
-                                <button className="moreLink" onClick={() => {setRepeatType('monthly')}}>
-                                    Monthly
-                                    <span className="more bulletList">
-                                        <h3>Monthly Repeat Behavior</h3>
-                                        <p>Start and end are only relevant for the day, and time</p>
-                                        <p>If the start and end date are different each event will span multiple days</p>
-                                        <p>If day used is not in a certain month the last day of the month will be used</p>
-                                        <p>Events will repeat each month in the past and future within the bounds of effective start and end</p>
-                                    </span>
-                                </button>
-                                <button className="moreLink" onClick={() => {setRepeatType('annually')}}>
-                                    Annually
-                                    <span className="more bulletList">
-                                        <h3>Annually Repeat Behavior</h3>
-                                        <p>Start and end are only relevant for the month, day, and time</p>
-                                        <p>If the start and end date are different each event will span multiple days</p>
-                                        <p>If month/day set to 2/29, 2/28 will be used on non-leap years</p>
-                                        <p>Events will repeat each year in the past and future within the bounds of effective start and end</p>
-                                    </span>
-                                </button>
-                            </div>
-                    }
-                </div>
-                {/** Display relevant inputs for repeatType */
-                    scheduleToggle && (
-                        repeatType === 'none' ? (
-                            <div>
-                                <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput 
-                                    local={local} setLocal={setLocal} 
-                                    date1={date1} setDate1={setDate1} 
-                                    date2={date2} setDate2={setDate2}/>
-                                <button onClick={() => scheduleIt()}>Schedule it!</button>
-                            </div>
-                        ) : repeatType === 'specRpt' ? (
-                            <div>
-                                <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput
-                                    local={local} setLocal={setLocal}
-                                    date1={date1} setDate1={setDate1}
-                                    date2={date2} setDate2={setDate2} />
-                                <div className="flexDivRows">
-                                    <p>Repeat every&nbsp;</p>
-                                    <input
-                                        className="twoDigitInput"
-                                        name='specific repeat box'
-                                        value={repeatInfo}
-                                        onChange={(e) => setRepeatInfo(e.target.value)}
-                                    />
-                                    <p>&nbsp;days</p>
-                                </div>
-                                <EffectiveTimeRange 
-                                    end={date2} repeatType={repeatType}
-                                    startDate={startDate} setStartDate={setStartDate}
-                                    endDate={endDate} setEndDate={setEndDate}/>
-                                <button onClick={() => scheduleIt()}>Schedule it!</button>
-                            </div>
-                        ) : repeatType === 'daily' ? (
-                            <div>
-                                <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput
-                                    local={local} setLocal={setLocal}
-                                    date1={date1} setDate1={setDate1}
-                                    date2={date2} setDate2={setDate2} />
-                                <EffectiveTimeRange 
-                                    end={date2} repeatType={repeatType}
-                                    startDate={startDate} setStartDate={setStartDate}
-                                    endDate={endDate} setEndDate={setEndDate} />
-                                <button onClick={() => scheduleIt()}>Schedule it!</button>
-                            </div>
-                        ) : repeatType === 'weekly' ? (
-                            <div>
-                                <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput
-                                    local={local} setLocal={setLocal}
-                                    date1={date1} setDate1={setDate1}
-                                    date2={date2} setDate2={setDate2} />
-                                <div className="flexDivRows">
-                                    <p>Repeat every&nbsp;</p>
-                                    <select
-                                        name='weekly repeat box'
-                                        value={repeatInfo}
-                                        onChange={(e) => setRepeatInfo(e.target.value)}>
-                                            <option key={'0'} value={'0'}>Sunday</option>
-                                            <option key={'1'} value={'1'}>Monday</option>
-                                            <option key={'2'} value={'2'}>Tuesday</option>
-                                            <option key={'3'} value={'3'}>Wednesday</option>
-                                            <option key={'4'} value={'4'}>Thursday</option>
-                                            <option key={'5'} value={'5'}>Friday</option>
-                                            <option key={'6'} value={'6'}>Saturday</option>
-                                    </select>
-                                </div>
-                                <EffectiveTimeRange 
-                                    end={date2} repeatType={repeatType}
-                                    startDate={startDate} setStartDate={setStartDate}
-                                    endDate={endDate} setEndDate={setEndDate} />
-                                <button onClick={() => scheduleIt()}>Schedule it!</button>
-                            </div>
-                        ) : repeatType === 'monthly' ? (
-                            <div>
-                                <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput
-                                    local={local} setLocal={setLocal}
-                                    date1={date1} setDate1={setDate1}
-                                    date2={date2} setDate2={setDate2} />
-                                <EffectiveTimeRange 
-                                    end={date2} repeatType={repeatType}
-                                    startDate={startDate} setStartDate={setStartDate}
-                                    endDate={endDate} setEndDate={setEndDate} />
-                                <button onClick={() => scheduleIt()}>Schedule it!</button>
-                            </div>
-                        ) : repeatType === 'annually' ? (
-                            <div>
-                                <p className="flexDivRows">Scheduled Time</p>
-                                <StartEndInput
-                                    local={local} setLocal={setLocal}
-                                    date1={date1} setDate1={setDate1}
-                                    date2={date2} setDate2={setDate2} />
-                                <EffectiveTimeRange 
-                                    end={date2} repeatType={repeatType}
-                                    startDate={startDate} setStartDate={setStartDate}
-                                    endDate={endDate} setEndDate={setEndDate} />
-                                <button onClick={() => scheduleIt()}>Schedule it!</button>
-                            </div>
-                        ) : (null)
-                    )
-                }
-                {/** Only show Scheduled Dates if there are any */
-                    obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
-                    <p className="flexDivRows">Scheduled Dates</p>
-                }
-                {/** Display all schedule elements */
-                    <ScheduleDisplay 
-                        obj={obj} setObj={setObj} 
-                        setScheduleToggle={setScheduleToggle} 
-                        setDate1={setDate1} setDate2={setDate2}
-                        setStartDate={setStartDate} setEndDate={setEndDate}/>
-                }
-                {/** Options to create elements */}
-                <div className="flexDivRows">
-                    <button onClick={() => setElementInfo(({ type: 'toggle', label: '', choices: null, group: 0 }))}>Add Button</button>
-                    <button onClick={() => setElementInfo(({ type: 'choice', label: '', choices: [''], group: 0 }))}>Add Multiple Choice</button>
-                    <button onClick={() => setElementInfo(({ type: 'input', label: '', choices: null, group: 0 }))}>Add Input Box</button>
-                    <button onClick={() => setElementInfo(({ type: 'text', label: '', choices: null, group: 0 }))}>Add Text Box</button>
-                </div>
-                {/** Element creation UI */
-                    elementInfo.type === 'toggle' ? (
+                        <button onClick={() => addElement()}>Add it!</button>
+                    </div>
+                ) : elementInfo.type === 'input' ? (
+                    <div className="flexDivRows">
+                        <p>Input Label:</p>
+                        <input
+                            name='input label box'
+                            value={elementInfo.label}
+                            onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                        />
+                        <button onClick={() => addElement()}>Add it!</button>
+                    </div>
+                ) : elementInfo.type === 'text' ? (
+                    <div className="flexDivRows">
+                        <p>Text Box Label:</p>
+                        <input
+                            name='text label box'
+                            value={elementInfo.label}
+                            onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                        />
+                        <button onClick={() => addElement()}>Add it!</button>
+                    </div>
+                ) : (null)
+            }
+            <p>UI Representation:</p>
+            {/** Display UI similar to how it will be in CustomRecord */
+                <EditUI obj={obj} setObj={setObj}/>
+            }
+            <div className="flexDivTable">
+            {/** Display startInfo if set to true*/
+                obj.options?.startInfo &&
                         <div className="flexDivRows">
-                            <p>Button Label:</p>
-                            <input
-                                name='toggle label box'
-                                value={elementInfo.label}
-                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                            <p className="flexDivColumns">Event Start:</p>
+                            <input readOnly
+                                className="twoDigitInput"
+                                name='startInfo month box'
+                                value={time.month}
                             />
-                            <button onClick={() => addElement()}>Add it!</button>
-                        </div>
-                    ) : elementInfo.type === 'choice' ? (
-                        <div>
-                            <div className="flexDivRows">
-                                <p>Multiple Choice Question:</p>
-                                <input
-                                    name='choice label box'
-                                    value={elementInfo.label}
-                                    onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
-                                />
-                            </div>
-                            <div className="flexDivRows">
-                                <p>Choices:</p>
-                                <button onClick={() => setElementInfo(prevState => ({ ...prevState, choices: prevState.choices.slice(0, prevState.choices.length - 1) }))}>-</button>
-                                <button onClick={() => setElementInfo(prevState => ({ ...prevState, choices: [...prevState.choices, ''] }))}>+</button>
-                                {/** Shows input for each existing choice and edits them based on their index */
-                                    elementInfo.choices.map((choice, index) => (
-                                        <input
-                                            key={'multChoice'+index}
-                                            name={`choice box${index}`}
-                                            value={choice}
-                                            onChange={(e) => 
-                                                setElementInfo(prevState => 
-                                                    ({ ...prevState, 
-                                                        choices: prevState.choices.map((c, i) =>
-                                                            i === index ? e.target.value : c
-                                                        )
-                                                    })
-                                                )}
-                                        />
-                                    ))
-                                }
-                            </div>
-                            <button onClick={() => addElement()}>Add it!</button>
-                        </div>
-                    ) : elementInfo.type === 'input' ? (
-                        <div className="flexDivRows">
-                            <p>Input Label:</p>
-                            <input
-                                name='input label box'
-                                value={elementInfo.label}
-                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                            <p className="flexDivColumns">/</p>
+                            <input readOnly
+                                className="twoDigitInput"
+                                name='startInfo day box'
+                                value={time.day}
                             />
-                            <button onClick={() => addElement()}>Add it!</button>
-                        </div>
-                    ) : elementInfo.type === 'text' ? (
-                        <div className="flexDivRows">
-                            <p>Text Box Label:</p>
-                            <input
-                                name='text label box'
-                                value={elementInfo.label}
-                                onChange={(e) => setElementInfo(prevState => ({ ...prevState, label: e.target.value }))}
+                            <p className="flexDivColumns">/</p>
+                            <input readOnly
+                                className="fourDigitInput"
+                                name='startInfo year box'
+                                value={time.year}
                             />
-                            <button onClick={() => addElement()}>Add it!</button>
+                            <p className="flexDivColumns">at</p>
+                            <input readOnly
+                                className="twoDigitInput"
+                                name='startInfo hour box'
+                                value={time.hour}
+                            />
+                            <p className="flexDivColumns">:</p>
+                            <input readOnly
+                                className="twoDigitInput"
+                                name='startInfo minute box'
+                                value={time.minute}
+                            />
                         </div>
-                    ) : (null)
-                }
-                <p>UI Representation:</p>
-                {/** Display UI similar to how it will be in CustomRecord */
-                    <EditUI obj={obj} setObj={setObj}/>
-                }
+            } {
+                    <div className="flexDivRows">
+                        <p className="flexDivColumns">Event End:</p>
+                        <input readOnly
+                            className="twoDigitInput"
+                            name='endInfo month box'
+                            value={time.month}
+                        />
+                        <p className="flexDivColumns">/</p>
+                        <input readOnly
+                            className="twoDigitInput"
+                            name='endInfo day box'
+                            value={time.day}
+                        />
+                        <p className="flexDivColumns">/</p>
+                        <input readOnly
+                            className="fourDigitInput"
+                            name='endInfo year box'
+                            value={time.year}
+                        />
+                        <p className="flexDivColumns">at</p>
+                        <input readOnly
+                            className="twoDigitInput"
+                            name='endInfo hour box'
+                            value={time.hour}
+                        />
+                        <p className="flexDivColumns">:</p>
+                        <input readOnly
+                            className="twoDigitInput"
+                            name='endInfo minute box'
+                            value={time.minute}
+                        />
+                    </div>
+            }
             </div>
         </div>
     );
@@ -1977,7 +2045,7 @@ const ScheduleDisplay = ({ obj, setObj, setScheduleToggle, setDate1, setDate2, s
                                 {schedule.effectiveEnd.month !== 'NA' ? (<>
                                     Effective from {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}
                                     &nbsp;- {schedule.effectiveEnd.month}/{schedule.effectiveEnd.day}/{schedule.effectiveEnd.year} at {schedule.effectiveEnd.hour}:{schedule.effectiveEnd.minute}
-                                </>) : (<>Effective indefinitely after {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}:</>)
+                                </>) : (<>Effective indefinitely after {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}</>)
                                 }
                             </p>
                         </div>
@@ -2098,27 +2166,29 @@ const EditUI = ({ obj, setObj }) => {
                             : <button onClick={() => setMoveIndex(index)}>Move</button>
                     }
                     {/** Show group button and commit button if currently grouping */
-                        grouping ? (
-                            <div className="flexDivRows">
-                                <button onClick={() => groupElement(index)}>
+                        element.type === 'input' ?
+                            grouping ? (
+                                <div className="flexDivRows">
+                                    <button onClick={() => groupElement(index)}>
+                                        Group
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setGrouping(false);
+                                            setGroupNum(groupNum + 1);
+                                        }}>
+                                        Commit
+                                    </button>
+                                </div>
+                            ) : (
+                                <button onClick={() => {
+                                    setGrouping(true);
+                                    groupElement(index);
+                                }}>
                                     Group
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        setGrouping(false);
-                                        setGroupNum(groupNum + 1);
-                                    }}>
-                                    Commit
-                                </button>
-                            </div>
-                        ) : (
-                            <button onClick={() => {
-                                setGrouping(true);
-                                groupElement(index);
-                            }}>
-                                Group
-                            </button>
-                        )
+                            )
+                        : null
                     }
                     <p className="flexDivRows">Group {element.group?.toString()}</p>
                 </div>
@@ -2138,4 +2208,4 @@ const EditUI = ({ obj, setObj }) => {
             </div>
         ))
     );
-};
+}
