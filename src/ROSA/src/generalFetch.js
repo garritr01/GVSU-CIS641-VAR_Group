@@ -411,3 +411,39 @@ export const deleteEntry = async (table, dateTime, userID, directory, title) => 
         return responseObj.message;
     } catch(err) {throw err}
 }
+
+/**
+ * Deletes an entry from the specified table based on userID, directory, optional title, and optional dateTime.
+ * 
+ * If no dateTime, all entries in file will be deleted.
+ * If no filename, all entries in directory will be deleted.
+ * 
+ * @param {string} table - The name of the table from which the entry should be deleted.
+ * @param {Object|string} dateTime - The dateTime object or string to match (optional). If empty, it deletes all entries for the given `userID`, `directory`, and `filename`.
+ * @param {string} userID - The ID of the user whose entry is to be deleted.
+ * @param {string} directory - The directory in which the entry is located.
+ * @param {string} filename - The filename of the entry to delete.
+ * 
+ * @returns - An object containing the result of the deletion:
+ *  - `truth`: A boolean indicating success (`true`) or failure (`false`).
+ *  - `msg`: A message describing the result.
+ *  - `status`: The HTTP status code of the response.
+ */
+export const newDeleteEntry = async (table, dateTime, userID, directory, filename) => {
+    try {
+        const encodedDateTime = encodeURIComponent(JSON.stringify(dateTime).replace(/\//g, '_'));
+        const encodedFilename = encodeURIComponent(JSON.stringify(filename));
+        const response = await fetch(`http://localhost:5000/removeEntry/${table}/${encodedFilename}/${encodedDateTime}/${userID}/${directory}`, {
+            method: 'DELETE',
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { truth: false, msg: data.message, status: response.status };
+        } else {
+            return { truth: true, msg: data.message, status: response.status };
+        }
+    } catch (err) { 
+        return { truth: false, msg: err, status: 500 };
+    }
+}
+
