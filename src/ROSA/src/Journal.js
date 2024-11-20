@@ -36,7 +36,7 @@ export const Journal = ({ printLevel, preselectedObj }) => {
                 if (logCheck(printLevel, ['o']) === 1) {console.log('obj updated by fetch')}
                 else if (logCheck(printLevel, ['o']) === 2) {console.log('obj updated by fetch\n obj:', updatedObj)}
                 setObj(updatedObj);
-                setLoadedInfo(updatedObj);
+                setLoadedInfo({ dir: updatedObj.dir, filename: updatedObj.filename, dateTime: updatedObj.dateTime });
             }
         } catch (err) {
             console.error('Error getting journal:', err);
