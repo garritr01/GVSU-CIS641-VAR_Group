@@ -8,3 +8,4 @@
   a. Needs to trigger overwrite or save new correctly
   b. (customInfo) Needs to remove clockIn if clocking out
   c. (customInfo) Needs to set overwrite only when imported from records
+9. Add a rookie mode toggle in main that passes a boolean that useEffect can use to hide certain classes.
