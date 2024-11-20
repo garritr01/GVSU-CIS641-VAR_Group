@@ -664,13 +664,13 @@ export const NewFileExplorer = ({ printLevel, selectFn, preselectedObj, setCurre
             </div>
             {// Render directory and file selection
                 obj.table &&
-                    <CascadingDropdown 
+                    <CascadingDropdown printLevel={printLevel}
                         dirs={dirs} fileInfo={fileInfo} handleDelete={handleDelete}
                         obj={obj} setObj={setObj}/>
             }
             {// Render file versions, options, and payload of text
                 obj.filename &&
-                    <DisplayFile
+                    <DisplayFile printLevel={printLevel}
                         fileInfo={fileInfo} handleDelete={handleDelete}
                         obj={obj} setObj={setObj} 
                         setCurrentObj={setCurrentObj} selectFn={selectFn}/>
@@ -680,7 +680,7 @@ export const NewFileExplorer = ({ printLevel, selectFn, preselectedObj, setCurre
 }
 
 /** Display dropdown of directory and files */
-const CascadingDropdown = ({ dirs, fileInfo, handleDelete, obj, setObj }) => {
+const CascadingDropdown = ({ printLevel, dirs, fileInfo, handleDelete, obj, setObj }) => {
 
     const [outOptions, setOutOptions] = useState([]);
     const [overlay, setOverlay] = useState({});
@@ -740,6 +740,7 @@ const CascadingDropdown = ({ dirs, fileInfo, handleDelete, obj, setObj }) => {
         newDirs = newDirs.sort((a, b) => a.name.localeCompare(b.name));
 
         setOutOptions(newDirs);
+        if (logCheck(printLevel,['s']) === 2) {console.log('dirs and files filtered: \n',newDirs)}
     }
 
     const handleClick = ({ type, name }) => {
@@ -821,17 +822,19 @@ const CascadingDropdown = ({ dirs, fileInfo, handleDelete, obj, setObj }) => {
 }
 
 /** Display File, allow version selection, and handle deleting or editing */
-const DisplayFile = ({ fileInfo, handleDelete, obj, setObj, setCurrentObj, selectFn }) => {
+const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurrentObj, selectFn }) => {
 
     // Contain dateTimes of selected table, file and dir
     const [versions, setVersions] = useState([]);
 
     const [overlay, setOverlay] = useState({});
 
+    // Trigger version options grab upon filename existence
     useEffect(() => {
         getVersions();
     },[obj.filename]);
 
+    // Trigger payload grab upon dateTime existence
     useEffect(() => {
         if (obj.dateTime && obj.dateTime.date && obj.dateTime.time) {
             if (obj.table === 'journals') {
@@ -842,6 +845,7 @@ const DisplayFile = ({ fileInfo, handleDelete, obj, setObj, setCurrentObj, selec
         }
     },[obj.dateTime]);
 
+    /** Filter to get all versions matching dir and filename */
     const getVersions = () => {
         const updatedVersions = fileInfo.map((file) => {
             if (obj.dir === file.directory &&
@@ -851,11 +855,16 @@ const DisplayFile = ({ fileInfo, handleDelete, obj, setObj, setCurrentObj, selec
                 return null;
             }
         }).filter((v) => v !== null);
+        const mostRecent = newChooseMostRecentSimple(updatedVersions);
         setObj(prevState => ({ 
             ...prevState, 
-            dateTime: newChooseMostRecentSimple(updatedVersions)
+            dateTime: mostRecent
         }));
         setVersions(updatedVersions);
+        if(logCheck(printLevel,['s']) === 1) {console.log('versions filtered.')}
+        else if(logCheck(printLevel,['s']) === 2) {console.log('versions filtered:\n',updatedVersions)}
+        if(logCheck(printLevel,['o']) === 1) {console.log('obj.dateTime set to most recent version.')}
+        else if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime set to most recent version: ${convertUTCstringsToLocal(mostRecent).date}-${convertUTCstringsToLocal(mostRecent).time}`)}
     }
 
     /** Get payload and options given relevant arguments */
@@ -864,17 +873,20 @@ const DisplayFile = ({ fileInfo, handleDelete, obj, setObj, setCurrentObj, selec
             const response = await newFetchText(obj);
 
             if (!response.truth) {
-                console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`);
+                throw new Error(`${response.status} Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}):\n ${response.msg}`);
             } else {
-                console.log(`Loaded ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`)
-                setObj({
+                const updatedObj = {
                     ...obj,
                     options: response.options,
                     payload: response.payload
-                });
+                };
+                setObj(updatedObj);
+                if (logCheck(printLevel, ['d', 'b']) > 1) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`)}
+                if (logCheck(printLevel, ['o']) === 1) {console.log('obj updated by fetch')}
+                else if (logCheck(printLevel, ['o']) === 2) {console.log('obj updated by fetch\n obj:', updatedObj)}
             }
-        } catch {
-            console.error('Error getting content with ', obj);
+        } catch (err) {
+            console.error(`Error fetching text from ${obj.table}:`, err);
         }
     }
     
@@ -883,16 +895,20 @@ const DisplayFile = ({ fileInfo, handleDelete, obj, setObj, setCurrentObj, selec
         try {
             const response = await newFetchObject(obj);
             if (!response.truth) {
-                console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`)
+                throw new Error(`${response.status} Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}):\n ${response.msg}`);
             } else {
-                setObj(prevState => ({
-                    ...prevState,
+                const updatedObj = {
+                    ...obj,
                     options: response.options,
                     payload: response.payload
-                }));
+                };
+                setObj(updatedObj);
+                if (logCheck(printLevel, ['d', 'b']) > 1) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`)}
+                if (logCheck(printLevel, ['o']) === 1) {console.log('obj updated by fetch')}
+                else if (logCheck(printLevel, ['o']) === 2) {console.log('obj updated by fetch\n obj:', updatedObj)}
             }
-        } catch {
-            console.error('Error getting content with ', obj);
+        } catch (err) {
+            console.error(`Error fetching object from ${obj.table}:`, err);
         }
     }
 
@@ -900,12 +916,15 @@ const DisplayFile = ({ fileInfo, handleDelete, obj, setObj, setCurrentObj, selec
      * This will need updating constantly as new functions are added
      */
     const handleFunctionSelection = () => {
-        if (obj.table === 'journals') {
-            selectFn('new journal');
+        if (obj.table === 'journal') {
+            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
+            selectFn('journal');
         } else if (obj.table === 'customUI') {
-            selectFn('new customUI');
+            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
+            selectFn('customUI');
         } else if (obj.table === 'record') {
-            selectFn('new customInfo');
+            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
+            selectFn('record');
         } else {
             console.error(`${obj.table} has no defined reroute to allow editing!`);
         }
