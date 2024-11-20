@@ -20,7 +20,7 @@ export const Functions = ({ printLevel, selectFn, setUserID }) => {
   // renders the buttons for selecting different functions on the main menu
   return (
     <div className="stickyHeader">
-      <div style={({ width: '90%' })}>
+      <div style={({ width: 'calc(100% - 53px)' })}>
         <button onClick={() => anyPress("main")}>Main Menu</button>
         {/* <button onClick={() => anyPress("file manager")}>File Manager</button> */}
         <button onClick={() => anyPress("fileExplorer")}>File Manager</button>
@@ -41,7 +41,7 @@ export const Functions = ({ printLevel, selectFn, setUserID }) => {
         {/*<button onClick={() => convertSchedules()}>Convert Schedules</button>*/}
         {/*<button onClick={() => moveTables()}>Move Tables</button>*/}
       </div>
-      <div style={({ width: '10%' })}>
+      <div style={({ width: '53px' })}>
         <button
           onClick={() => {
             setUserID('');
@@ -134,7 +134,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
   };
 
   return (
-    <div>
+    <div className="fileAccessContainer">
       <div className="flexDivTable">
         {/** Directory row */}
         <div className="flexDivRows">
@@ -142,29 +142,31 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
           <input
             className="flexDivColumns"
             name='directory box'
-            list='dirs'
             value={obj.dir}
             onChange={(e) => uponInputChange(e.target.value, 'dir')}
           />
-          <datalist id='dirs'>
+          <div className="moreRightLink flexDivColumns">
+          <span className="moreRight bulletList">
             {// Return suggestions for dir, set removes duplicates
               dirs.length > 0 &&
                 [...new Set(
                   dirs.map((dir) => {
-                    // ignore self
-                    if (dir === obj.dir) {
-                      return null;
-                    } 
                     // return all leading directories
-                    else if (obj.dir === '') {
+                    if (obj.dir === '') {
                       return dir.split('/')[0];
                     } 
-                    // return directories equal to obj.dir up to its length and subdirectories
-                    // if obj.dir's trailing directory is empty
+                    // return self
+                    else if (dir === obj.dir) {
+                      return dir;
+                    } 
+                    // if obj.dir === dir up to obj.dir's length return something
                     else if (dir.startsWith(obj.dir)) {
-                      if (obj.dir.split('/')[obj.dir.split('/').length - 1] === '') {
+                      // return 'dir1/dir2' if 'dir1' or 'dir1/'
+                      if (obj.dir.split('/')[obj.dir.split('/').length - 1] === '' || dir[obj.dir.length] === '/') {
                         return dir.split('/').slice(0, obj.dir.split('/').length + 1).join('/');
-                      } else {
+                      } 
+                      // return 'dir1/dir2' if 'dir1/d' or 'dir1/di' etc...
+                      else {
                         return dir.split('/').slice(0, obj.dir.split('/').length).join('/');
                       }
                     } 
@@ -173,34 +175,48 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
                       return null;
                     }
                   })
-                )].map((name, index) => (
-                  <option key={'dir' + index} value={name} />
+                )].filter((dir) => dir !== null)
+                .map((dir, index) => (
+                  <p key={index} 
+                    onMouseDown={(e) => {
+                      e.preventDefault(); 
+                      uponInputChange(dir, 'dir');
+                    }}>
+                    {dir}
+                  </p>
                 ))}
-          </datalist>
+          </span>
+          </div>
         </div>
         {/** Filename row */}
         <div className="flexDivRows">
           <p className="flexDivColumns">Filename:</p>
           <input
             className="flexDivColumns"
-            name='filename box'
-            list='filenames'
+            id='filename box'
             value={obj.filename}
             onChange={(e) => uponInputChange(e.target.value, 'filename')}
           />
-          <datalist id='filenames'>
+          <div className="moreRightLink flexDivColumns">
+          <span className="moreRight bulletList">
             { // Return all suggested filenames, set removes duplicates
               fileInfo.length > 0 &&
                 [...new Set(fileInfo
                   .filter((file) => file.directory === obj.dir) // Filter out files that don't match dir input
-                  .filter((file) => file.filename !== obj.filename) // Filter out files with filename exactly equal to obj.filename
                   .filter((file) => file.filename.startsWith(obj.filename)) // Filter out files that don't match obj.filename up to its length
                   .map((file) => file.filename) // Extract the filename
                 )].map((filename, index) => (
-                  <option key={index} value={filename} />
+                  <p key={index} 
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      uponInputChange(filename, 'filename');
+                    }}>
+                      {filename}
+                    </p>
                 ))
             }
-          </datalist>
+          </span>
+          </div>
         </div>
         {/** Version row */}
         <div className="flexDivRows">
@@ -224,43 +240,66 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
           </select>
         </div>
       </div>
-      {/** Button row (saving, loading, resetting) */ }
+      {/** Button row (saving, loading, notifying) */ }
       <div className="flexDivRows">
       { // Render load content button if all necessary fields are filled
         obj.dir && obj.filename && obj.dateTime.date 
-          ? <button onClick={() => getFile()}>Load Content</button>
-          : <button style={({ color: 'gray' })}>Load Content</button>
-      } { // Conditionally render overwrite button if using previous file version
-          // Condition1: file (dir, filename, dateTime) === loaded (dir, filename, dateTime)
-          // Condition2: file (dir, filename, dateTime) aren't falsy
-          obj.dir && obj.dir === loadedInfo.dir &&
-          obj.filename && obj.filename === loadedInfo.filename &&
-          obj.dateTime?.date && obj.dateTime.date === loadedInfo.dateTime?.date &&
-          obj.dateTime?.time && obj.dateTime.time === loadedInfo.dateTime?.time
-        ? <div>
+          ? <div>
+            <button onClick={() => getFile()}>Load Content</button>
+          </div>
+          : <div>
+            <button style={({ color: 'gray' })}>Load Content</button>
+          </div>
+      } { // Conditionally render overwrite button if dateTime is defined
+        obj.dateTime.date
+        ? 
+        <div>
           <button style={({ color: 'gray' })}>Save New</button>
-          <button onClick={() => saveFile(true)}>Overwrite</button>
+          {
+            loadedInfo.dir && 
+            (loadedInfo.dir !== obj.dir ||
+            loadedInfo.filename !== obj.filename ||
+            loadedInfo.dateTime.date !== obj.dateTime.date ||
+            loadedInfo.dateTime.time !== obj.dateTime.time)
+            ? <button className="moreButton"
+                style={{ border: '1px solid red'}}
+                onClick={() => saveFile(true)}>
+                  Overwrite
+                  <span className="more bulletList">
+                    <h3>Save location will be different than loaded location</h3>
+                    <p>Loaded from {loadedInfo.dir}/{loadedInfo.filename}&nbsp;
+                      version: {convertUTCstringsToLocal(loadedInfo.dateTime).date}-{convertUTCstringsToLocal(loadedInfo.dateTime).time}
+                    </p>
+                    <p>Will save to {obj.dir}/{obj.filename}&nbsp;
+                      version: {convertUTCstringsToLocal(obj.dateTime).date}-{convertUTCstringsToLocal(obj.dateTime).time}
+                    </p>
+                  </span>
+              </button>
+            : <button onClick={() => saveFile(true)}>Overwrite</button>
+          }
         </div>
         : <div>
-          <button onClick={() => saveFile(false)}>Save New</button>
+          { // Do not allow save if dir ends in /, either contain invalud characters, or are just spaces 
+            obj.dir && obj.dir[obj.dir.length - 1] !== '/' && obj.dir.trim() !== "" && !/[\\:*?"<>|#&=]/.test(obj.dir) &&
+            obj.filename && obj.filename.trim() !== "" && !/[\/\\:*?"<>|#&=]/.test(obj.filename)
+            ? <button onClick={() => saveFile(false)}>Save New</button>
+            : <button style={({ color: 'gray' })}>Save New</button>
+          }
           <button style={({ color: 'gray' })}>Overwrite</button>
         </div>
+      } { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
+        savedInfo && (obj.payload === null || obj.payload === '') &&
+          <p className="moreLink" style={{ cursor: 'default' }}>
+            {savedInfo.message} {savedInfo.filename}
+            <span className="more">
+              {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
+              {convertUTCstringsToLocal(savedInfo.dateTime).date}-
+              {convertUTCstringsToLocal(savedInfo.dateTime).time}&nbsp;
+              in {savedInfo.table}
+            </span>
+          </p>
       }
       </div>
-      { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
-        savedInfo && obj.options !== null && obj.payload !== null && obj.payload !== '' && 
-          <div className="flexDivRows">
-            <p className="moreLink" style={{ cursor: 'default' }}>
-              {savedInfo.message} {savedInfo.filename}
-              <span className="more">
-                {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
-                {convertUTCstringsToLocal(savedInfo.dateTime).date}-
-                {convertUTCstringsToLocal(savedInfo.dateTime).time}&nbsp;
-                in {savedInfo.table}
-              </span>
-            </p>
-          </div>
-      }
     </div>
   );
 }
