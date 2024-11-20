@@ -148,7 +148,8 @@ input:not(:focus)+.moreRightLink {
     cursor: pointer;
 }
 
-.moreRightLink::before {
+/* If child .moreRight is present and not empty */
+.moreRightLink:has(.moreRight:not(:empty))::before {
     content: "►";
 }
 
