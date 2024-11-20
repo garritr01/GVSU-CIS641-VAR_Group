@@ -13,7 +13,7 @@ import {
     newDeleteEntry
 } from './generalFetch';
 
-export const NewFileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentObj }) => {
+export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentObj }) => {
     
     // Use object
     const [obj, setObj] = useState(preselectedObj);

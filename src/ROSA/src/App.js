@@ -7,15 +7,10 @@ import { MainMenu } from './MainMenu';
 import { Functions } from './Components';
 import { Journal } from './Journal';
 import { CustomInput, NewCustomInput } from './CustomInput';
-import { CustomUI, NewCustomUI } from './CustomUI';
+import { NewCustomUI } from './CustomUI';
 import { ScheduleView } from './Calendar';
-import { FileExplorer, NewFileExplorer } from './FileExplorer';
+import { FileExplorer } from './FileExplorer';
 import { logCheck } from './oddsAndEnds';
-
-//Used in TestApp for testing database interactions from end to end and back
-import { testSaveTime, testCallTime, testGetFiles, testGetDirsAndFiles, 
-  testSaveObject, testGetObject, testSaveText, testGetText, testDelete 
-} from './dbChangeTest'
 
 import './default.css';
 
@@ -32,7 +27,7 @@ const App = () => {
   // d (database) - use to log database output (errors will always log)
   // e (exceptions) - use to log exceptional cases
   // v (verbose) - add to any character for verbose mode
-  const logLevel = ['b','o','s','d','e'];
+  const logLevel = ['ev','s']; //['d','e','b','o','p','s'];
   // Remains for old printout conditions
   // const printoutLevel = 1;
   const [userID, setUserID] = useState('garritr01');
@@ -153,7 +148,7 @@ const App = () => {
       {open === 'main' && <MainMenu
         printLevel={logLevel}/>}
       {/** File Explorer interface */}
-      {open === 'fileExplorer' && <NewFileExplorer
+      {open === 'fileExplorer' && <FileExplorer
         printLevel={logLevel}
         selectFn={handleOpen}
         preselectedObj={currentObj}
@@ -285,40 +280,6 @@ const App = () => {
       */}
     </div>
   );
-}
-
-const TestApp = () => {
-  return (
-    <div>
-      <button onClick={() => testSaveTime()}>
-        Record Time
-      </button>
-      <button onClick={() => testCallTime()}>
-        Get Time
-      </button>
-      <button onClick={() => testGetFiles()}>
-        Get Names
-      </button>
-      <button onClick={() => testGetDirsAndFiles()}>
-        Get Dirs And Files
-      </button>
-      <button onClick={() => testSaveObject()}>
-        Save Object
-      </button>
-      <button onClick={() => testGetObject()}>
-        Get Object
-      </button>
-      <button onClick={() => testSaveText()}>
-        Save Text
-      </button>
-      <button onClick={() => testGetText()}>
-        Get Text
-      </button>
-      <button onClick={() => testDelete()}>
-        Delete
-      </button>
-    </div>
-  )
 }
 
 export default App;
