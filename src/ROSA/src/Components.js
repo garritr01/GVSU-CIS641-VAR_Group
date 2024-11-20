@@ -54,6 +54,25 @@ export const Functions = ({ printLevel, selectFn, setUserID }) => {
   );
 }
 
+/** Handles everything about retrieving and saving a file so the calling function just
+ * has to deal with functions and payload
+ * 
+ * No need to getDirsAndFiles.
+ * No need to empty payload.
+ * Just straight hands.
+ * 
+ * @param {Object} props - The properties passed to the component.
+ * @param {string[]} props.printLevel - The array of strings defined in App.js to determine what to print
+ * @param {any} props.defaultPayload - The default value to set for `obj.payload` when resetting.
+ * @param {Object} props.obj - The state object containing information such as directory, filename, and dateTime.
+ * @param {Function} props.setObj - A state setter function for updating the `obj` state.
+ * @param {Object} props.loadedInfo - Information about the currently loaded file, including directory, filename, and dateTime.
+ * @param {Object} props.savedInfo - Information about the most recently saved file, including status and messages.
+ * @param {Function} props.getFile - A function to load the selected file's content.
+ * @param {Function} props.saveFile - A function to save the current file, accepting a boolean indicating overwrite mode.
+ *
+ * @returns {JSX.Element} The rendered FileAccess component.
+ */
 export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo, savedInfo, getFile, saveFile }) => {
 
   // Info for dropdown menus
