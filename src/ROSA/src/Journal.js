@@ -12,8 +12,8 @@ import { newFetchText, newSaveText
 
 export const Journal = ({ printLevel, preselectedObj }) => {
 
-    // Use object
-    const [obj, setObj] = useState(preselectedObj);
+    // Use object and replace payload with empty string if null
+    const [obj, setObj] = useState({ ...preselectedObj, payload: preselectedObj.payload || ''});
     // Retains file information from loaded file
     const [loadedInfo, setLoadedInfo] = useState(preselectedObj);
     // Retains file information from savedFile
@@ -82,13 +82,11 @@ export const Journal = ({ printLevel, preselectedObj }) => {
         } catch (err) {
             console.error('Error saving journal:', err);
         }
-    };
+    }
 
     /** Returns journal UI */
     return(
         <div className="mainContainer">
-            <button onClick={() => console.log(savedInfo)}>Log savedInfo</button>
-            <button onClick={() => console.log(obj.filename)}>Log obj.filename</button>
             <FileAccess
                 printLevel={printLevel}
                 defaultPayload={''}
@@ -100,6 +98,7 @@ export const Journal = ({ printLevel, preselectedObj }) => {
                 saveFile={saveJournal}
                 />
             <textarea
+                className="postFileAccessContainer"
                 name="journal box"
                 value={obj.payload}
                 onChange={(e) => setObj(prevState => ({ ...prevState, payload: e.target.value }))}
