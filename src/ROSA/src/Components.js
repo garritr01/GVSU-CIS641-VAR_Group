@@ -90,21 +90,33 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
     getDirsAndFiles();
   },[savedInfo])
 
-  // Empties filename if dir is changed
+  // Empties filename if dir is changed 
+  // unless loadedInfo dir, filename, and dateTime are equal to those of obj (load from fileExplorer workaround)
   useEffect(() => {
-    if (logCheck(printLevel,['o']) === 2) {console.log('obj.filename emptied')}
-    setObj(prevObj => ({ ...prevObj, filename: '' }));
+    if (loadedInfo.dir !== obj.dir 
+      || loadedInfo.filename !== obj.filename 
+      || loadedInfo.dateTime.date !== obj.dateTime.date 
+      || loadedInfo.dateTime.time !== obj.dateTime.time) {
+      if (logCheck(printLevel,['o']) === 2) {console.log('obj.filename emptied')}
+      setObj(prevObj => ({ ...prevObj, filename: '' }));
+    }
   }, [obj.dir]);
 
   // Autofills or empties dateTime when dir or filename is changed
+  // unless loadedInfo dir, filename, and dateTime are equal (load from FileExplorer workaround)
   useEffect(() => {
-    if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.filename).includes(obj.filename)) {
-      const mostRecent = newChooseMostRecent(fileInfo, obj.dir, obj.filename);
-      if (logCheck(printLevel,['o']) === 2) {console.log(`obj.dateTime set to '${mostRecent.date}'-'${mostRecent.time}'`)}
-      setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
-    } else {
-      setObj(prevState => ({ ...prevState, dateTime: { date: '', time: '' } }));
-      if (logCheck(printLevel,['o']) === 2) {console.log(`obj.dateTime emptied`)}
+    if (loadedInfo.dir !== obj.dir
+      || loadedInfo.filename !== obj.filename
+      || loadedInfo.dateTime.date !== obj.dateTime.date
+      || loadedInfo.dateTime.time !== obj.dateTime.time) {
+      if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.filename).includes(obj.filename)) {
+        const mostRecent = newChooseMostRecent(fileInfo, obj.dir, obj.filename);
+        if (logCheck(printLevel,['o']) === 2) {console.log(`obj.dateTime set to '${mostRecent.date}'-'${mostRecent.time}'`)}
+        setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
+      } else {
+        setObj(prevState => ({ ...prevState, dateTime: { date: '', time: '' } }));
+        if (logCheck(printLevel,['o']) === 2) {console.log(`obj.dateTime emptied`)}
+      }
     }
   }, [obj.dir, obj.filename]);
 
@@ -308,7 +320,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
         </div>
       } { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
         savedInfo && (obj.payload === null || obj.payload === '') &&
-          <p className="moreLink" style={{ cursor: 'default' }}>
+          <p className="moreButton" style={{ cursor: 'default' }}>
             {savedInfo.message} {savedInfo.filename}
             <span className="more">
               {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;

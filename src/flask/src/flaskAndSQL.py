@@ -485,6 +485,38 @@ def getObject(tableName, encodedDateTime, userID, directory, filename):
         except Exception as e:
             return jsonify({'message':"An error occurred:"+str(e)}), 500
 
+@app.route('/getObjects/<tableName>/<userID>', methods=['GET'])
+def getObjects(tableName, encodedDateTime, userID, directory, filename):
+
+    args = request.get_json()
+    dateTime, directory, filename = \
+        json.dumps(args.get('dateTime')), args.get('dir'), args.get('filename')
+    
+    with sqlite3.connect(db_path) as connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute(f'SELECT payload, options FROM {tableName} \
+                           WHERE dateTime = ? AND userID = ? AND directory = ? AND filename = ?', 
+                           (dateTime, userID, directory, filename))
+            data = cursor.fetchone()
+            if data is not None:
+                payload = json.loads(data[0])
+                options = json.loads(data[1])
+                return jsonify({ 'payload': payload, 'options': options, 'message': 'GET was successful' }), 200
+            else:
+                cursor.execute(f'SELECT payload, options FROM {tableName} \
+                                WHERE userID = ? AND directory = ? AND filename = ?', 
+                                (userID, directory, filename))
+                data = cursor.fetchone()
+                if data is not None:
+                    print('\n\n\ndatetime',dateTime)
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} doesn't exist at the given time"}), 404
+                else:
+                    return jsonify({'message':f"{userID}'s {tableName}, {directory}, {filename} doesn't exist"}), 404
+
+        except Exception as e:
+            return jsonify({'message':"An error occurred:"+str(e)}), 500
+
 @app.route('/saveObject',methods=['POST'])
 def saveObject():
     '''
@@ -769,7 +801,6 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
             # Decode the encoded dateTime
             dateTime = json.loads(encodedDateTime.replace('_', '/'))
             filename = json.loads(encodedFilename)
-            print(encodedFilename,'-', filename)
             cursor = connection.cursor()
 
             # Determine which conditions to apply:
@@ -809,7 +840,7 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
 
 #Prints out table info
 #Use table name for detailed printout of just that table
-#tablePrintout('journals')
+tablePrintout('clockIn')
 #remove_messed_up_entry('miscDropdowns','Garrit','CustomInfo/Chores','Taking Dogs Out')
 #selection_test('loginInfo','Health','Gym')
 #find_string('customInfo','Garrit','ldes')

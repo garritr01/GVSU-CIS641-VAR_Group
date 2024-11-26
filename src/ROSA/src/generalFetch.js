@@ -237,6 +237,28 @@ export const newFetchObject = async (obj) => {
     }
 }
 
+/** Return attributes including their UIs
+ * * attributes is array of objects
+ * * objects contain directory, title, dateTime, userID
+ */
+export const newFetchObjects = async (tableOut, attributes) => {
+    try {
+        const response = await fetch(`http://localhost:5000/get_listed_objects/${tableOut}`, {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json',
+            },
+            body: JSON.stringify({ attributes }),
+        })
+        const objects = await response.json();
+        if (objects.message) {
+            throw new Error(objects.message);
+        } else {
+            return objects.fileInfo;
+        }
+    } catch (err) { throw err }
+}
+
 /**
  * Save obj to database
  * @param {Object} obj - The parameters for the function.
@@ -343,7 +365,7 @@ export const newFetchText = async (obj) => {
             return { truth: true, payload: data.payload, options: data.options, msg: data.message, status: response.status };
         }
     } catch (err) {
-        return { truth: false, payload: '', options: null, msg: err, status: 500 };
+        return { truth: false, payload: '', options: null, msg: err, status: 501 };
     }
 }
 

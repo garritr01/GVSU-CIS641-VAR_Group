@@ -3,1006 +3,587 @@ import React, { useState, useEffect, useRef
 
 import {getDateString, getTimeString, chooseMostRecent, 
     convertUTCstringsToLocal, convertLocalStringsToUTC, parseDateObject,
-    convertUTCObjToLocal, convertLocalObjToUTC, getCurrentDateStrings
+    convertUTCObjToLocal, convertLocalObjToUTC, getCurrentDateStrings,
+    logCheck, newChooseMostRecent
 } from './oddsAndEnds';
 
 import { fetchDateTime, deleteEntry, fetchObject, 
     fetchFiles, saveObject, recordDateTime, newFetchObject, newSaveObject,
-    newFetchDirsAndFiles
+    newFetchDirsAndFiles,
+    newDeleteEntry
 } from './generalFetch';
 
 import { differenceInHours
 } from 'date-fns';
 
-/** Renders custom input and handles saving */
-export const CustomInput = ({ printLevel, selectFn, preselectedDir, preselectedTitle, preselectedVersion, resolutionInfo, selectDirTitleAndVersion, mode }) => {
-
-    // if preselected doesn't exist use empty string
-    const selectedDir = preselectedDir || '';
-    const selectedTitle = preselectedTitle || '';
-    const selectedVersion = preselectedVersion || '';
-    // if time change called for alter to match local time zone
-    const selectedEndDateTime =
-        resolutionInfo && resolutionInfo.endDate
-            ? resolutionInfo.UTC
-                ? convertUTCstringsToLocal({ date: resolutionInfo.endDate, time: resolutionInfo.endTime })
-                : { date: resolutionInfo.endDate, time: resolutionInfo.endTime }
-            : (preselectedVersion && mode === 'edit')
-                ? convertUTCstringsToLocal(preselectedVersion)
-                : { date: getDateString(true), time: getTimeString(true) };
-
-    const [directory, setDirectory] = useState(selectedDir);
-    const [title, setTitle] = useState(selectedTitle);
-    const [outputDirectory, setOutputDirectory] = useState(
-        resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle !== 'NA'
-            ? selectedDir + '/' + selectedTitle
-            : selectedDir
-    );
-    const [outputTitle, setOutputTitle] = useState(
-        resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle !== 'NA'
-            ? resolutionInfo.subtitle
-            : selectedTitle
-    );
-    const [subtitleList, setSubtitleList] = useState(null);
-    const [versionType, setVersionType] = useState('UI');
-    const [version, setVersion] = useState(selectedVersion);
-    const [existingFiles, setExistingFiles] = useState([]);
-    const [output, setOutput] = useState([]);
-    const [dateTime, setDateTime] = useState({ date: getDateString(true), time: getTimeString(true) });
-    const [endDateTime, setEndDateTime] = useState(selectedEndDateTime);
-    const [dropdowns, setDropdowns] = useState({});
-    const [saveFailed, setSaveFailed] = useState(null);
-    const [override, setOverride] = useState(false);
-
-    useEffect(() => {
-        const callFetchDateTime = async () => {
-            const dateTimeIn = await fetchDateTime('timeRecords', 'Garrit', 'lastTime', 'customInfo');
-            setDateTime(convertUTCstringsToLocal(dateTimeIn));
-        };
-        if (mode !== 'clock in' || mode !== 'resolve') {
-            callFetchDateTime();
-        }
-        callFetchFiles();
-        console.log('CustomInput mode:', mode)
-        console.log('(preselections)', 'dir:', preselectedDir, 'title:', preselectedTitle, 'version:', preselectedVersion);
-    }, [versionType]);
-
-    useEffect(() => {
-        if (!preselectedVersion
-            && existingFiles.map(i => i.directory).includes(directory)
-            && existingFiles.map(i => i.title).includes(title)) {
-            const mostRecent = chooseMostRecent(existingFiles, directory, title);
-            setVersion(mostRecent);
-        }
-    }, [directory, title, versionType]);
-
-    useEffect(() => {
-
-    }, [endDateTime]);
-
-    //* Updates inputs when typing */
-    const uponInputChange = (inputValue, setInputValue) => {
-        setInputValue(inputValue);
-    };
-
-    const uponCustomInputChange = (inputValue, index, secondaryIndex = null) => {
-        if (secondaryIndex || secondaryIndex === 0) {
-            const updatedOutVal = output[index].outVal;
-            updatedOutVal[secondaryIndex] = inputValue;
-            setOutput(output.map((element, i) => (i === index ? { ...element, outVal: updatedOutVal } : element)));
-        } else {
-            setOutput(output.map((element, i) => (i === index ? { ...element, outVal: inputValue } : element)));
-        }
-    };
-
-    const handleSoloButton = (index) => {
-        if (output[index].outVal[0] === '' || output[index].outVal[0] === 'enabled') {
-            setOutput(output.map((element, i) => (i === index ? { ...element, outVal: ['disabled'] } : element)));
-        } else if (output[index].outVal[0] === 'disabled') {
-            setOutput(output.map((element, i) => (i === index ? { ...element, outVal: ['enabled'] } : element)));
-        } else {
-            console.log("the output is not '', 'enabled', or 'disabled', it's:", output[index].outVal);
-        }
-    };
-
-    //* Fetches filesystem */
-    const callFetchFiles = async () => {
-        try {
-            const data = await fetchFiles(
-                versionType === 'Info' ? 'customInfo'
-                    : (mode === 'clock in' || mode === 'record' || mode === 'resolve' || mode === 'resolveMain') ? 'customUI'
-                        : (mode === 'clock out') ? 'inProgress'
-                            : 'customInfo'
-                , 'Garrit');
-            setExistingFiles(data);
-            if (!preselectedVersion || mode === 'record'
-                && data.map(i => i.directory).includes(directory)
-                && data.map(i => i.title).includes(title)) {
-                const mostRecent = chooseMostRecent(data, directory, title);
-                setVersion(mostRecent);
-            }
-        } catch (err) {
-            console.error('Error fetching existing names:', err);
-        }
-    }
-
-    //* Moves user to customUI to create new if required */
-    const callCreateNewUI = () => {
-        selectDirTitleAndVersion(directory, title);
-        selectFn('customUI');
-    }
-
-    //* Fetches dropdown suggestions for faster input */
-    const fetchDropdowns = async () => {
-        try {
-            const files = await fetchFiles('miscDropdowns', 'Garrit');
-            const mostRecent = chooseMostRecent(files, 'CustomInfo/' + outputDirectory, outputTitle);
-            const dropdownObject = await fetchObject('miscDropdowns', mostRecent, 'Garrit', 'CustomInfo/' + outputDirectory, outputTitle);
-            setDropdowns(dropdownObject);
-        } catch (err) {
-            console.error('Error fetching dropdowns:', err);
-        }
-    }
-
-    /** Adds new options to dropdown menu */
-    const saveDropdowns = async (UI) => {
-        try {
-            const files = await fetchFiles('miscDropdowns', 'Garrit');
-            const mostRecent = chooseMostRecent(files, 'CustomInfo/' + outputDirectory, outputTitle);
-            const dropdownsOut = {};
-            for (const index in UI) {
-                if (UI[index].type !== 'soloButton' && UI[index].type !== 'text box' && UI[index].type !== 'endDate'
-                    && UI[index].type !== 'endTime' && UI[index].type !== 'startDate' && UI[index].type !== 'startTime') {
-                    const newOptions = [];
-                    const repeatOptions = [];
-                    await Promise.all(UI[index].outVal.map((value) => {
-                        if (!dropdowns[UI[index].text] || !dropdowns[UI[index].text].includes(value)) {
-                            newOptions.push(value);
-                        } else {
-                            repeatOptions.push(value);
-                        }
-                    }));
-                    if (Object.keys(dropdowns).includes(UI[index].text)) {
-                        dropdownsOut[UI[index].text] = Array.from(new Set([...newOptions, ...repeatOptions, ...dropdowns[UI[index].text].filter(option => !repeatOptions.includes(option))]));
-                    } else {
-                        dropdownsOut[UI[index].text] = Array.from(new Set(newOptions));
-                    }
-                }
-            }
-            console.log(dropdownsOut);
-            if (mostRecent !== '') {
-                const response = await saveObject('miscDropdowns', dropdownsOut, mostRecent, 'Garrit', 'CustomInfo/' + outputDirectory, outputTitle);
-                console.log(response);
-            } else {
-                const response = await saveObject('miscDropdowns', dropdownsOut, { date: getDateString(), time: getTimeString() }, 'Garrit', 'CustomInfo/' + outputDirectory, outputTitle);
-                console.log(response);
-            }
-        } catch (err) {
-            console.error('Error saving dropdowns:', err);
-        }
-    }
-
-    /*** Fetches empty UI if no imported directory
-     **  Fetches custom UI if imported directory
-     */
-    const callFetchObject = async () => {
-        setEndDateTime({ date: getDateString(true), time: getTimeString(true) });
-        if (mode === 'clock out') {
-            console.log("fetching inProgress's", directory, 'UI from', title, 'v', version);
-            try {
-                const UIinput = await fetchObject('inProgress', version, 'Garrit', directory, title);
-                const startConverted = convertUTCstringsToLocal({
-                    date: UIinput.find(element => element.type === 'startDate').outVal,
-                    time: UIinput.find(element => element.type === 'startTime').outVal
-                });
-                console.log('sC', startConverted);
-                setOutput(UIinput.map((element) => (
-                    element.type === 'startDate' ? { ...element, outVal: startConverted.date }
-                        : element.type === 'startTime' ? { ...element, outVal: startConverted.time }
-                            : { ...element }
-                )));
-            } catch (err) {
-                console.error('Error fetching UI:', err);
-            }
-        } else if (mode === 'resolve' || mode == 'resolveMain') {
-            try {
-
-                const mostRecentOrNot = async () => {
-                    if (resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle !== 'NA') {
-                        const infoFiles = await fetchFiles('CustomInfo', 'Garrit');
-                        return chooseMostRecent(infoFiles, outputDirectory, outputTitle);
-                    } else {
-                        return '';
-                    }
-                }
-
-                const mostRecent = await mostRecentOrNot();
-
-                if (mostRecent !== '') {
-                    console.log("fetching customInfo's", outputDirectory, 'UI from', outputTitle, 'v', mostRecent);
-                    try {
-                        const UIinput = await fetchObject('customInfo', mostRecent, 'Garrit', outputDirectory, outputTitle);
-                        const startDateIn = UIinput.find((element) => (element.type === 'startDate'));
-                        const startTimeIn = UIinput.find((element) => (element.type === 'startTime'));
-                        if (UIinput.find((element) => element.type === 'subtitle') && resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle === 'NA') {
-                            setOutputDirectory(selectedDir + '/' + selectedTitle);
-                            setOutputTitle('')
-                        }
-                        setOutput(UIinput.map((element) => (
-                            element.type === 'startDate' ? {
-                                ...element,
-                                outVal: resolutionInfo.UTC
-                                    ? convertUTCstringsToLocal({ date: resolutionInfo.startDate, time: resolutionInfo.startTime }).date
-                                    : resolutionInfo.startDate
-                            }
-                                : element.type === 'startTime' ? {
-                                    ...element,
-                                    outVal: resolutionInfo.UTC
-                                        ? convertUTCstringsToLocal({ date: resolutionInfo.startDate, time: resolutionInfo.startTime }).time
-                                        : resolutionInfo.startTime
-                                }
-                                    : { ...element })));
-                    } catch (err) {
-                        console.error('1. Error fetching subtitled info:', err);
-                    }
-                } else {
-                    console.log("fetching CustomUI's", directory, 'UI from', title, 'v', version);
-                    try {
-                        const UIinput = await fetchObject('CustomUI', version, 'Garrit', directory, title);
-                        if (UIinput.find((element) => element.type === 'subtitle') && resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle === 'NA') {
-                            setOutputDirectory(selectedDir + '/' + selectedTitle);
-                            setOutputTitle('')
-                        }
-                        setOutput(UIinput.map((element) => (
-                            element.type === 'startDate' ? {
-                                ...element,
-                                outVal: resolutionInfo.UTC
-                                    ? convertUTCstringsToLocal({ date: resolutionInfo.startDate, time: resolutionInfo.startTime }).date
-                                    : resolutionInfo.startDate
-                            }
-                                : element.type === 'startTime' ? {
-                                    ...element,
-                                    outVal: resolutionInfo.UTC
-                                        ? convertUTCstringsToLocal({ date: resolutionInfo.startDate, time: resolutionInfo.startTime }).time
-                                        : resolutionInfo.startTime
-                                }
-                                    : { ...element, outVal: [''] })));
-                    } catch (err) {
-                        console.error('Error fetching UI:', err);
-                    }
-                }
-            } catch (err) {
-                console.log('2. Error fetching resolution info:', err);
-            }
-        } else if (mode === 'record' || mode === 'clock in') {
-            console.log("fetching custom" + versionType + "'s", directory, 'UI from', title, 'v', version);
-            try {
-                const UIinput = await fetchObject(versionType === 'UI' ? 'customUI' : 'customInfo', version, 'Garrit', directory, title);
-                if (versionType == "Info") {
-                    setEndDateTime(convertUTCstringsToLocal(version));
-                }
-                if (UIinput.some(element => element.type === 'subtitle')) {
-                    setOutputDirectory(directory + '/' + title);
-                    setOutputTitle(
-                        (resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle !== 'NA')
-                            ? resolutionInfo.subtitle
-                            : '');
-                    try {
-                        const infoFiles = await fetchFiles('customInfo', 'Garrit');
-                        setSubtitleList(Array.from(new Set(infoFiles.map((file) => {
-                            if (file.directory === directory + '/' + title) {
-                                return file.title;
-                            } else {
-                                return null;
-                            }
-                        }))).filter((element) => (element)));
-                    } catch (err) {
-                        console.error('Error retrieving subtitle list', err);
-                    }
-                } else {
-                    setSubtitleList(null);
-                }
-                setOutput(UIinput.map((element) => (
-                    element.type === 'startDate' ? { ...element, outVal: mode === 'record' ? dateTime.date : getDateString(true) }
-                        : element.type === 'startTime' ? { ...element, outVal: mode === 'record' ? dateTime.time : getTimeString(true) }
-                            : (element.type.includes('spending') || element.type.includes('earning')) ? { ...element, outVal: [''] }
-                                : { ...element, outVal: element.outVal ? element.outVal : [''] })));
-            } catch (err) {
-                console.error('Error fetching UI:', err);
-            }
-        } else {
-            console.log("fetching customInfo's", directory, 'UI from', title, 'v', version);
-            try {
-                const UIinput = await fetchObject('customInfo', version, 'Garrit', directory, title);
-                const startDateIn = UIinput.find((element) => (element.type === 'startDate'));
-                const startTimeIn = UIinput.find((element) => (element.type === 'startTime'));
-                if (UIinput.some(element => element.type === 'subtitle')) {
-                    setOutputDirectory(directory + '/' + title);
-                    setOutputTitle(
-                        (resolutionInfo && resolutionInfo.subtitle && resolutionInfo.subtitle !== 'NA')
-                            ? resolutionInfo.subtitle
-                            : '');
-                    try {
-                        const infoFiles = await fetchFiles('customInfo', 'Garrit');
-                        setSubtitleList(Array.from(new Set(infoFiles.map((file) => {
-                            if (file.directory === directory + '/' + title) {
-                                console.log(file.title);
-                                return file.title;
-                            } else {
-                                return null;
-                            }
-                        }))).filter((element) => (element)));
-                    } catch (err) {
-                        console.error('Error retrieving subtitle list', err);
-                    }
-                } else {
-                    setSubtitleList(null);
-                }
-                setOutput(UIinput.map((element) => (
-                    element.type === 'startDate' ? { ...element, outVal: convertUTCstringsToLocal({ date: startDateIn.outVal, time: startTimeIn.outVal }).date }
-                        : element.type === 'startTime' ? { ...element, outVal: convertUTCstringsToLocal({ date: startDateIn.outVal, time: startTimeIn.outVal }).time }
-                            : { ...element })));
-                setEndDateTime(convertUTCstringsToLocal(version));
-            } catch (err) {
-                console.error('Error fetching UI:', err);
-            }
-        }
-        fetchDropdowns();
-    };
-
-    //* Handles the closing and saving of custom inputs */
-    const closeCustomInput = async (save, clockOut) => {
-        if (save) {
-
-            const localStartTime = (output.find((element) => (element.type === 'startTime')) || { outVal: null }).outVal;
-            const localStartDate = (output.find((element) => (element.type === 'startDate')) || { outVal: null }).outVal;
-            const localStartDateObject = parseDateObject({ date: localStartDate, time: localStartTime });
-            const localEndDateObject = parseDateObject({ date: endDateTime.date, time: endDateTime.time });
-            if (!override && mode !== 'clock in' && localStartDateObject > localEndDateObject) {
-                setSaveFailed("End < Start!! Fix it.");
-                return 0;
-            } else if (!override && mode !== 'clock in' && differenceInHours(localEndDateObject, localStartDateObject) > 12) {
-                setSaveFailed("Time span greater than 12 hours. Are you Sure?");
-                return 0;
-            }
-            let convertedOutput;
-            if (localStartTime && localStartDate) {
-                const convertedStartDateTime = convertLocalStringsToUTC({ date: localStartDate, time: localStartTime });
-                console.log(convertedStartDateTime);
-                convertedOutput = output.map((element) => {
-                    if (element.type === 'startTime') {
-                        return { ...element, outVal: convertedStartDateTime.time };
-                    } else if (element.type === 'startDate') {
-                        return { ...element, outVal: convertedStartDateTime.date };
-                    } else {
-                        return element;
-                    }
-                })
-            } else {
-                convertedOutput = output;
-            }
-
-            convertedOutput = convertedOutput.filter((element) => element.type !== 'subtitle');
-
-            saveDropdowns(convertedOutput);
-
-            if (mode === 'clock in' || (mode === 'clock out' && !clockOut)) {
-                try {
-                    const responseMsg = await saveObject('inProgress', convertedOutput, convertLocalStringsToUTC(endDateTime), 'Garrit', outputDirectory, outputTitle);
-                    console.log(responseMsg);
-                } catch (err) {
-                    console.error('Error save clock in:', err);
-                }
-                if (mode === 'clock out') {
-                    try {
-                        const responseMsg = await deleteEntry('inProgress', preselectedVersion, 'Garrit', preselectedDir, preselectedTitle);
-                        console.log(responseMsg);
-                    } catch (err) {
-                        console.error('Error deleting from inProgress:', err)
-                    }
-                }
-
-            } else {
-
-                try {
-                    const responseMsg = await saveObject('customInfo', convertedOutput, convertLocalStringsToUTC(endDateTime), 'Garrit', outputDirectory, outputTitle);
-                    console.log(responseMsg);
-                } catch (err) {
-                    console.error('Error fetching dirs and files:', err);
-                }
-
-                if (mode === 'clock out') {
-                    try {
-                        const responseMsg = await deleteEntry('inProgress', preselectedVersion, 'Garrit', preselectedDir, preselectedTitle);
-                        console.log(responseMsg);
-                    } catch (err) {
-                        console.error('Error deleting from inProgress:', err)
-                    }
-                } else if (mode === 'record' && preselectedVersion) {
-                    try {
-                        const responseMsg = await deleteEntry('quickNote', preselectedVersion, 'Garrit', preselectedDir, preselectedTitle);
-                        console.log(responseMsg);
-                    } catch (err) {
-                        console.error('Error deleting from quickNote:', err)
-                    }
-                }
-                try {
-                    const responseMsg = await recordDateTime('timeRecords', convertLocalStringsToUTC(endDateTime), 'Garrit', 'lastTime', 'customInfo');
-                    console.log(responseMsg);
-                } catch (err) {
-                    console.error('Error recording end time:', err);
-                }
-            }
-        }
-        if (mode === 'resolve') {
-            selectFn('schedule view');
-        } else {
-            selectFn('main');
-        }
-    };
-
-    //* Handles deleting duplicate entry if required */
-    const removeLastEntry = async () => {
-        try {
-            const responseMsg = await deleteEntry('customInfo', selectedVersion, 'Garrit', selectedDir, selectedTitle);
-            console.log(responseMsg);
-        } catch (err) {
-            console.error('Error deleting from inProgress:', err)
-        }
-    }
-
-    //* Following 5 functions are for creating useful input features */
-    const entryBox = (option, i) => {
-        return (
-            <div key={i} style={{ display: 'flex' }}>
-                <p>{option.text}</p>
-                <input
-                    value={output[i].outVal}
-                    onChange={(e) => uponCustomInputChange(e.target.value, i)}
-                />
-            </div>
-        );
-    }
-
-    const expandableEntryBox = (option, i) => {
-        return (
-            <div key={i} style={{ display: 'flex' }}>
-                <p>{option.text}</p>
-                {output[i].outVal.map((outVal, j) => (
-                    <div key={i + '-' + j}>
-                        <input
-                            key={j}
-                            value={outVal}
-                            list={option.text + 'List'}
-                            onChange={(e) => uponCustomInputChange(e.target.value, i, j)}
-                        />
-                        <button onClick={() => removeElements(output[i].group, i, j)}>-</button>
-                        {dropdowns[option.text] &&
-                            <datalist id={option.text + 'List'}>
-                                {dropdowns[option.text].map((choice, index) =>
-                                    <option key={index} value={choice} />
-                                )}
-                            </datalist>
-                        }
-                    </div>
-                ))}
-                <button onClick={() => addElements(output[i].group, i)}>+</button>
-            </div>
-        );
-    }
-
-    const addElements = (tag, index) => {
-        const updatedOutput = output.map((element, elementIndex) => (
-            ((tag === element.group && tag !== 'NA') || (index === elementIndex))
-                ? { ...element, outVal: [...element.outVal, ''] }
-                : element
-        ));
-        setOutput(updatedOutput);
-    }
-
-    const removeElements = (tag, index, secondaryIndex) => {
-        const updatedOutput = output.map((element, elementIndex) => {
-            if ((tag === element.group && tag !== 'NA') || (index === elementIndex)) {
-                console.log(element.outVal);
-                const outValCopy = element.outVal
-                outValCopy.splice(secondaryIndex, 1);
-                console.log('spliced', outValCopy);
-                return { ...element, outVal: outValCopy };
-            } else {
-                return element;
-            }
-        });
-        setOutput(updatedOutput);
-    }
-
-    const largeEntryBox = (option, i) => {
-        return (
-            <div key={i} style={{ display: 'flex' }}>
-                <p>{option.text}</p>
-                <textarea
-                    name="journal box"
-                    value={output[i].outVal}
-                    onChange={(e) => uponCustomInputChange(e.target.value, i)}
-                    style={{ width: '400px', height: '100px' }}
-                />
-            </div>
-        );
-    }
-
-    return (
-        <div>
-            <h4>Custom Input</h4>
-            {mode === 'record' &&
-                <button
-                    onClick={() => {
-                        setVersionType(versionType === 'UI' ? 'Info' : 'UI');
-                        uponInputChange('', setDirectory);
-                        uponInputChange('', setTitle);
-                        uponInputChange('', setOutputDirectory);
-                        uponInputChange('', setOutputTitle);
-                    }}
-                    style={{ color: versionType === 'UI' ? 'black' : 'gray' }}
-                >
-                    Import Info
-                </button>
-            }
-            {(mode === 'clock in' || mode === 'record' || mode === 'resolve' || mode === 'resolveMain') &&
-                <div style={{ display: 'flex' }}>
-                    <p>Input Directory:</p>
-                    <input
-                        value={directory}
-                        list='prevNames'
-                        onChange={(e) => {
-                            uponInputChange(e.target.value, setDirectory);
-                            uponInputChange(e.target.value, setOutputDirectory);
-                        }}
-                    />
-                    <datalist id='prevNames'>
-                        {Array.from(new Set(existingFiles.map((option) => option.directory))).map((option, index) => (
-                            <option key={index} value={option} />
-                        ))}
-                    </datalist>
-                    <p>Title:</p>
-                    <input
-                        value={title}
-                        list='titles'
-                        onChange={(e) => {
-                            uponInputChange(e.target.value, setTitle);
-                            uponInputChange(e.target.value, setOutputTitle);
-                        }}
-                    />
-                    <datalist id='titles'>
-                        {existingFiles.filter((obj, index, self) =>
-                            index === self.findIndex((o) => o.directory === obj.directory && o.title === obj.title)
-                        ).map((option, index) => (
-                            option.directory === directory && <option key={index} value={option.title} />
-                        ))}
-                    </datalist>
-                    <p>Version:</p>
-                    <select
-                        value={JSON.stringify(version)}
-                        onChange={(e) => setVersion(JSON.parse(e.target.value))}
-                    >
-                        {existingFiles.map((option, index) => (
-                            option.directory === directory && option.title == title
-                            && <option key={index} value={JSON.stringify(option.dateTime)}>
-                                {convertUTCstringsToLocal(option.dateTime).date + '-' + convertUTCstringsToLocal(option.dateTime).time}
-                            </option>
-                        ))}
-                    </select>
-                    <button onClick={() => callFetchObject()}>fetch UI</button>
-                    <button onClick={() => callCreateNewUI()}>Create New UI</button>
-                </div>
-            }
-            <div style={{ display: 'flex' }}>
-                <p>Output Directory:</p>
-                <input
-                    value={outputDirectory}
-                    onChange={(e) => uponInputChange(e.target.value, setOutputDirectory)}
-                />
-                <p>Title:</p>
-                <input
-                    value={outputTitle}
-                    onChange={(e) => uponInputChange(e.target.value, setOutputTitle)}
-                />
-                {(mode === 'edit' || mode === 'clock out') &&
-                    <div>
-                        <p>Version:</p>
-                        <select
-                            value={JSON.stringify(version)}
-                            onChange={(e) => setVersion(JSON.parse(e.target.value))}
-                        >
-                            {existingFiles.map((option, index) => (
-                                option.directory === directory && option.title == title
-                                && <option key={index} value={JSON.stringify(option.dateTime)}>
-                                    {convertUTCstringsToLocal(option.dateTime).date + '-' + convertUTCstringsToLocal(option.dateTime).time}
-                                </option>
-                            ))}
-                        </select>
-                        <button onClick={() => callFetchObject()}>fetch Info</button>
-                    </div>
-                }
-            </div>
-            <div>
-                <button
-                    onClick={() => setOutput(output.map((element) => (element.group !== 'start' ? { ...element, outVal: [''] } : element)))}
-                >
-                    Clear Info
-                </button>
-                {output.length !== 0 &&
-                    output.map((element, index) => {
-                        switch (element.type) {
-                            case 'soloButton':
-                                return (
-                                    <button
-                                        key={index}
-                                        onClick={() => handleSoloButton(index)}
-                                        style={{ color: output[index].outVal[0] === 'disabled' ? 'gray' : 'black' }}
-                                    >
-                                        {element.text}
-                                    </button>
-                                );
-                            case 'entry':
-                            case 'earning':
-                            case 'spending':
-                                return expandableEntryBox(element, index);
-                            case 'text box':
-                                return largeEntryBox(element, index);
-                            case 'subtitle':
-                                return (<div style={{ display: 'flex' }}>
-                                    <p>{element.text}</p>
-                                    <input
-                                        list="subtitles"
-                                        value={outputTitle}
-                                        onChange={(e) => setOutputTitle(e.target.value)}
-                                    />
-                                </div>);
-                            case 'startTime':
-                            case 'startDate':
-                                return entryBox(element, index);
-                            default:
-                                return null;
-                        }
-                    })}
-                {subtitleList &&
-                    <datalist id='subtitles'>
-                        {subtitleList.map((subtitle, index) => (
-                            <option key={index} value={subtitle} />
-                        ))}
-                    </datalist>
-                }
-                {mode !== 'clock in' &&
-                    <div>
-                        <div style={{ display: 'flex' }}>
-                            <p>End Date:</p>
-                            <input
-                                value={endDateTime.date}
-                                onChange={(e) => setEndDateTime({ ...endDateTime, date: e.target.value })}
-                            />
-                        </div>
-                        <div style={{ display: 'flex' }}>
-                            <p>End Time:</p>
-                            <input
-                                value={endDateTime.time}
-                                onChange={(e) => setEndDateTime({ ...endDateTime, time: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                }
-            </div>
-            {saveFailed &&
-                <div style={{ display: 'flex' }}>
-                    <p>{saveFailed}</p>
-                    <button
-                        style={{ color: override ? 'gray' : 'black' }}
-                        onClick={() => override ? setOverride(false) : setOverride(true)}
-                    >
-                        Override
-                    </button>
-                </div>
-            }
-            <div style={{ display: 'flex' }}>
-                {(mode !== 'edit' || convertLocalStringsToUTC(endDateTime).time !== preselectedVersion.time) &&
-                    <button onClick={() => closeCustomInput(true, true)}>Submit</button>
-                }
-                {mode === 'clock out' &&
-                    <button onClick={() => closeCustomInput(true, false)}>Submit without Clocking Out</button>
-                }
-                {mode === 'edit' &&
-                    <button onClick={async () => {
-                        await removeLastEntry();
-                        closeCustomInput(true, true);
-                    }}
-                    >
-                        Submit and Remove {preselectedDir}/{preselectedTitle} v
-                        {convertUTCstringsToLocal(preselectedVersion).date}-{convertUTCstringsToLocal(preselectedVersion).time}
-                    </button>
-                }
-                {versionType === 'Info' &&
-                    <button onClick={async () => {
-                        await removeLastEntry();
-                        closeCustomInput(true, true);
-                    }}
-                    >
-                        Submit and Remove {directory}/{title} v
-                        {convertUTCstringsToLocal(version).date}-{convertUTCstringsToLocal(version).time}
-                    </button>
-                }
-                <button onClick={() => closeCustomInput(false, true)}>Cancel</button>
-            </div>
-        </div>
-    );
-}
-
-export const NewCustomInput = ({ printLevel, preselectedObj }) => {
+export const CustomInput = ({ printLevel, preselectedObj }) => {
 
     // Get object with local month, day, year, hour, minute
     const time = getCurrentDateStrings(true);
 
-    // Determines whether editing or loading
-    const [tableToUse, setTableToUse] = useState(preselectedObj.table || 'customUI');
-    // Contain entire custom input object
-    const [obj, setObj] = useState(preselectedObj);
-    // Contain directories and files within 'customInfo' table
+    // Contain entire custom input object (use customUI if object with version not preselected)
+    const [obj, setObj] = useState({ ...preselectedObj, table: preselectedObj.dateTime.date ? preselectedObj.table : 'customUI' });
+    // Contain loaded dir, filename, and version 
+    // (table is also used only in customInfo to draw from different tables
+    // and alter conditional rendering to allow save new when everything but table
+    // matches between loadedInfo and obj)
+    const [loadedInfo, setLoadedInfo] = useState({ 
+        dir: preselectedObj.dir || '', 
+        filename: preselectedObj.filename || '', 
+        dateTime: preselectedObj.dateTime || { date: '', time: '' } 
+    });
+    // Contain saved dir, filename and version along with status and message like 'Save' or 'Failed to save'
+    const [savedInfo, setSavedInfo] = useState(null);
+    // Contain validity of input dates
+    const [dateValidity, setDateValidity] = useState({
+        start: { month: true, day: true, year: true, hour: true, minute: true },
+        end: { month: true, day: true, year: true, hour: true, minute: true }
+    });
+
+    /** Determines whether all inputs are in proper form and blocks save if not */
+    const checkDateInputs = (date, type) => {
+
+        const parts = ['month', 'day', 'year', 'hour', 'minute'];
+
+        let scheduleIsValid = true;
+        let updatedValidity = { ...dateValidity[type] };
+
+        parts.forEach((part) => {
+            let isValid = false;
+            const value = date[part];
+            // Check for existing value
+            if (value !== undefined && value !== null) {
+                // Check for 4-digit input
+                if (part === 'year') {
+                    isValid = /^\d{4}$/.test(value);
+                    if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not four digits: ${value}`) }
+                }
+                // Check for 2-digit input
+                else {
+                    isValid = /^\d{2}$/.test(value);
+                    if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not two digits: ${value}`) }
+                    // convert value to number (+value will return false if cannot convert)
+                    // confirm months [1,12], days [1,31], hours [0,23] and minuntes [0,59]
+                    if (isValid && part === 'month' && (!(+value >= 1) || !(+value <= 12))) {
+                        isValid = false;
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [1,12]: ${value}`) }
+                    } else if (isValid && part === 'day' && (!(+value >= 1) || !(+value <= 31))) {
+                        isValid = false;
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [1,31]: ${value}`) }
+                    } else if (isValid && part === 'hour' && (!(+value >= 0) || !(+value <= 23))) {
+                        isValid = false;
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [0,23]: ${value}`) }
+                    } else if (isValid && part === 'minute' && (!(+value >= 0) || !(+value <= 59))) {
+                        isValid = false;
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [0,59]: ${value}`) }
+                    }
+                }
+            } else {
+                isValid = false;
+                if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not an accepted value: ${value}`) }
+            }
+            // set return value to false if anything fails
+            if (!isValid) {
+                scheduleIsValid = false;
+            }
+            updatedValidity = { ...updatedValidity, [part]: isValid };
+        })
+        
+        setDateValidity(prevState => ({ ...prevState, [type]: updatedValidity }));
+        return scheduleIsValid;
+    }
+
+    /** Get payload and options given relevant arguments */
+    const getRecord = async () => {
+        // Reset date validity upon import
+        setDateValidity({
+            start: { month: true, day: true, year: true, hour: true, minute: true },
+            end: { month: true, day: true, year: true, hour: true, minute: true }
+        });
+        try {
+            const response = await newFetchObject(obj);
+
+            if (!response.truth) {
+                throw new Error(`${response.status} Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}):\n ${response.msg}`);
+            } else {
+                // Set options and payload (if time convert to local, if not set to current)
+                const updatedObj = {
+                    ...obj,
+                    options: response.options,
+                    payload: response.payload.map((item) => {
+                        if (item.type === 'start') {
+                            if (item?.month === "NA") {
+                                return { ...item, ...getCurrentDateStrings(true) };
+                            } else {
+                                console.log(item, convertUTCObjToLocal(item));
+                                return convertUTCObjToLocal(item);
+                            }
+                        } else if (item.type === 'end') {
+                            if (item?.month === "NA") {
+                                return { ...item, ...getCurrentDateStrings(true) };
+                            } else {
+                                return convertUTCObjToLocal(item);
+                            }
+                        } else {
+                            return item;
+                        }
+                    })
+                };
+                if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) from ${obj.table}`) }
+                if (logCheck(printLevel, ['o']) === 1) { console.log('obj updated by fetch') }
+                else if (logCheck(printLevel, ['o']) === 2) { console.log('obj updated by fetch\n obj:', updatedObj) }
+                // Only allow overwrite on records and only allow save new for anything else
+                if (obj.table !== 'record') {
+                    setObj({ ...updatedObj, dateTime: { date: '', time: '' } });
+                } else {
+                    setObj(updatedObj);
+                }
+                setLoadedInfo({ table: updatedObj.table, dir: updatedObj.dir, filename: updatedObj.filename, dateTime: updatedObj.dateTime });
+            }
+        } catch (err) {
+            console.error('Error getting record:', err);
+        }
+    }
+
+    /** Save record to 'record' or 'clockIn' */
+    const saveRecord = async (overwrite, saveTable) => {
+
+        try {
+            // update types 'start' and 'end' with UTC times
+            // also confirm type 'end' is present
+            let endCheck = false;
+            let validityCheck = true;
+            let objToSave = { ...obj,
+                payload: obj.payload.map((item) => {
+                    if (item.type === 'start') {
+                        const truth = checkDateInputs(item, 'start');
+                        if (!truth) {
+                            validityCheck = false;
+                            return item;
+                        } else {
+                            return convertLocalObjToUTC(item);
+                        }
+                    } else if (item.type === 'end') {
+                        const truth = checkDateInputs(item, 'end');
+                        endCheck = true;
+                        if (!truth) {
+                            validityCheck = false;
+                            return item;
+                        } else {
+                            return convertLocalObjToUTC(item);
+                        }
+                    } else {
+                        return item;
+                    }
+                })
+            };
+            if (!validityCheck) {
+                throw new Error('date inputs are invalid', dateValidity);
+            }
+            if (!endCheck) {
+                throw new Error("No type 'end' in obj.payload:", obj.payload);
+            }
+            // Use end time for dateTime in saving and set table to given table
+            const UTCend = objToSave.payload[objToSave.payload.length - 1];
+            const saveDateTime = { date: `${UTCend.month}/${UTCend.day}/${UTCend.year}`, time: `${UTCend.hour}:${UTCend.minute}` };
+            objToSave = { ...objToSave, dateTime: saveDateTime, table: saveTable };
+
+            // Delete file in 'clockIn' and save to 'record'
+            if (saveTable === 'clockOut') {
+                // Delete clockIn entry
+                const deleteResponse = await newDeleteEntry('clockIn', obj.dateTime, obj.userID, obj.dir, obj.filename);
+                if (deleteResponse.truth) {
+                    if (deleteResponse.status === 200) {
+                        if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Deleted file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in 'clockIn' with new entry`) }
+                    } else {
+                        // Set save info with unexpected delete success message
+                        setSavedInfo({ table: 'clockIn', dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime, message: 'Unexpected temp delete method. Investigate', truth: false });
+                        throw new Error(`${deleteResponse.status} Unexpected success attempting to delete file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in 'clockIn' with new entry:\n ${deleteResponse.msg}`)
+                    }
+                } else {
+                    // Set save info with failure to delete message
+                    setSavedInfo({ table: 'clockIn', dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime, message: 'Failed to delete temp', truth: false });
+                    throw new Error(`${deleteResponse.status} Error attempting to delete file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in 'clockIn' with new entry:\n ${deleteResponse.msg}`);
+                }
+                // Save clockOut to 'record' table
+                objToSave = { ...objToSave, table: 'record'};
+                const response = await newSaveObject(objToSave);
+                // save record on clockOut
+                if (response.truth) {
+                    if (response.status === 201) {
+                        if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Successfully removed temp clockIn and created file '${obj.dir}/${obj.filename}' version: (${saveDateTime.date}-${saveDateTime.time}) in 'record' with new entry`) }
+                        // Set save info with success message
+                        setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Saved', truth: true });
+                    } else {
+                        // Kill save method and set save info with unexpected success method
+                        setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Unexpected save method. Investigate', truth: false });
+                        throw new Error(`${response.status} Unexpected success attempting to save file '${obj.dir}/${obj.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in 'record' with new entry:\n ${response.msg}`)
+                    }
+                } else {
+                    // Kill save method and set save info with failure message
+                    setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Failed to overwrite', truth: false });
+                    throw new Error(`${response.status} Error attempting to save file '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in 'record' with new entry:\n ${response.msg}`);
+                }
+            } 
+
+            // Overwrite original 'record' or delete it and save under new dateTime
+            else if (overwrite) {
+                // Delete record if endTime !== previous version's dateTime
+                if (saveDateTime.date !== obj.dateTime.date || saveDateTime.time !== obj.dateTime.time) {
+                    const deleteResponse = await newDeleteEntry(obj.table, obj.dateTime, obj.userID, obj.dir, obj.filename);
+                    if (deleteResponse.truth) {
+                        if (deleteResponse.status === 200) {
+                            if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Deleted file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in 'clockIn' with new entry`) }
+                        } else {
+                            // Set save info with unexpected delete success message
+                            setSavedInfo({ table: obj.table, dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime, message: 'Unexpected temp delete method. Investigate', truth: false });
+                            throw new Error(`${deleteResponse.status} Unexpected success attempting to delete file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}' with new entry:\n ${deleteResponse.msg}`)
+                        }
+                    } else {
+                        // Set save info with failure to delete message
+                        setSavedInfo({ table: obj.table, dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime, message: 'Failed to delete temp', truth: false });
+                        throw new Error(`${deleteResponse.status} Error attempting to delete file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}' with new entry:\n ${deleteResponse.msg}`);
+                    }
+                }
+                // Overwrite or save new record if delete was triggered
+                const response = await newSaveObject(objToSave);
+                if (response.truth) {
+                    if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Overwrote file '${objToSave.dir}/${obj.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}' with new entry`) }
+                    setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Overwrote', truth: true });
+                } else {
+                    setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Failed to overwrite', truth: false });
+                    throw new Error(`${response.status} Error attempting to overwrite file '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}' with new entry:\n ${response.msg}`);
+                }
+            } 
+
+            // Save new file to 'record' or 'clockIn'
+            else {
+                const response = await newSaveObject(objToSave);
+                if (response.truth) {
+                    if (response.status === 201) {
+                        if (logCheck(printLevel, ['d', 'b'])) { console.log(`Successfully created '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}':\n ${response.msg}`) }
+                        setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Saved', truth: true });
+                    } else {
+                        setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Unexpected save method. Investigate', truth: false });
+                        throw new Error(`${response.status} Unexpected success attempting to save '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}':\n ${response.msg}`);
+                    }
+                } else {
+                    setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Failed to save', truth: false });
+                    throw new Error(`${response.status} Error attempting to save '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}':\n ${response.msg}`);
+                }
+            }
+        } catch (err) {
+            console.error('Error saving record:', err);
+        }
+    }
+
+
+    return (
+        <div className="mainContainer">
+            <button onClick={() => console.log(obj)}>Log Object</button>
+            { /** Choose 'customUI' table (only save new or clock in) */
+                (!obj.payload && !obj.options && obj.table !== 'customUI')
+                ?   <button onClick={() => setObj(prevState => ({ ...prevState, table: 'customUI' }))} >
+                    Use UIs
+                </button>
+                :   <button style={{ color: 'gray' }} >
+                    Use UIs
+                </button>
+            } 
+            { /** Choose 'record' table (only overwrite) */
+                (!obj.payload && !obj.options && obj.table !== 'record')
+                ?   <button onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))} >
+                    Use Records
+                </button>
+                :   <button style={{ color: 'gray' }} >
+                    Use Records
+                </button>
+            }
+            <RecordFileAccess 
+                printLevel={printLevel}
+                defaultPayload={null}
+                obj={obj}
+                setObj={setObj}
+                loadedInfo={loadedInfo}
+                savedInfo={savedInfo}
+                getFile={getRecord}
+                saveFile={saveRecord}/>
+            { /** Display customized info interface */
+                obj.payload &&
+                    <div>
+                        <UI UI={obj.payload} setObj={setObj} />
+                        { /** Display and allow edit of start time if desired */
+                            obj.payload[obj.payload.length - 2]?.type === "start" &&
+                                <DateInput date={obj.payload[obj.payload.length - 2]} setObj={setObj} dateValidity={dateValidity.start} />
+                        }
+                        { /** Display and allow edit of end time */
+                            obj.payload[obj.payload.length - 1]?.type === "end" &&
+                                <DateInput date={obj.payload[obj.payload.length - 1]} setObj={setObj} dateValidity={dateValidity.end} />
+                        }
+                    </div>
+            } 
+        </div>
+    );
+}
+
+/** Handles everything about retrieving and saving a file so the calling function just
+ * has to deal with functions and payload
+ * 
+ * No need to getDirsAndFiles.
+ * No need to empty payload.
+ * Just straight hands.
+ * 
+ * @param {Object} props - The properties passed to the component.
+ * @param {string[]} props.printLevel - The array of strings defined in App.js to determine what to print
+ * @param {any} props.defaultPayload - The default value to set for `obj.payload` when resetting.
+ * @param {Object} props.obj - The state object containing information such as directory, filename, and dateTime.
+ * @param {Function} props.setObj - A state setter function for updating the `obj` state.
+ * @param {Object} props.loadedInfo - Information about the currently loaded file, including directory, filename, and dateTime.
+ * @param {Object} props.savedInfo - Information about the most recently saved file, including status and messages.
+ * @param {Function} props.getFile - A function to load the selected file's content.
+ * @param {Function} props.saveFile - A function to save the current file, accepting a boolean indicating overwrite mode.
+ *
+ * @returns {JSX.Element} The rendered FileAccess component.
+ */
+const RecordFileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo, savedInfo, getFile, saveFile }) => {
+
+    // Info for dropdown menus
     const [dirs, setDirs] = useState([]);
     const [fileInfo, setFileInfo] = useState([]);
-    // Contain information about loaded file
-    const [loaded, setLoaded] = useState({ dir: '', filename: '', dateTime: { date: '', time: '' } });
-    // object contains short output
-    const [result, setResult] = useState('');
-    // object designed to output errors
-    const [infoCheck, setInfoCheck] = useState([]);
-    // info detail toggle
-    const [detailToggle, setDetailToggle] = useState(false);
-    // contain start date and end date
-    const [start, setStart] = useState(time);
-    const [end, setEnd] = useState(time);
 
+    // Fetch dirs and files and empty object (except userID, dir, filename) when table changes
     useEffect(() => {
         getDirsAndFiles();
-    },[tableToUse]);
+    },[obj.table]);
 
-    /** Update object property with inputValue */
-    const uponInputChange = (inputValue, prop) => {
-        setObj(prevState => ({ ...prevState, [prop]: inputValue }));
-    }
+    // Fetch dirs and files on load and when savedInfo changes
+    // Also empty payload and options on savedInfo changes if successful
+    useEffect(() => {
+        if (savedInfo?.truth) {
+            setObj(prevState => ({ ...prevState, options: null, payload: defaultPayload }));
+            if (logCheck(printLevel, ['o']) === 1) { console.log(`obj.options and obj.payload emptied`) }
+            else if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.options set to 'null'\n obj.payload set to '${defaultPayload}' ('null' is null, not a string)`) }
+        }
+        getDirsAndFiles();
+    }, [savedInfo]);
 
-    /** Update object property (which is also an object) with inputValue */
-    const uponObjectInputChange = (inputValue, prop) => {
-        let parsedObj;
-        // Attempt to parse and notify upon uncaught failure
-        try {
-            parsedObj = JSON.parse(inputValue);
-        } catch (err) {
-            if (prop === 'dateTime') {
-                parsedObj = { date: '', time: '' };
+    // Empties filename if dir is changed 
+    // unless loadedInfo dir, filename, and dateTime are equal to those of obj (load from fileExplorer workaround)
+    useEffect(() => {
+        if (loadedInfo.dir !== obj.dir
+            || loadedInfo.filename !== obj.filename
+            || loadedInfo.dateTime.date !== obj.dateTime.date
+            || loadedInfo.dateTime.time !== obj.dateTime.time) {
+            if (logCheck(printLevel, ['o']) === 2) { console.log('obj.filename emptied') }
+            setObj(prevObj => ({ ...prevObj, filename: '' }));
+        }
+    }, [obj.dir]);
+
+    // Autofills or empties dateTime when dir or filename is changed
+    // unless loadedInfo dir, filename, and dateTime are equal (load from FileExplorer workaround)
+    useEffect(() => {
+        if (loadedInfo.dir !== obj.dir
+            || loadedInfo.filename !== obj.filename
+            || loadedInfo.dateTime.date !== obj.dateTime.date
+            || loadedInfo.dateTime.time !== obj.dateTime.time) {
+            if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.filename).includes(obj.filename)) {
+                const mostRecent = newChooseMostRecent(fileInfo, obj.dir, obj.filename);
+                if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime set to '${mostRecent.date}'-'${mostRecent.time}'`) }
+                setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
             } else {
-                console.error("No catch for unparseable object!");
+                setObj(prevState => ({ ...prevState, dateTime: { date: '', time: '' } }));
+                if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime emptied`) }
             }
         }
-        setObj(prevState => ({ ...prevState, [prop]: parsedObj }));
-    }
+    }, [obj.dir, obj.filename]);
 
     /** Gets dirs and files where directories is all unqiue directories and
     * files is an array of objects containing dateTime, directory, and filename
     */
     const getDirsAndFiles = async () => {
         try {
-            const response = await newFetchDirsAndFiles(tableToUse, obj.userID);
+            const response = await newFetchDirsAndFiles(obj.table, obj.userID);
             if (response.truth) {
                 setFileInfo(response.files);
                 setDirs(response.dirs);
+                if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got dirs and files from ${obj.table}`) }
+                else if (logCheck(printLevel, ['s']) === 2) { console.log(`Successfully got dirs and files from ${obj.table}.\n dirs`, dirs, '\nfiles:', response.files) }
             } else {
-                console.error(`${response.status}: ${response.msg}`);
+                setFileInfo([]);
+                setDirs([]);
+                throw new Error(`${response.status} Error getting dirs and files from ${obj.table}: ${response.msg}`);
             }
         } catch (err) {
-            console.error('Error fetching customUI dirs and files:', err);
+            console.error(err);
         }
     };
 
-    /** Get payload and options given relevant arguments */
-    const getPayload = async () => {
+    /** Update object property with inputValue */
+    const uponInputChange = (inputValue, prop) => {
+        setObj(prevState => ({ ...prevState, [prop]: inputValue }));
+    };
+
+    /** Update object property (which is also an object) with inputValue */
+    const uponObjectInputChange = (inputValue, prop) => {
+        // Attempt to parse and notify upon uncaught failure
         try {
-            const response = await newFetchObject({ ...obj, table: tableToUse });
-
-            if (!response.truth) {
-                console.error(`Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}): ${response.msg}`)
+            const parsedObj = JSON.parse(inputValue);
+            setObj(prevState => ({ ...prevState, [prop]: parsedObj }));
+            if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime set to: ${JSON.stringify(parsedObj)}`) }
+        } catch (err) {
+            if (prop === 'dateTime') {
+                const emptyDateTime = { date: '', time: '' };
+                setObj(prevState => ({ ...prevState, dateTime: emptyDateTime }));
+                if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime set to: ''-''`) }
             } else {
-                setLoaded({ dir: obj.dir, filename: obj.filename, dateTime: obj.dateTime });
-                setObj({
-                    ...obj,
-                    options: response.options,
-                    payload: response.payload
-                });
-            }
-        } catch {
-            console.error('Error getting content with ', obj);
-        }
-    }
-
-    /** Save new UI or overwrite UI */
-    const saveCustomRecord = async (overwrite) => {
-
-        if (overwrite) {
-            const response = await newSaveObject(obj);
-            if (response.truth) {
-                if (response.status === 200) {
-                    setResult('File updated.');
-                    setInfoCheck([`Updated content of ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`]);
-                    getDirsAndFiles();
-                } else {
-                    setResult('Unknown success.');
-                    setInfoCheck([`Operated on ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`]);
-                    console.error('Updated???', response);
-                }
-            } else {
-                setResult('Failed to update.');
-                setInfoCheck([`Failed to update content of ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`]);
-                console.error(`Failed to update content of ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}) in ${obj.table}.`, response);
-            }
-        } else {
-            const objToSave = { ...obj, dateTime: { date: getDateString(), time: getTimeString() } };
-            const response = await newSaveObject(objToSave);
-            if (response.truth) {
-                if (response.status === 201) {
-                    setResult('File saved.');
-                    setInfoCheck([`Operated on ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
-                    getDirsAndFiles();
-                } else {
-                    setResult('Unknown success.');
-                    setInfoCheck([`Saved content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
-                    console.error('Updated???', response);
-                }
-            } else {
-                setResult('Failed to save.');
-                setInfoCheck([`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`]);
-                console.error(`Failed to save content of ${objToSave.dir}/${objToSave.filename} (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in ${objToSave.table}.`, response);
+                console.error(`No catch for unparseable object attempting to alter obj.${prop}`, inputValue, '\n Error', err);
             }
         }
-        // Reset version so it must be loaded to edit
-        setObj(prevState => ({ ...prevState, dateTime: 'new' }));
-    }    
+    };
 
     return (
-        <div className="mainContainer">
-            <button onClick={() => console.log(obj)}>Log Object</button>
-            <button 
-                style={{ color: tableToUse === 'customUI' ? 'gray' : 'black' }}
-                onClick={() => setTableToUse('customUI')}>
-                Use UIs
-            </button>
-            <button 
-                style={{ color: tableToUse === 'record' ? 'gray' : 'black' }}
-                onClick={() => setTableToUse('record')}>
-                Use Records
-            </button>
+        <div>
             <div className="flexDivTable">
                 {/** Directory row */}
                 <div className="flexDivRows">
                     <p className="flexDivColumns">Directory:</p>
-                    <input
-                        className="flexDivColumns"
-                        name='directory box'
-                        list='dirs'
+                    <select
                         value={obj.dir}
                         onChange={(e) => uponInputChange(e.target.value, 'dir')}
-                    />
-                    <datalist id='dirs'>
-                        {dirs.length > 0 &&
+                        disabled={obj.payload || obj.options}
+                        >
+                        <option key={'empty'} value={''}></option>
+                        {// Return all tiers of obj.dir
+                            obj.dir !== '' &&
+                                obj.dir.split('/').map((dir, i) => (
+                                    <option key={i} value={obj.dir.split('/').slice(0,i+1).join('/')}>
+                                        {obj.dir.split('/').slice(0,i+1).join('/')}
+                                    </option>
+                                ))
+                        }
+                        {// Return subdirectories based on obj.dir
+                            dirs.length > 0 &&
                             [...new Set(
                                 dirs.map((dir) => {
+                                    // return all leading directories
                                     if (obj.dir === '') {
                                         return dir.split('/')[0];
-                                    } else if (dir.split('/').slice(0, obj.dir.split('/').length).join('/') === obj.dir) {
+                                    }
+                                    // return all subdirectories of obj.dir
+                                    else if (dir.startsWith(obj.dir) && dir.split('/').length > obj.dir.split('/').length) {
                                         return dir.split('/').slice(0, obj.dir.split('/').length + 1).join('/');
-                                    } else {
+                                    }
+                                    // ignore other cases
+                                    else {
                                         return null;
                                     }
                                 })
-                            )].map((name, index) => (
-                                <option key={'dir' + index} value={name} />
-                            ))}
-                    </datalist>
+                            )].filter((dir) => dir !== null)
+                            .map((dir, index) => (
+                                <option key={index} value={dir}>{dir}</option>
+                            ))
+                        }
+                    </select>
                 </div>
                 {/** Filename row */}
                 <div className="flexDivRows">
                     <p className="flexDivColumns">Filename:</p>
-                    <input
-                        className="flexDivColumns"
-                        name='filename box'
-                        list='filenames'
+                    <select
                         value={obj.filename}
                         onChange={(e) => uponInputChange(e.target.value, 'filename')}
-                    />
-                    <datalist id='filenames'>
-                        {fileInfo.length > 0 &&
-                            fileInfo.filter((file) => file.directory === obj.dir
-                            ).filter((obj, index, self) =>
-                                index === self.findIndex((o) => o.filename === obj.filename)
-                            ).map((file, index) => (
-                                <option key={'filename' + index} value={file.filename} />
-                            ))}
-                    </datalist>
+                        disabled={obj.payload || obj.options}
+                        >
+                        <option key={'empty'} value={''}></option>
+                        { // Return all suggested filenames, set removes duplicates
+                            fileInfo.length > 0 &&
+                            [...new Set(fileInfo
+                                .filter((file) => file.directory === obj.dir) // Filter out files that don't match dir input
+                                .map((file) => file.filename) // Extract the filename
+                            )].map((filename, index) => (
+                                <option key={index} value={filename}>{filename}</option>
+                            ))
+                        }
+                    </select>
                 </div>
                 {/** Version row */}
                 <div className="flexDivRows">
                     <p className="flexDivColumns">Version:</p>
                     <select
                         value={JSON.stringify(obj.dateTime)}
-                        onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}>
+                        onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}
+                        disabled={obj.payload || obj.options}
+                        >
                         <option key={'new'} value={'new'}>New</option>
-                        { // Create option for each version and set to last saved in database initially
+                        { // Create option for each version and order in reverse of database import
                             fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
                                 if (file.filename === obj.filename && file.directory === obj.dir) {
                                     return (
-                                        <option key={'version' + index} value={JSON.stringify(file.dateTime)}>
+                                        <option key={index} value={JSON.stringify(file.dateTime)}>
                                             {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
                                         </option>
                                     );
-                                } else {
-                                    return null;
                                 }
                             })
                         }
                     </select>
                 </div>
             </div>
-            { // Display issues or success
-                detailToggle
-                    ? <div className="bulletList" onClick={() => setDetailToggle(false)} style={{ cursor: 'pointer' }}>
-                        {
-                            infoCheck.map((item, i) => (
-                                <p key={'userReport' + i}>{item}</p>
-                            ))
-                        }
-                    </div>
-                    : <p onClick={() => setDetailToggle(true)} style={{ cursor: 'pointer' }}>{result}</p>
-            }
-            {/** Button row (saving, loading, resetting) */}
+            {/** Button row (saving, loading, notifying) */}
             <div className="flexDivRows">
-                { // Render load content button if all necessary fields are filled
-                    obj.dir && obj.filename && obj.dateTime.date ?
-                        <div>
-                            <button onClick={() => getPayload()}>Load Content</button>
-                        </div>
-                        :
-                        <div>
-                            <button style={({ color: 'gray' })}>Load Content</button>
-                        </div>
-                } { // Render overwrite button if using previous file version
-                    obj.dir === loaded.dir &&
-                        obj.filename === loaded.filename &&
-                        obj.dateTime.date === loaded.dateTime.date &&
-                        obj.dateTime.time === loaded.dateTime.time
+                { // Render load content button if all necessary fields are filled and payload is empty
+                    obj.dir && obj.filename && obj.dateTime.date && !obj.payload
                         ? <div>
-                            <button style={({ color: 'gray' })}>Save</button>
-                            <button onClick={() => saveCustomRecord(true)}>Overwrite</button>
+                            <button onClick={() => getFile()}>Load Content</button>
                         </div>
                         : <div>
-                            <button onClick={() => saveCustomRecord(false)}>Save</button>
+                            <button style={({ color: 'gray' })}>Load Content</button>
+                        </div>
+                } 
+                { // Render empty content button if all necessary fields are filled and not clocking out
+                    ((obj.payload || obj.options) && obj.table !== 'clockIn')
+                        ? <div>
+                            <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null}))}>Empty Content</button>
+                        </div>
+                        : <div>
+                            <button style={({ color: 'gray' })}>Empty Content</button>
+                        </div>
+                } 
+                { // Display Save New, Clock In, and Overwrite conditionally
+                    // If version defined and table is 'clockIn' gray out all but Clock Out
+                    obj.dateTime.date && obj.table === 'clockIn' ? 
+                        <div>
+                            <button style={({ color: 'gray' })}>Save New</button>
+                            <button onClick={() => saveFile(true, 'clockOut')}>Clock Out</button>
                             <button style={({ color: 'gray' })}>Overwrite</button>
                         </div>
-                } { // Render empty content button if payload || options
-                    (obj.payload || obj.options) &&
-                    <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null }))}>
-                        Empty Content
-                    </button>
+                    // Else if version is defined gray out all but Overwrite
+                        : obj.dateTime.date ?
+                        <div>
+                            <button style={({ color: 'gray' })}>Save New</button>
+                            <button style={({ color: 'gray' })}>Clock In</button>
+                            <button onClick={() => saveFile(true, 'record')}>Overwrite</button>
+                        </div>
+                        // Else gray out overwrite
+                        : 
+                        <div>
+                            <button onClick={() => saveFile(false, 'record')}>Save New</button>
+                            <button onClick={() => saveFile(false, 'clockIn')}>Clock In</button>
+                            <button style={({ color: 'gray' })}>Overwrite</button>
+                        </div>
+                } 
+                { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
+                    savedInfo && (obj.payload === null || obj.payload === '') &&
+                    <p className="moreButton" style={{ cursor: 'default' }}>
+                        {savedInfo.message} {savedInfo.filename}
+                        <span className="more">
+                            {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
+                            {convertUTCstringsToLocal(savedInfo.dateTime).date}-
+                            {convertUTCstringsToLocal(savedInfo.dateTime).time}&nbsp;
+                            in {savedInfo.table}
+                        </span>
+                    </p>
                 }
             </div>
-            { /** Display customized info interface */
-                obj.payload &&
-                    <div>
-                        <UI UI={obj.payload} setObj={setObj} />
-                        <div className="flexDivTable">
-                            { /** Display start date inputs */
-                                obj.options?.startInfo === true &&
-                                    <DateInput date={start} setDate={setStart} preText={'Start'} />
-                            } { /** Display end date inputs */
-                                    <DateInput date={end} setDate={setEnd} preText={'End'} />
-                            }
-                        </div>
-                    </div>
-            } 
         </div>
     );
 }
@@ -1121,7 +702,10 @@ const UI = ({ UI, setObj }) => {
                                 value={element.value}
                                 onChange={(e) => updatePayload(i, null, e.target.value)}/>
                         </div>
-                    : <p>Unrecognized element {JSON.stringify(element)}</p>
+                    : element?.type === "start" || element?.type === "end" ?
+                        null
+                    :    
+                        <p>Unrecognized element {JSON.stringify(element)}</p>
                 ))
             }
         </div>
@@ -1129,50 +713,67 @@ const UI = ({ UI, setObj }) => {
 }
 
 /** HTML element for editing start and end date/time of schedule */
-const DateInput = ({ date, setDate, preText }) => {
+const DateInput = ({ date, setObj, dateValidity }) => {
 
     /** Update date property with inputValue */
     const uponDateChange = (inputValue, prop) => {
-        setDate(prevState => ({ ...prevState, [prop]: inputValue }));
+        let updateIndex = 0;
+        const updatedElement = { ...date, [prop]: inputValue }
+        if (date.type === 'start') {
+            updateIndex = -2;
+        } else if (date.type === 'end') {
+            updateIndex = -1;
+        }
+        // Update length -2 or -1 element of array (where start and end will always be)
+        if (updateIndex !== 0) {
+            setObj(prevState => {
+                const updatedPayload = [...prevState.payload];
+                updatedPayload[updatedPayload.length + updateIndex] = updatedElement;
+                return { ...prevState, payload: updatedPayload };
+            });
+        } else {
+            console.error("No element updated using ", date);
+        }
     }
 
     return (
         <div className="flexDivRows">
-            <p className="flexDivColumns">{preText}:</p>
-            <input
-                className="twoDigitInput flexDivColumns"
+            {/** Preceding text */
+                date.type === 'start'
+                ?   <p className="flexDivColumns">Start: </p>
+                : date.type === 'end'
+                ?   <p className="flexDivColumns">End: </p>   
+                : <p className="flexDivColumns">Shouldn't get to here...</p>
+            }
+            <input className="twoDigitInput flexDivColumns"
                 name='month1 box'
+                style={{ border: dateValidity.month ? undefined : '1px solid red' }}
                 value={date.month}
-                onChange={(e) => uponDateChange(e.target.value, 'month')}
-            />
+                onChange={(e) => uponDateChange(e.target.value, 'month')} />
             <p className="flexDivColumns">/</p>
-            <input
-                className="twoDigitInput"
+            <input className="twoDigitInput"
                 name='day1 box'
+                style={{ border: dateValidity.day ? undefined : '1px solid red' }}
                 value={date.day}
-                onChange={(e) => uponDateChange(e.target.value, 'day')}
-            />
+                onChange={(e) => uponDateChange(e.target.value, 'day')} />
             <p className="flexDivColumns">/</p>
-            <input
-                className="fourDigitInput flexDivColumns"
+            <input className="fourDigitInput flexDivColumns"
                 name='year1 box'
+                style={{ border: dateValidity.year ? undefined : '1px solid red' }}
                 value={date.year}
-                onChange={(e) => uponDateChange(e.target.value, 'year')}
-            />
+                onChange={(e) => uponDateChange(e.target.value, 'year')} />
             <p className="flexDivColumns">at</p>
-            <input
-                className="twoDigitInput flexDivColumns"
+            <input className="twoDigitInput flexDivColumns"
                 name='hour1 box'
+                style={{ border: dateValidity.hour ? undefined : '1px solid red' }}
                 value={date.hour}
-                onChange={(e) => uponDateChange(e.target.value, 'hour')}
-            />
+                onChange={(e) => uponDateChange(e.target.value, 'hour')} />
             <p className="flexDivColumns">:</p>
-            <input
-                className="twoDigitInput flexDivColumns"
+            <input className="twoDigitInput flexDivColumns"
                 name='minute1 box'
+                style={{ border: dateValidity.minute ? undefined : '1px solid red' }}
                 value={date.minute}
-                onChange={(e) => uponDateChange(e.target.value, 'minute')}
-            />
+                onChange={(e) => uponDateChange(e.target.value, 'minute')} />
         </div>
     );
 }

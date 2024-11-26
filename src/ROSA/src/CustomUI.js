@@ -13,7 +13,7 @@ import { deleteEntry, fetchObject, fetchFiles, fetchDirsAndFiles, saveObject,
 import { FileAccess } from './Components';
 
 /** Interface for creating UIs to use in CustomInput */
-export const NewCustomUI = ({ printLevel, preselectedObj }) => {
+export const CustomUI = ({ printLevel, preselectedObj }) => {
     
     // Get object with local month, day, year, hour, minute
     const time = getCurrentDateStrings(true);
@@ -21,11 +21,13 @@ export const NewCustomUI = ({ printLevel, preselectedObj }) => {
     // Use object
     const [obj, setObj] = useState(preselectedObj);
     // Contain loaded dir, filename, and version
-    const [loadedInfo, setLoadedInfo] = useState({ dir: '', filename: '', dateTime: { date: '', time: '' } });
+    const [loadedInfo, setLoadedInfo] = useState({ dir: preselectedObj.dir, filename: preselectedObj.filename, dateTime: preselectedObj.dateTime });
     // Contain saved dir, filename and version along with status and message like 'Save' or 'Failed to save'
     const [savedInfo, setSavedInfo] = useState(null);
     // elementInfo contains the text to show describing the input
     const [elementInfo, setElementInfo] = useState({ type: '', label: '', choices: null, group: 0 });
+    // include start time?
+    const [includeStart, setIncludeStart] = useState(false);
     // Toggle schedule UI
     const [scheduleToggle, setScheduleToggle] = useState(false);
     // ScheduleInfo contains info to add to obj.options.schedule
@@ -51,10 +53,13 @@ export const NewCustomUI = ({ printLevel, preselectedObj }) => {
             if (!response.truth) {
                 throw new Error(`${response.status} Error getting ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time}):\n ${response.msg}`);
             } else {
+                // Remove 'start' but remember it was there
+                if (response.payload.find(item => item.type === 'start')) {setIncludeStart(true)}
+                // Load options and payload (without start and end times)
                 const updatedObj = {
                     ...obj,
                     options: convertScheduleIn(response.options),
-                    payload: response.payload
+                    payload: response.payload.filter(item => item.type !== 'start' && item.type !== 'end')
                 };
                 if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`) }
                 if (logCheck(printLevel, ['o']) === 1) { console.log('obj updated by fetch') }
@@ -72,7 +77,14 @@ export const NewCustomUI = ({ printLevel, preselectedObj }) => {
 
         try {
 
-            const outObj = convertScheduleOut();
+            const convertedObj = convertScheduleOut();
+            // empty date
+            const emptyTime = { month: "NA", day: "NA", year: "NA", hour: "NA", minute: "NA"}
+            // Add start if desired, add end always
+            const outObj = { ...convertedObj, 
+                payload: includeStart 
+                    ? [...convertedObj.payload, { type: "start", ...emptyTime }, { type: "end", ...emptyTime }]
+                    : [ ...convertedObj.payload, { type: "end", ...emptyTime }]}
 
             if (overwrite) {
                 const response = await newSaveObject(outObj);
@@ -332,7 +344,14 @@ export const NewCustomUI = ({ printLevel, preselectedObj }) => {
             {/** Schedule toggle */}
             <div className="flexDivRows">
                 <button 
-                    onClick={() => setScheduleToggle(!scheduleToggle)}>
+                    onClick={() => {
+                        setScheduleToggle(!scheduleToggle);
+                        setScheduleInfo({
+                            repeatType: '', repeatInfo: '1', local: true,
+                            start: time, end: time,
+                            effectiveStart: time, effectiveEnd: time
+                        });
+                    }}>
                         Toggle Schedule
                 </button>
             </div>
@@ -463,9 +482,10 @@ export const NewCustomUI = ({ printLevel, preselectedObj }) => {
             }
             {/** Options to create elements */}
             <div className="flexDivRows">
+                <p>Element Type:</p>
                 <button
-                    style={{ color: obj.options?.startInfo === true ? 'gray' : 'black'}}
-                    onClick={() => setObj({ ...obj, options: { ...obj.options, startInfo: obj.options?.startInfo === true ? false : true } })}>
+                    style={{ color: includeStart ? 'gray' : 'black'}}
+                    onClick={() => setIncludeStart(!includeStart)}>
                     Add Start Time
                 </button>
                 <button onClick={() => setElementInfo(({ type: 'toggle', label: '', value: false, choices: null, group: 0 }))}>Add Button</button>
@@ -545,73 +565,64 @@ export const NewCustomUI = ({ printLevel, preselectedObj }) => {
                 <EditUI obj={obj} setObj={setObj}/>
             }
             <div className="flexDivTable">
-            {/** Display startInfo if set to true*/
-                obj.options?.startInfo &&
-                        <div className="flexDivRows">
-                            <p className="flexDivColumns">Event Start:</p>
-                            <input readOnly
-                                className="twoDigitInput"
-                                name='startInfo month box'
-                                value={time.month}
-                            />
-                            <p className="flexDivColumns">/</p>
-                            <input readOnly
-                                className="twoDigitInput"
-                                name='startInfo day box'
-                                value={time.day}
-                            />
-                            <p className="flexDivColumns">/</p>
-                            <input readOnly
-                                className="fourDigitInput"
-                                name='startInfo year box'
-                                value={time.year}
-                            />
-                            <p className="flexDivColumns">at</p>
-                            <input readOnly
-                                className="twoDigitInput"
-                                name='startInfo hour box'
-                                value={time.hour}
-                            />
-                            <p className="flexDivColumns">:</p>
-                            <input readOnly
-                                className="twoDigitInput"
-                                name='startInfo minute box'
-                                value={time.minute}
-                            />
-                        </div>
-            } {
+            {/** Display start if decided to include */
+                includeStart &&
                     <div className="flexDivRows">
-                        <p className="flexDivColumns">Event End:</p>
+                        <p className="flexDivColumns">Event Start:</p>
                         <input readOnly
                             className="twoDigitInput"
-                            name='endInfo month box'
-                            value={time.month}
-                        />
+                            name='startInfo month box'
+                            value={time.month} />
                         <p className="flexDivColumns">/</p>
                         <input readOnly
                             className="twoDigitInput"
-                            name='endInfo day box'
-                            value={time.day}
-                        />
+                            name='startInfo day box'
+                            value={time.day} />
                         <p className="flexDivColumns">/</p>
                         <input readOnly
                             className="fourDigitInput"
-                            name='endInfo year box'
-                            value={time.year}
-                        />
+                            name='startInfo year box'
+                            value={time.year} />
                         <p className="flexDivColumns">at</p>
                         <input readOnly
                             className="twoDigitInput"
-                            name='endInfo hour box'
-                            value={time.hour}
-                        />
+                            name='startInfo hour box'
+                            value={time.hour} />
                         <p className="flexDivColumns">:</p>
                         <input readOnly
                             className="twoDigitInput"
-                            name='endInfo minute box'
-                            value={time.minute}
-                        />
+                            name='startInfo minute box'
+                            value={time.minute} />
                     </div>
+            } 
+            {/** Display end always */
+                <div className="flexDivRows">
+                    <p className="flexDivColumns">Event End:</p>
+                    <input readOnly
+                        className="twoDigitInput"
+                        name='startInfo month box'
+                        value={time.month} />
+                    <p className="flexDivColumns">/</p>
+                    <input readOnly
+                        className="twoDigitInput"
+                        name='startInfo day box'
+                        value={time.day} />
+                    <p className="flexDivColumns">/</p>
+                    <input readOnly
+                        className="fourDigitInput"
+                        name='startInfo year box'
+                        value={time.year}/>
+                    <p className="flexDivColumns">at</p>
+                    <input readOnly
+                        className="twoDigitInput"
+                        name='startInfo hour box'
+                        value={time.hour}/>
+                    <p className="flexDivColumns">:</p>
+                    <input readOnly
+                        className="twoDigitInput"
+                        name='startInfo minute box'
+                        value={time.minute}/>
+                </div>
             }
             </div>
         </div>
@@ -646,7 +657,6 @@ const StartEndInput = ({ info, setInfo, validity }) => {
     return (
         <div className="flexDivTable">
             {/** Start dateTime row */}
-            <button onClick={() => console.log(validity)}>Log Validity</button>
             <div className="flexDivRows">
                 <p className="flexDivColumns">Start:</p>
                 <input

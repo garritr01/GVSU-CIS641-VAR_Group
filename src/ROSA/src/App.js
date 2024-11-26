@@ -6,8 +6,8 @@ import { EditMiscObject } from './DirectEdit';
 import { MainMenu } from './MainMenu';
 import { Functions } from './Components';
 import { Journal } from './Journal';
-import { CustomInput, NewCustomInput } from './CustomInput';
-import { NewCustomUI } from './CustomUI';
+import { CustomInput } from './CustomInput';
+import { CustomUI } from './CustomUI';
 import { ScheduleView } from './Calendar';
 import { FileExplorer } from './FileExplorer';
 import { logCheck } from './oddsAndEnds';
@@ -27,7 +27,7 @@ const App = () => {
   // d (database) - use to log database output (errors will always log)
   // e (exceptions) - use to log exceptional cases
   // v (verbose) - add to any character for verbose mode
-  const logLevel = ['ev','s']; //['d','e','b','o','p','s'];
+  const logLevel = ['b']; //['d','e','b','o','p','s'];
   // Remains for old printout conditions
   // const printoutLevel = 1;
   const [userID, setUserID] = useState('garritr01');
@@ -146,7 +146,10 @@ const App = () => {
         selectFn={handleOpen} />}
       {/** Main Menu interface*/}
       {open === 'main' && <MainMenu
-        printLevel={logLevel}/>}
+        printLevel={logLevel}
+        selectFn={handleOpen}
+        obj={currentObj}
+        setCurrentObj={setCurrentObj} />}
       {/** File Explorer interface */}
       {open === 'fileExplorer' && <FileExplorer
         printLevel={logLevel}
@@ -158,11 +161,11 @@ const App = () => {
         printLevel={logLevel}
         preselectedObj={currentObj} />}
       {/** Custom UI creation interface */}
-      {open === 'customUI' && <NewCustomUI
+      {open === 'customUI' && <CustomUI
         printLevel={logLevel}
         preselectedObj={currentObj} />}
       {/** Custom recording interface */}
-      {open === 'record' && <NewCustomInput
+      {open === 'record' && <CustomInput
         printLevel={logLevel}
         preselectedObj={currentObj} />}
 

@@ -22,17 +22,19 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
     // Contains filename, dir, and dateTime for each entry in table
     const [fileInfo, setFileInfo] = useState([]);
 
-    // reset version, options, and payload upon filename change
+    // reset version, options, and payload when filename is emptied
     useEffect(() => {
-        const updatedObj = { 
-            ...obj, 
-            dateTime: { date: '', time: '' },
-            options: null,
-            payload: null
-        };
-        setObj(updatedObj);
-        if (logCheck(printLevel,['o']) === 1) {console.log('obj dateTime, options and payload cleared by filename change.')}
-        else if (logCheck(printLevel, ['o']) === 2) {console.log('obj dateTime, options and payload cleared by filename change.', updatedObj)}
+        if (!obj.filename) {
+            const updatedObj = { 
+                ...obj, 
+                dateTime: { date: '', time: '' },
+                options: null,
+                payload: null
+            };
+            setObj(updatedObj);
+            if (logCheck(printLevel,['o']) === 1) {console.log('obj dateTime, options and payload cleared by filename change.')}
+            else if (logCheck(printLevel, ['o']) === 2) {console.log('obj dateTime, options and payload cleared by filename change.', updatedObj)}
+        }
     },[obj.filename]);
     // reset filename upon dir change
     useEffect(() => {
@@ -47,7 +49,9 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
         setObj(updatedObj);
         if (logCheck(printLevel, ['o']) === 1) { console.log('obj dir cleared by table change.') }
         else if (logCheck(printLevel, ['o']) === 2) { console.log('obj dir cleared by table change.', updatedObj) }
-        getDirsAndFiles(obj.table);
+        if (obj.table !== 'fileExplorer') {
+            getDirsAndFiles(obj.table);
+        }
     },[obj.table]);
 
     const getDirsAndFiles = async (table) => {
@@ -81,10 +85,10 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
                 throw new Error(`deleteLevel: '${deleteLevel}' is unaccounted for`);
             }
             if (response.truth) {
-                console.log(`Successfully deleted ${obj.dir}/${obj.filename} version: (${obj.dateTime.time}-${obj.dateTime.time})`);
+                console.log(`Successfully deleted ${obj.dir}/${obj.filename} version: (${obj.dateTime.date}-${obj.dateTime.time})`);
                 if (deleteLevel === 0) {
                     if (logCheck(printLevel,['d','b']) > 0) {console.log(`file: '${obj.dir}/${obj.filename}' version (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}' successfully deleted.`)}
-                    setObj(prevState => ({ ...prevState, dateTime: { date: '', time: '' }, options: null, payload: null }));
+                    //unsetting handled for version delete in DisplayFile
                 } else if (deleteLevel === 1) {
                     if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`all versions of file: '${obj.dir}/${obj.filename}' in '${obj.table}' successfully deleted.`)}
                     setObj(prevState => ({ ...prevState, filename: '', dateTime: { date: '', time: '' }, options: null, payload: null }));
@@ -122,7 +126,7 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
                 </p>
                 <p  style={{ cursor: 'pointer' }}
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'customUI' }))}>
-                    Custom UI
+                    Custom UIs
                 </p>
                 <p  style={{ cursor: 'pointer' }}
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))}>
@@ -216,18 +220,25 @@ const CascadingDropdown = ({ printLevel, dirs, fileInfo, handleDelete, obj, setO
         if (type === 'dir') {
             // Act like a deselection
             if (name === obj.dir) {
+                const newDir = name.split('/').slice(0, name.split('/').length - 1).join('/');
                 setObj(prevState => 
                     ({ ...prevState, 
-                    dir: name.split('/').slice(0,name.split('/').length - 1).join('/') || '' }));
+                    dir: newDir || '' }));
+                if(logCheck(printLevel,['o']) === 2) {console.log(`Deselected. obj.dir is now ${newDir}`)}
             } else {
                 setObj(prevState => ({ ...prevState, dir: name }));
+                if(logCheck(printLevel,['o']) === 2) {console.log(`Selected new obj.dir: ${name}`)}
             }
         } else if (type === 'file') {
             // Act like a deselection
-            if (name === obj.dir) {
+            if (name === obj.dir+'/'+obj.filename) {
                 setObj(prevState => ({ ...prevState, filename: '' }));
+                if(logCheck(printLevel,['o']) === 2) {console.log(`Deselected. obj.filename is now empty`)}
+
             } else {
-                setObj(prevState => ({ ...prevState, filename: name.split('/')[name.split('/').length - 1] }));
+                const newFilename = name.split('/')[name.split('/').length - 1];
+                setObj(prevState => ({ ...prevState, filename: newFilename }));
+                if(logCheck(printLevel,['o']) === 2) {console.log(`Selected new obj.filename: ${newFilename}`)}
             }
         } else {
             console.error(`${name} has type '${type} which is unrecognized.'`);
@@ -236,15 +247,16 @@ const CascadingDropdown = ({ printLevel, dirs, fileInfo, handleDelete, obj, setO
 
     return (
         <div>
+            {/** Enable directory delete if it is not empty */
+                obj.dir
+                ?   <button className="flexDivRows" onClick={() => setOverlay({ type: 'delete', deleteLevel: 2 })}>
+                        Delete {obj.dir} Recursively
+                    </button>
+                :   <button className="flexDivRows" style={{ color: 'gray' }}>
+                        Delete {obj.dir} Recursively
+                    </button>
+            }
             <div className="flexDivColumns">
-                <button 
-                    className="flexDivRows"
-                    onClick={() => setOverlay({
-                        type: 'delete',
-                        deleteLevel: 2
-                    })}>
-                    Delete {obj.dir} Recursively
-                </button>
                 { /** Display directories and files currently available */
                     outOptions.length > 0 &&
                     outOptions.map((option, i) => (
@@ -296,7 +308,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
 
     const [overlay, setOverlay] = useState({});
 
-    // Trigger version options grab upon filename existence
+    // Trigger version options grab upon filename existence or refreshKey change
     useEffect(() => {
         getVersions();
     },[obj.filename]);
@@ -304,7 +316,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
     // Trigger payload grab upon dateTime existence
     useEffect(() => {
         if (obj.dateTime && obj.dateTime.date && obj.dateTime.time) {
-            if (obj.table === 'journals') {
+            if (obj.table === 'journal') {
                 getTextPayload();
             } else {
                 getObjectPayload();
@@ -347,7 +359,8 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                     options: response.options,
                     payload: response.payload
                 };
-                setObj(updatedObj);
+                // Prevent endless fetch loop
+                setObj(prevState => ({ ...updatedObj, dateTime: prevState.dateTime }));
                 if (logCheck(printLevel, ['d', 'b']) > 1) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`)}
                 if (logCheck(printLevel, ['o']) === 1) {console.log('obj updated by fetch')}
                 else if (logCheck(printLevel, ['o']) === 2) {console.log('obj updated by fetch\n obj:', updatedObj)}
@@ -369,7 +382,8 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                     options: response.options,
                     payload: response.payload
                 };
-                setObj(updatedObj);
+                // prevent endless fetch loop
+                setObj(prevState => ({ ...updatedObj, dateTime: prevState.dateTime }));
                 if (logCheck(printLevel, ['d', 'b']) > 1) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`)}
                 if (logCheck(printLevel, ['o']) === 1) {console.log('obj updated by fetch')}
                 else if (logCheck(printLevel, ['o']) === 2) {console.log('obj updated by fetch\n obj:', updatedObj)}
@@ -385,13 +399,13 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
     const handleFunctionSelection = () => {
         if (obj.table === 'journal') {
             if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
-            selectFn('journal');
+            selectFn('journal', false); // false blocks emptying of object
         } else if (obj.table === 'customUI') {
             if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
-            selectFn('customUI');
+            selectFn('customUI', false); // false blocks emptying of object
         } else if (obj.table === 'record') {
             if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
-            selectFn('record');
+            selectFn('record', false); // false blocks emptying of object
         } else {
             console.error(`${obj.table} has no defined reroute to allow editing!`);
         }
@@ -404,7 +418,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                 {
                     versions.map((version,i) => (
                         <p  key={'version'+i}
-                            style={{ cursor: 'pointer' }}
+                            style={{ cursor: 'pointer' , border: obj.version === version ? '1px solid lightblue' : undefined }}
                             onClick={() => setObj(prevState => ({ ...prevState, dateTime: version }))}>
                             {convertUTCstringsToLocal(version).date}-{convertUTCstringsToLocal(version).time}
                         </p>
@@ -438,14 +452,14 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                         }
                     </div>
                     {
-                        typeof(obj.payload) !== 'string' ?
+                        typeof(obj.payload) === 'object' ?
                             <div>
                                 <p>Options:</p>
                                 <DisplayObject objToDisplay={obj.options} depth={0} keyOuter={0} />
                                 <p>Payload:</p>
                                 <DisplayObject objToDisplay={obj.payload} depth={0} keyOuter={0} />
                             </div>
-                        :   typeof(obj.payload) === 'object' ?
+                        :   typeof(obj.payload) === 'string' ?
                             <div>
                                 <p>Options:</p>
                                 <DisplayObject objToDisplay={obj.options} depth={0} keyOuter={0} />
@@ -488,6 +502,18 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                             }
                             <div>
                                 <button onClick={() => {
+                                    if (overlay.deleteLevel === 0) {
+                                        const updatedVersions = versions.filter((version) => (
+                                            version.date !== obj.dateTime.date || version.time !== obj.dateTime.time
+                                        ));
+                                        setVersions(updatedVersions);
+                                        const mostRecent = newChooseMostRecentSimple(updatedVersions);
+                                        setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
+                                        /*if (logCheck(printLevel, ['s']) === 1) { */console.log('versions filtered by delete.');
+                                        /*else if (logCheck(printLevel, ['s']) === 2) { */console.log('versions filtered by delete:\n', updatedVersions);
+                                        /*if (logCheck(printLevel, ['o']) === 1) { */console.log('obj.dateTime set to most recent version after delete.');
+                                        /*else if (logCheck(printLevel, ['o']) === 2) { */console.log(`obj.dateTime set to most recent version after delete: ${convertUTCstringsToLocal(mostRecent).date}-${convertUTCstringsToLocal(mostRecent).time}`);
+                                    }
                                     handleDelete(overlay.deleteLevel);
                                     setOverlay({});
                                 }}>Yes</button>

@@ -15,7 +15,7 @@ export const Journal = ({ printLevel, preselectedObj }) => {
     // Use object and replace payload with empty string if null
     const [obj, setObj] = useState({ ...preselectedObj, payload: preselectedObj.payload || ''});
     // Retains file information from loaded file
-    const [loadedInfo, setLoadedInfo] = useState(preselectedObj);
+    const [loadedInfo, setLoadedInfo] = useState({ dir: preselectedObj.dir, filename: preselectedObj.filename, dateTime: preselectedObj.dateTime });
     // Retains file information from savedFile
     const [savedInfo, setSavedInfo] = useState(null);
 
@@ -95,8 +95,7 @@ export const Journal = ({ printLevel, preselectedObj }) => {
                 loadedInfo={loadedInfo}
                 savedInfo={savedInfo}
                 getFile={getJournal}
-                saveFile={saveJournal}
-                />
+                saveFile={saveJournal} />
             <textarea
                 className="postFileAccessContainer"
                 name="journal box"
