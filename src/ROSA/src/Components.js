@@ -174,6 +174,11 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
             className="flexDivColumns"
             name='directory box'
             value={obj.dir}
+            style={{ backgroundColor: 
+                obj.dir[obj.dir.length - 1] === '/' || /[\\:*?"<>|#&=]/.test(obj.dir) 
+                  ? 'rgba(255, 0, 0, 0.5)' 
+                  : undefined
+            }}
             onChange={(e) => uponInputChange(e.target.value, 'dir')}
           />
           <div className="moreRightLink flexDivColumns">
@@ -226,6 +231,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
             className="flexDivColumns"
             id='filename box'
             value={obj.filename}
+            style={{ backgroundColor: /[\/\\:*?"<>|#&=]/.test(obj.filename) ? 'rgba(255, 0, 0, 0.5)' : undefined }}
             onChange={(e) => uponInputChange(e.target.value, 'filename')}
           />
           <div className="moreRightLink flexDivColumns">
