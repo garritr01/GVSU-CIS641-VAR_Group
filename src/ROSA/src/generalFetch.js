@@ -10,7 +10,7 @@ export const createNewUser = async (userName, password) => {
     //Attempt new user creation and report any failure
     try {
         //Get response given userName and password inputs
-        const response = await fetch(`http://localhost:5000/signUp/${userName}/${password}`, { method: ['POST'], });
+        const response = await fetch(`http://localhost:5000/signUp/${userName}/${password}`, { method: 'POST', });
         const data = await response.json();
         //If fails return failure and reason
         if (!response.ok) {
@@ -76,33 +76,8 @@ export const newFetchDirsAndFiles = async (table, userID) => {
     }
 }
 
-export const newFetchObjects = async (table, userID, fileInfo, contentToRetrieve = ['options', 'payload']) => {
-    try {
-        const response = await fetch(`http://localhost:5000/getObjects`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                tableName: table,
-                userID: userID,
-                files: fileInfo,
-                contentToReturn: contentToRetrieve
-            })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            return { truth: false, objects: null, msg: data.message, status: response.status };
-        } else {
-            return { truth: true, objects: data.objects, msg: data.message, status: response.status };
-        }
-    } catch (err) { 
-        return { truth: false, objects: null, msg: err, status: 500 };
-    }
-}
-
 /**
- * Get full information from database given following location parameters
+ * Get payload and content of database file
  * @param {Object} obj - The parameters for the function.
  * @param {string} obj.userID - The user ID.
  * @param {string} obj.table - The table name.
@@ -123,6 +98,41 @@ export const newFetchObject = async (obj) => {
         }
     } catch (err) {
         return { truth: false, payload: null, options: null, msg: err, status: 500 };
+    }
+}
+
+/** Fetch content 
+ * @param {string} table - The table name
+ * @param {string} userID - user ID
+ * @param {Object} fileInfo - contains information for finding each file
+ * @param {string} fileInfo.directory - directory ('leadDir/subDir')
+ * @param {string} fileInfo.filename - filename ('someFilename')
+ * @param {Object} fileInfo.dateTime - dateTime {date: 'mm/dd/yyyy', time: 'hh:mm'}
+ * @param {Object} contentToRetrieve - defaults to both options and payload but ['options'] will return only options
+ * @returns {Promise<{truth: boolean, msg: string, status: number, objects: Object}>}
+*/
+export const newFetchObjects = async (table, userID, fileInfo, contentToRetrieve = ['options', 'payload']) => {
+    try {
+        const response = await fetch(`http://localhost:5000/getObjects`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tableName: table,
+                userID: userID,
+                files: fileInfo,
+                contentToReturn: contentToRetrieve
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { truth: false, objects: null, msg: data.message, status: response.status };
+        } else {
+            return { truth: true, objects: data.objects, msg: data.message, status: response.status };
+        }
+    } catch (err) {
+        return { truth: false, objects: null, msg: err, status: 500 };
     }
 }
 

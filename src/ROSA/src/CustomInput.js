@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef
 } from 'react';
 
 import {
-    convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, getCurrentDateTime,
+    convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, getCurrentSplitDate,
     convertUTCDateTimeToLocal, logCheck, newChooseMostRecent
 } from './oddsAndEnds';
 
@@ -104,14 +104,14 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                     payload: response.payload.map((item) => {
                         if (item.type === 'start') {
                             if (item?.month === "NA") {
-                                return { ...item, ...getCurrentDateTime(true) };
+                                return { ...item, ...getCurrentSplitDate(true) };
                             } else {
                                 console.log(item, convertUTCSplitDateToLocal(item));
                                 return convertUTCSplitDateToLocal(item);
                             }
                         } else if (item.type === 'end') {
                             if (item?.month === "NA") {
-                                return { ...item, ...getCurrentDateTime(true) };
+                                return { ...item, ...getCurrentSplitDate(true) };
                             } else {
                                 return convertUTCSplitDateToLocal(item);
                             }

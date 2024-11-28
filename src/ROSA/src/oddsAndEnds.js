@@ -428,10 +428,10 @@ export const getWeekdayString = (weekdayNum) => {
 /**
  * Filters fileInfo objects based on the specified start and end date-time range.
  *
- * @param {Array} fileInfo - Array of objects containing directory, filename, and dateTime.
+ * @param {Object} fileInfo - Array of objects containing directory, filename, and dateTime.
  * @param {Object} start - Start date-time object with { date: 'mm/dd/yyyy', time: 'hh:mm' }.
  * @param {Object} end - End date-time object with { date: 'mm/dd/yyyy', time: 'hh:mm' }.
- * @returns {Array} Filtered array of fileInfo objects within the date range.
+ * @returns {Object} Filtered array of fileInfo objects within the date range.
  */
 export function filterByRange(fileInfo, start, end) {
     // Convert date-time object to a JavaScript Date object
