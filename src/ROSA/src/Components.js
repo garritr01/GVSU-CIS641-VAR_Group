@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 
 import { 
-  logCheck, newChooseMostRecent, convertUTCstringsToLocal 
+  logCheck, newChooseMostRecent, convertUTCDateTimeToLocal 
 } from './oddsAndEnds';
 
 import { newFetchDirsAndFiles } from './generalFetch';
@@ -33,7 +33,7 @@ export const Functions = ({ printLevel, selectFn, setUserID }) => {
         <button onClick={() => anyPress("customUI")}>Custom UI</button>
         {/* <button onClick={() => anyPress("quick note")}>Quick Note</button> */}
         {/* <button onClick={() => anyPress("schedule view")}>Calendar</button> */}
-
+        <button onClick={() => anyPress("calendar")}>Calendar</button>
         {/* The below buttons can be rendered for infrequently used functions. Code found in manualEdit.js*/}
         {/*<button onClick={() => alterMatches("CustomUI", null, null,"Earning ($)","Earning ($)", "earning")}>Alter UI</button>*/}
         {/*<button onClick={() => createCustomUIDropdown()}>CustomUI Dropdown</button>*/}
@@ -268,7 +268,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
                 if (file.filename === obj.filename && file.directory === obj.dir) {
                   return (
                     <option key={index} value={JSON.stringify(file.dateTime)}>
-                      {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
+                      {convertUTCDateTimeToLocal(file.dateTime).date + '-' + convertUTCDateTimeToLocal(file.dateTime).time}
                     </option>
                   );
                 }
@@ -305,10 +305,10 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
                   <span className="more bulletList">
                     <h3>Save location will be different than loaded location</h3>
                     <p>Loaded from {loadedInfo.dir}/{loadedInfo.filename}&nbsp;
-                      version: {convertUTCstringsToLocal(loadedInfo.dateTime).date}-{convertUTCstringsToLocal(loadedInfo.dateTime).time}
+                      version: {convertUTCDateTimeToLocal(loadedInfo.dateTime).date}-{convertUTCDateTimeToLocal(loadedInfo.dateTime).time}
                     </p>
                     <p>Will save to {obj.dir}/{obj.filename}&nbsp;
-                      version: {convertUTCstringsToLocal(obj.dateTime).date}-{convertUTCstringsToLocal(obj.dateTime).time}
+                      version: {convertUTCDateTimeToLocal(obj.dateTime).date}-{convertUTCDateTimeToLocal(obj.dateTime).time}
                     </p>
                   </span>
               </button>
@@ -330,8 +330,8 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
             {savedInfo.message} {savedInfo.filename}
             <span className="more">
               {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
-              {convertUTCstringsToLocal(savedInfo.dateTime).date}-
-              {convertUTCstringsToLocal(savedInfo.dateTime).time}&nbsp;
+              {convertUTCDateTimeToLocal(savedInfo.dateTime).date}-
+              {convertUTCDateTimeToLocal(savedInfo.dateTime).time}&nbsp;
               in {savedInfo.table}
             </span>
           </p>

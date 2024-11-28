@@ -2,13 +2,12 @@ import React, { useState, useEffect, version
 } from 'react';
 
 import { LogIn, SignUp } from './LogIn';
-import { EditMiscObject } from './DirectEdit';
 import { MainMenu } from './MainMenu';
 import { Functions } from './Components';
 import { Journal } from './Journal';
 import { CustomInput } from './CustomInput';
 import { CustomUI } from './CustomUI';
-import { ScheduleView } from './Calendar';
+import { Calendar } from './Calendar';
 import { FileExplorer } from './FileExplorer';
 import { logCheck } from './oddsAndEnds';
 
@@ -168,9 +167,13 @@ const App = () => {
       {open === 'record' && <CustomInput
         printLevel={logLevel}
         preselectedObj={currentObj} />}
+      {open === 'calendar' && <Calendar
+        printLevel={logLevel}
+        selectFn={handleOpen}
+        setCurrentObj={setCurrentObj} 
+        userID={userID} />}
 
       {/** Old functions below
-
       {open === 'journals' && <Journal
         printLevel={printoutLevel}
         selectFn={handleOpen}

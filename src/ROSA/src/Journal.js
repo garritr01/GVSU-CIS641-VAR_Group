@@ -3,7 +3,7 @@ import React, { useState, useEffect
 
 import { FileAccess } from './Components';
 
-import { getDateString, getTimeString, logCheck
+import { getCurrentDateTime, logCheck
 } from './oddsAndEnds';
 
 import { newFetchText, newSaveText
@@ -63,7 +63,7 @@ export const Journal = ({ printLevel, preselectedObj }) => {
                     throw new Error(`${response.status} Error attempting to overwrite file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}' with new entry:\n ${response.msg}`);
                 }
             } else {
-                const objToSave = { ...obj, dateTime: { date: getDateString(), time: getTimeString() } };
+                const objToSave = { ...obj, dateTime: getCurrentDateTime(false) };
                 const response = await newSaveText(objToSave);
                 // Update currently used object to reflect version it was saved under
                 if (response.truth) {

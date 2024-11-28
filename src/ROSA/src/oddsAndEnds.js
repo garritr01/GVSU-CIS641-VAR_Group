@@ -1,46 +1,28 @@
-/**  return date as MM/DD/YYYY for UTC (or local if true passed) */
-export function getDateString(local=false) {
-    let options;
-    if (local) {
-        options = { 
-            month: '2-digit',
-            day: '2-digit',
-            year: 'numeric', 
-        };
-    } else {    
-        options = { 
-            timeZone: 'UTC',
-            month: '2-digit',
-            day: '2-digit',
-            year: 'numeric', 
-        };
-    }
-    return new Date().toLocaleDateString(undefined, options);
-}
-/**  return military time as HH:MM for UTC (or local if true passed) */
-export function getTimeString(local=false) {
-    let options;
-    if (local) {
-        options = {
-            hour: '2-digit',
-            minute: '2-digit',
-            hourCycle: 'h23',
-        };
-    } else {    
-        options = {
-            timeZone: 'UTC',
-            hour: '2-digit',
-            minute: '2-digit',
-            hourCycle: 'h23',
-        };
-    }
 
-    return new Date().toLocaleTimeString(undefined, options);
+
+// GET CURRENT DATE
+
+/** Get {date, time} object based on current time 
+ * @param {boolean} local - defaults to true, set to false to get UTC
+ */
+export const getCurrentDateTime = (local = true) => {
+    const now = new Date();
+    const day = local ? String(now.getDate()).padStart(2, '0') : String(now.getUTCDate()).padStart(2, '0');
+    const month = local ? String(now.getMonth() + 1).padStart(2, '0') : String(now.getUTCMonth() + 1).padStart(2, '0');  // getMonth() is zero-based
+    const year = local ? String(now.getFullYear()) : String(now.getUTCFullYear());
+    const hour = local ? String(now.getHours()).padStart(2, '0') : String(now.getUTCHours()).padStart(2, '0');
+    const minute = local ? String(now.getMinutes()).padStart(2, '0') : String(now.getUTCMinutes()).padStart(2, '0');
+
+    return {
+        date: `${month}/${day}/${year}`,   // Format: mm/dd/yyyy
+        time: `${hour}:${minute}`          // Format: hh:mm
+    };
 }
-/** return object containing day, month(Jan=1), year, hour, minute 
- * @param {boolean} [local] - return UTC time by default, but local if true
+
+/** Get {month, day, year, hour, minute} object based on current time 
+ * @param {boolean} local - defaults to true, set false to get utc
 */
-export const getCurrentDateStrings = (local = true) => {
+export const getCurrentSplitDate = (local = true) => {
     const now = new Date();
     return {
         day: local ? String(now.getDate()).padStart(2, '0') : String(now.getUTCDate()).padStart(2, '0'),
@@ -50,42 +32,32 @@ export const getCurrentDateStrings = (local = true) => {
         minute: local ? String(now.getMinutes()).padStart(2, '0') : String(now.getUTCMinutes()).padStart(2, '0')
     };
 }
-/** Given int 0-6 returns associated weekday string */
-export function getWeekdayString(weekdayNum) {
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    if (weekdayNum >= 0 && weekdayNum <= 7 && weekdayNum % 1 === 0) {
-        return daysOfWeek[weekdayNum];
-    } else {
-        return 'NA';
-    }
-}
 
-/** Accepts object with date MM/DD/YYYY and time HH:mm properties and returns
- * the object converted from UTC to local
- */
-export function convertUTCstringsToLocal(dateTime) {
-    const { date, time, ...rest } = dateTime;
-    const utcDate = new Date(dateTime.date + ' ' + dateTime.time);
+
+// CONVERT DATES BETWEEN UTC AND LOCAL
+
+/** Converts {date, time} object from UTC to local. 
+ * Any attributes not involved will be returned unchanged. */
+export const convertUTCDateTimeToLocal = (inDate) => {
+    const { date, time, ...rest } = inDate;
+    const utcDate = new Date(date + ' ' + time);
     const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000));
-    return { ...rest, ...formatDateToObject(localDate)};
+    return { ...rest, ...formatDateToDateTime(localDate)};
 } 
-/** Accepts object with date MM/DD/YYYY and time HH:mm properties and returns
- * the object converted from local to UTC
- */
-export function convertLocalStringsToUTC(dateTime) {
-    const { date, time, ...rest } = dateTime;
-    const localDate = new Date(dateTime.date + ' ' + dateTime.time);
+
+/** Converts {date, time} object from local to UTC. 
+ * Any attributes not involved will be returned unchanged. */
+export const convertLocalDateTimeToUTC = (inDate) => {
+    const { date, time, ...rest } = inDate;
+    const localDate = new Date(date + ' ' + time);
     const utcDate = new Date(localDate.getTime() + (localDate.getTimezoneOffset() * 60000));
-    return { ...rest, ...formatDateToObject(utcDate)};
+    return { ...rest, ...formatDateToDateTime(utcDate)};
 }
 
-/** 
- * Converts a local time object to UTC time.
- * @param {Object} localObj - Object representing local time with properties { day, month, year, hour, minute }.
- * @returns {Object} - Object representing the same date and time in UTC with properties { day, month, year, hour, minute }.
- */
-export const convertLocalObjToUTC = (localObj) => {
-    const { day, month, year, hour, minute, ...rest } = localObj;
+/** Convert {month, day, year, hour, minute} from local to UTC. 
+ * Any attributes not involved will be returned unchanged. */
+export const convertLocalSplitDateToUTC = (date) => {
+    const { day, month, year, hour, minute, ...rest } = date;
 
     // Create a new Date object using the local time (month is zero-indexed, hence month - 1)
     const localDate = new Date(year, month - 1, day, hour, minute);
@@ -99,15 +71,12 @@ export const convertLocalObjToUTC = (localObj) => {
         hour: String(localDate.getUTCHours()).padStart(2, '0'), // Ensures two digits
         minute: String(localDate.getUTCMinutes()).padStart(2, '0'), // Ensures two digits
     };
-};
+}
 
-/** 
- * Converts a UTC time object to local time.
- * @param {Object} utcObj - Object representing UTC time with properties { day, month, year, hour, minute }.
- * @returns {Object} - Object representing the same date and time in the local time zone with properties { day, month, year, hour, minute }.
- */
-export const convertUTCObjToLocal = (utcObj) => {
-    const { day, month, year, hour, minute, ...rest } = utcObj;
+/** Convert {month, day, year, hour, minute} from UTC to local. 
+ * Any attributes not involved will be returned unchanged. */
+export const convertUTCSplitDateToLocal = (date) => {
+    const { day, month, year, hour, minute, ...rest } = date;
 
     // Create a new Date object using UTC time (Date.UTC ensures it's in UTC)
     const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
@@ -121,28 +90,94 @@ export const convertUTCObjToLocal = (utcObj) => {
         hour: String(utcDate.getHours()).padStart(2, '0'), // Local hour (two digits)
         minute: String(utcDate.getMinutes()).padStart(2, '0'), // Local minute (two digits)
     };
-};
+}
 
-/**  Parse a {date,time} object into a date object */
-export const parseDateObject = (date) => {
-    //console.log(dateString);
+/** Convert js date object from UTC to local */
+export const convertUTCJsDateToLocal = (date) => {
+    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+    return localDate;
+}
 
+/** Convert js date object from local to UTC */
+export const convertLocalJsDateToUTC = (date) => {
+    const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+    return utcDate;
+}
+
+
+// CHANGE THE FORMAT OF DATES
+
+/**  Parse a {date,time} object into a js date object */
+export const formatDateTimeToJsDate = (date) => {
     const dateObject = new Date(date.date + ' ' + date.time);
     return dateObject;
 }
 
-/** Accept any date object and output a {date,time} object */
-export const formatDateToObject = (date) => {
-    //console.log(date);
+/** Parse a {month, day, year, hour, minute} object into a js date object */
+export const formatSplitDateToJsDate = (inDate) => {
+
+    const date = {
+        ...inDate,
+        hour: inDate.hour || '00',
+        minute: inDate.minute || '00'
+    }
+    const dateObject = new Date([date.month, date.day, date.year].join('/')+' '+[date.hour, date.minute].join(':'));
+    return dateObject;
+}
+
+/** Accept js date object and output a {date,time} object */
+export const formatDateToDateTime = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
 
-    //console.log(`${month}-${day}-${year}.${hours}-${minutes}`);
-    return { date:`${month}/${day}/${year}`,time:`${hours}:${minutes}` };
+    return { date:`${month}/${day}/${year}`, time:`${hours}:${minutes}` };
 }
+
+/** Accept js date object and output a {month, day, year, hour, minute} object */
+export const formatDateToSplitDate = (date) => {
+    return {
+        year: date.getFullYear(),
+        month: String(date.getMonth() + 1).padStart(2, '0'),
+        day: String(date.getDate()).padStart(2, '0'),
+        hours: String(date.getHours()).padStart(2, '0'),
+        minutes: String(date.getMinutes()).padStart(2, '0')
+    };
+}
+
+/** Accept {month, day, year, hour, minute} object and output {date, time} object.
+ * Any attributes not involved will return unchanged.
+ */
+export const formatSplitDateToDateTime = (inDate) => {
+    const { month, day, year, hour = '00', minute = '00', ...rest } = inDate;
+
+    return {
+        date: [month, day, year].join('/'),
+        time: [hour, minute].join(':'),
+        ...rest
+    };
+};
+
+/** Accept {date, time} object and output {month, day, year, hour, minute} object.
+ * Any attributes not involved will return unchanged.
+ */
+export const formatDateTimeToSplitDate = (inDate) => {
+    const { date, time = '00:00', ...rest } = inDate;
+
+    return { 
+        month: date.date.split('/')[0],
+        day: date.date.split('/')[1],
+        year: date.date.split('/')[2],
+        hour: date.time.split(':')[0],
+        minute: date.time.split(':')[1],
+        ...rest
+    };
+}
+
+
+// DETERMINE WHICH IS MOST RECENT
 
 /**  Accept UI objects with directory and title elements 
  *   where title is MM-DD-YYYY.HH-mm and returns the most
@@ -246,6 +281,175 @@ export const newChooseMostRecentSimple = (versions) => {
     } else {
         return { date: '', time: '' };
     }
+}
+
+
+// ADD NUM PERIODS TO DATE
+
+/**
+ * Adds or subtracts a specified number of periods to a date object.
+ *
+ * @param {Object} dateIn - {date, time}
+ * @param {string} period - The period to add (must be one of 'year', 'month', 'day', 'hour', or 'minute').
+ * @param {number} num - The number of periods to add (can be negative to subtract).
+ * @returns {Object} The updated {date, time} object.
+ */
+export function addToDateTime(dateIn, period, num) {
+
+    const date = {
+        month: dateIn.date.split('/')[0],
+        day: dateIn.date.split('/')[1],
+        year: dateIn.date.split('/')[2],
+        hour: dateIn.time.split(':')[0],
+        minute: dateIn.time.split(':')[1],
+    };
+
+    try {
+
+        // Throw error if and of x/y/z not provided or if no x:y provided and calculation requires it
+        if (!dateIn.date) {
+            throw new Error('No date provided');
+        } else if (!dateIn.time) {
+            throw new Error('No time provided');
+        }
+
+        const newDate = new Date(date.year, date.month - 1, date.day, date.hour, date.minute);
+
+        switch (period) {
+            case 'year':
+                newDate.setFullYear(newDate.getFullYear() + num);
+                break;
+            case 'month':
+                newDate.setMonth(newDate.getMonth() + num);
+                break;
+            case 'day':
+                newDate.setDate(newDate.getDate() + num);
+                break;
+            case 'hour':
+                newDate.setHours(newDate.getHours() + num);
+                break;
+            case 'minute':
+                newDate.setMinutes(newDate.getMinutes() + num);
+                break;
+            default:
+                throw new Error('Invalid period. Use "year", "month", "day", "hour", or "minute".');
+        }
+
+        return {
+            ...dateIn,
+            year: newDate.getFullYear(),
+            month: newDate.getMonth() + 1, // getMonth() returns 0-11
+            day: newDate.getDate(),
+            hour: newDate.getHours(),
+            minute: newDate.getMinutes(),
+        };
+    } catch (err) {
+        console.error('Error in addToDate:', err);
+    }
+}
+
+/**
+ * Adds or subtracts a specified number of periods to a date object.
+ *
+ * @param {Object} dateIn - {month, day, year, hour, minute}
+ * @param {string} period - The period to add (must be one of 'year', 'month', 'day', 'hour', or 'minute').
+ * @param {number} num - The number of periods to add (can be negative to subtract).
+ * @returns {Object} The updated {month, day, year, hour, minute} object.
+ */
+export function addToSplitDate(dateIn, period, num) {
+
+    const date = {
+        ...dateIn,
+        hour: dateIn.hour || '00',
+        minute: dateIn.minute || '00'
+    }
+
+    try {
+
+        // Throw error if and of x/y/z not provided or if no x:y provided and calculation requires it
+        if (!dateIn.year) {
+            throw new Error('No year provided');
+        } else if (!dateIn.month) {
+            throw new Error('No month provided');
+        } else if (!dateIn.day) {
+            throw new Error('No day provided');
+        } else if (!dateIn.hour && (period === 'hour' || period === 'minute')) {
+            throw new Error(`No hour provided for calculation with period '${period}'`);
+        } else if (!dateIn.minute && (period === 'hour' || period === 'minute')) {
+            throw new Error(`No minute provided for calculation with period '${period}'`);
+        }
+
+        const newDate = new Date(date.year, date.month - 1, date.day, date.hour, date.minute);
+
+        switch (period) {
+            case 'year':
+                newDate.setFullYear(newDate.getFullYear() + num);
+                break;
+            case 'month':
+                newDate.setMonth(newDate.getMonth() + num);
+                break;
+            case 'day':
+                newDate.setDate(newDate.getDate() + num);
+                break;
+            case 'hour':
+                newDate.setHours(newDate.getHours() + num);
+                break;
+            case 'minute':
+                newDate.setMinutes(newDate.getMinutes() + num);
+                break;
+            default:
+                throw new Error('Invalid period. Use "year", "month", "day", "hour", or "minute".');
+        }
+
+        return {
+            ...dateIn,
+            year: newDate.getFullYear(),
+            month: newDate.getMonth() + 1, // getMonth() returns 0-11
+            day: newDate.getDate(),
+            hour: newDate.getHours(),
+            minute: newDate.getMinutes(),
+        };
+    } catch (err) {
+        console.error('Error in addToDate:', err);
+    }
+}
+
+
+/** Given int 0-6 returns associated weekday string */
+export const getWeekdayString = (weekdayNum) => {
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    if (weekdayNum >= 0 && weekdayNum <= 7 && weekdayNum % 1 === 0) {
+        return daysOfWeek[weekdayNum];
+    } else {
+        return 'NA';
+    }
+}
+
+/**
+ * Filters fileInfo objects based on the specified start and end date-time range.
+ *
+ * @param {Array} fileInfo - Array of objects containing directory, filename, and dateTime.
+ * @param {Object} start - Start date-time object with { date: 'mm/dd/yyyy', time: 'hh:mm' }.
+ * @param {Object} end - End date-time object with { date: 'mm/dd/yyyy', time: 'hh:mm' }.
+ * @returns {Array} Filtered array of fileInfo objects within the date range.
+ */
+export function filterByRange(fileInfo, start, end) {
+    // Convert date-time object to a JavaScript Date object
+    const parseDateTime = ({ date, time }) => {
+        const [month, day, year] = date.split('/');
+        const [hour, minute] = time.split(':');
+        return new Date(year, month - 1, day, hour, minute);
+    };
+
+    // Parse start and end times into Date objects
+    const startDateTime = parseDateTime(start);
+    const endDateTime = parseDateTime(end);
+
+    // Filter fileInfo within the date range
+    return fileInfo.filter(item => {
+        const itemDateTime = parseDateTime(item.dateTime);
+        return itemDateTime >= startDateTime && itemDateTime <= endDateTime;
+    });
 }
 
 /**

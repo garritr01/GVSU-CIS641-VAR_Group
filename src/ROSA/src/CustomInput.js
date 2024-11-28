@@ -1,25 +1,16 @@
 import React, { useState, useEffect, useRef 
 } from 'react';
 
-import {getDateString, getTimeString, chooseMostRecent, 
-    convertUTCstringsToLocal, convertLocalStringsToUTC, parseDateObject,
-    convertUTCObjToLocal, convertLocalObjToUTC, getCurrentDateStrings,
-    logCheck, newChooseMostRecent
+import {
+    convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, getCurrentDateTime,
+    convertUTCDateTimeToLocal, logCheck, newChooseMostRecent
 } from './oddsAndEnds';
 
-import { fetchDateTime, deleteEntry, fetchObject, 
-    fetchFiles, saveObject, recordDateTime, newFetchObject, newSaveObject,
-    newFetchDirsAndFiles,
-    newDeleteEntry
+import { 
+    newFetchObject, newSaveObject, newFetchDirsAndFiles, newDeleteEntry
 } from './generalFetch';
 
-import { differenceInHours
-} from 'date-fns';
-
 export const CustomInput = ({ printLevel, preselectedObj }) => {
-
-    // Get object with local month, day, year, hour, minute
-    const time = getCurrentDateStrings(true);
 
     // Contain entire custom input object (use customUI if object with version not preselected)
     const [obj, setObj] = useState({ ...preselectedObj, table: preselectedObj.dateTime.date ? preselectedObj.table : 'customUI' });
@@ -113,16 +104,16 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                     payload: response.payload.map((item) => {
                         if (item.type === 'start') {
                             if (item?.month === "NA") {
-                                return { ...item, ...getCurrentDateStrings(true) };
+                                return { ...item, ...getCurrentDateTime(true) };
                             } else {
-                                console.log(item, convertUTCObjToLocal(item));
-                                return convertUTCObjToLocal(item);
+                                console.log(item, convertUTCSplitDateToLocal(item));
+                                return convertUTCSplitDateToLocal(item);
                             }
                         } else if (item.type === 'end') {
                             if (item?.month === "NA") {
-                                return { ...item, ...getCurrentDateStrings(true) };
+                                return { ...item, ...getCurrentDateTime(true) };
                             } else {
-                                return convertUTCObjToLocal(item);
+                                return convertUTCSplitDateToLocal(item);
                             }
                         } else {
                             return item;
@@ -161,7 +152,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                             validityCheck = false;
                             return item;
                         } else {
-                            return convertLocalObjToUTC(item);
+                            return convertLocalSplitDateToUTC(item);
                         }
                     } else if (item.type === 'end') {
                         const truth = checkDateInputs(item, 'end');
@@ -170,7 +161,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                             validityCheck = false;
                             return item;
                         } else {
-                            return convertLocalObjToUTC(item);
+                            return convertLocalSplitDateToUTC(item);
                         }
                     } else {
                         return item;
@@ -519,7 +510,7 @@ const RecordFileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo,
                                 if (file.filename === obj.filename && file.directory === obj.dir) {
                                     return (
                                         <option key={index} value={JSON.stringify(file.dateTime)}>
-                                            {convertUTCstringsToLocal(file.dateTime).date + '-' + convertUTCstringsToLocal(file.dateTime).time}
+                                            {convertUTCDateTimeToLocal(file.dateTime).date + '-' + convertUTCDateTimeToLocal(file.dateTime).time}
                                         </option>
                                     );
                                 }
@@ -577,8 +568,8 @@ const RecordFileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo,
                         {savedInfo.message} {savedInfo.filename}
                         <span className="more">
                             {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
-                            {convertUTCstringsToLocal(savedInfo.dateTime).date}-
-                            {convertUTCstringsToLocal(savedInfo.dateTime).time}&nbsp;
+                            {convertUTCDateTimeToLocal(savedInfo.dateTime).date}-
+                            {convertUTCDateTimeToLocal(savedInfo.dateTime).time}&nbsp;
                             in {savedInfo.table}
                         </span>
                     </p>

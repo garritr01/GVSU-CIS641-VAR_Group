@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef 
 } from 'react';
 
-import {getDateString, getTimeString, chooseMostRecent, formatDateToObject,
-    convertUTCstringsToLocal, convertLocalStringsToUTC, getCurrentDateStrings,
-    getWeekdayString, convertLocalObjToUTC, convertUTCObjToLocal, logCheck
+import {
+    getCurrentDateTime, getCurrentSplitDate,
+    getWeekdayString, convertLocalSplitDateToUTC, convertUTCSplitDateToLocal, logCheck
 } from './oddsAndEnds';
 
-import { deleteEntry, fetchObject, fetchFiles, fetchDirsAndFiles, saveObject, 
-    newSaveObject, newFetchObject, newFetchDirsAndFiles
+import { 
+    newSaveObject, newFetchObject
 } from './generalFetch';
 
 import { FileAccess } from './Components';
@@ -16,7 +16,7 @@ import { FileAccess } from './Components';
 export const CustomUI = ({ printLevel, preselectedObj }) => {
     
     // Get object with local month, day, year, hour, minute
-    const time = getCurrentDateStrings(true);
+    const time = getCurrentSplitDate(true);
 
     // Use object
     const [obj, setObj] = useState(preselectedObj);
@@ -101,7 +101,7 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                     throw new Error(`${response.status} Error attempting to overwrite file '${obj.dir}/${obj.filename}' version: (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}' with new entry:\n ${response.msg}`);
                 }
             } else {
-                const objToSave = { ...outObj, dateTime: { date: getDateString(), time: getTimeString() } };
+                const objToSave = { ...outObj, dateTime: getCurrentDateTime(false) };
                 const response = await newSaveObject(objToSave);
                 if (response.truth) {
                     if (response.status === 201) {
@@ -134,14 +134,14 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                     schedule: newOptions.schedule.map((schedule) => {
                         // If saved as UTC convert to local
                         if (!schedule.local) {
-                            const startLocal = convertUTCObjToLocal(schedule.start);
-                            const endLocal = convertUTCObjToLocal(schedule.end);
-                            const effectiveStartLocal = convertUTCObjToLocal(schedule.effectiveStart);
+                            const startLocal = convertUTCSplitDateToLocal(schedule.start);
+                            const endLocal = convertUTCSplitDateToLocal(schedule.end);
+                            const effectiveStartLocal = convertUTCSplitDateToLocal(schedule.effectiveStart);
                             
                             // Convert effective end unless 'NA'
                             let effectiveEndLocal = schedule.effectiveEnd;
                             if (effectiveEndLocal.month !== 'NA') {
-                                effectiveEndLocal = convertUTCObjToLocal(schedule.effectiveEnd);
+                                effectiveEndLocal = convertUTCSplitDateToLocal(schedule.effectiveEnd);
                             }
                         
                             return { ...schedule,
@@ -179,16 +179,16 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                             // If `schedule.local` is false, convert times to UTC
                             if (!schedule.local) {
                                 // Convert start and end to UTC with hour and minute set to midnight
-                                const startUTC = convertLocalObjToUTC(schedule.start);
+                                const startUTC = convertLocalSplitDateToUTC(schedule.start);
                             
-                                const endUTC = convertLocalObjToUTC(schedule.end);
+                                const endUTC = convertLocalSplitDateToUTC(schedule.end);
                             
                                 // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
-                                const effectiveStartUTC = convertLocalObjToUTC(schedule.effectiveStart);
+                                const effectiveStartUTC = convertLocalSplitDateToUTC(schedule.effectiveStart);
                             
                                 let effectiveEndUTC = schedule.effectiveEnd;
                                 if (effectiveEndUTC.month !== 'NA') {
-                                    effectiveEndUTC = convertLocalObjToUTC(effectiveEndUTC);
+                                    effectiveEndUTC = convertLocalSplitDateToUTC(effectiveEndUTC);
                                 }
                             
                                 return {

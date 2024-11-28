@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 
 import {
-    convertUTCstringsToLocal,
+    convertUTCDateTimeToLocal,
     newChooseMostRecentSimple,
     logCheck
 } from './oddsAndEnds';
@@ -343,7 +343,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
         if(logCheck(printLevel,['s']) === 1) {console.log('versions filtered.')}
         else if(logCheck(printLevel,['s']) === 2) {console.log('versions filtered:\n',updatedVersions)}
         if(logCheck(printLevel,['o']) === 1) {console.log('obj.dateTime set to most recent version.')}
-        else if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime set to most recent version: ${convertUTCstringsToLocal(mostRecent).date}-${convertUTCstringsToLocal(mostRecent).time}`)}
+        else if (logCheck(printLevel, ['o']) === 2) { console.log(`obj.dateTime set to most recent version: ${convertUTCDateTimeToLocal(mostRecent).date}-${convertUTCDateTimeToLocal(mostRecent).time}`)}
     }
 
     /** Get payload and options given relevant arguments */
@@ -398,13 +398,13 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
      */
     const handleFunctionSelection = () => {
         if (obj.table === 'journal') {
-            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
+            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCDateTimeToLocal(obj.dateTime).date}-${convertUTCDateTimeToLocal(obj.dateTime).time}`)}
             selectFn('journal', false); // false blocks emptying of object
         } else if (obj.table === 'customUI') {
-            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
+            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCDateTimeToLocal(obj.dateTime).date}-${convertUTCDateTimeToLocal(obj.dateTime).time}`)}
             selectFn('customUI', false); // false blocks emptying of object
         } else if (obj.table === 'record') {
-            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCstringsToLocal(obj.dateTime).date}-${convertUTCstringsToLocal(obj.dateTime).time}`)}
+            if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCDateTimeToLocal(obj.dateTime).date}-${convertUTCDateTimeToLocal(obj.dateTime).time}`)}
             selectFn('record', false); // false blocks emptying of object
         } else {
             console.error(`${obj.table} has no defined reroute to allow editing!`);
@@ -420,7 +420,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                         <p  key={'version'+i}
                             style={{ cursor: 'pointer' , border: obj.version === version ? '1px solid lightblue' : undefined }}
                             onClick={() => setObj(prevState => ({ ...prevState, dateTime: version }))}>
-                            {convertUTCstringsToLocal(version).date}-{convertUTCstringsToLocal(version).time}
+                            {convertUTCDateTimeToLocal(version).date}-{convertUTCDateTimeToLocal(version).time}
                         </p>
                     ))
                 }
@@ -446,8 +446,8 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                                     type: 'delete',
                                     deleteLevel: 0
                                     })}>
-                                        Delete Version {convertUTCstringsToLocal(obj.dateTime).date}
-                                        -{convertUTCstringsToLocal(obj.dateTime).time}
+                                        Delete Version {convertUTCDateTimeToLocal(obj.dateTime).date}
+                                        -{convertUTCDateTimeToLocal(obj.dateTime).time}
                                 </button>
                         }
                     </div>
@@ -475,7 +475,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                 <div className="overlay">
                     <div className="flexDivColumns">
                         <p>Continue to be redirected to edit {obj.dir}/{obj.filename}, version: 
-                            {convertUTCstringsToLocal(obj.dateTime).date}-{convertUTCstringsToLocal(obj.dateTime).time}?</p>
+                            {convertUTCDateTimeToLocal(obj.dateTime).date}-{convertUTCDateTimeToLocal(obj.dateTime).time}?</p>
                         <div>
                             <button onClick={() => {
                                 setOverlay({});
@@ -496,7 +496,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                                     <p>Are you certain you want to delete {obj.dir}/{obj.filename} and all its contents?</p>
                                 : overlay.deleteLevel === 0 ?
                                     <p>Are you certain you want to delete {obj.dir}/{obj.filename}, version&nbsp;
-                                        {convertUTCstringsToLocal(obj.dateTime).date}-{convertUTCstringsToLocal(obj.dateTime).time}&nbsp;
+                                        {convertUTCDateTimeToLocal(obj.dateTime).date}-{convertUTCDateTimeToLocal(obj.dateTime).time}&nbsp;
                                         and all its contents?</p>
                                 :   <p>Unrecognized delete method. Press No!</p>
                             }
@@ -512,7 +512,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                                         /*if (logCheck(printLevel, ['s']) === 1) { */console.log('versions filtered by delete.');
                                         /*else if (logCheck(printLevel, ['s']) === 2) { */console.log('versions filtered by delete:\n', updatedVersions);
                                         /*if (logCheck(printLevel, ['o']) === 1) { */console.log('obj.dateTime set to most recent version after delete.');
-                                        /*else if (logCheck(printLevel, ['o']) === 2) { */console.log(`obj.dateTime set to most recent version after delete: ${convertUTCstringsToLocal(mostRecent).date}-${convertUTCstringsToLocal(mostRecent).time}`);
+                                        /*else if (logCheck(printLevel, ['o']) === 2) { */console.log(`obj.dateTime set to most recent version after delete: ${convertUTCDateTimeToLocal(mostRecent).date}-${convertUTCDateTimeToLocal(mostRecent).time}`);
                                     }
                                     handleDelete(overlay.deleteLevel);
                                     setOverlay({});
