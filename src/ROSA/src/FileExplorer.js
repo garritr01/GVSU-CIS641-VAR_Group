@@ -5,7 +5,9 @@ import React, {
 import {
     convertUTCDateTimeToLocal,
     newChooseMostRecentSimple,
-    logCheck
+    logCheck,
+    formatDateTimeToString,
+    formatSplitDateToString
 } from './oddsAndEnds';
 
 import {
@@ -87,7 +89,7 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
             if (response.truth) {
                 console.log(`Successfully deleted ${obj.dir}/${obj.filename} version: (${obj.dateTime.date}-${obj.dateTime.time})`);
                 if (deleteLevel === 0) {
-                    if (logCheck(printLevel,['d','b']) > 0) {console.log(`file: '${obj.dir}/${obj.filename}' version (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}' successfully deleted.`)}
+                    if (logCheck(printLevel,['d','b']) > 0) {console.log(`all files in directory: '${obj.dir}' in '${obj.table}' successfully deleted.`)}
                     //unsetting handled for version delete in DisplayFile
                 } else if (deleteLevel === 1) {
                     if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`all versions of file: '${obj.dir}/${obj.filename}' in '${obj.table}' successfully deleted.`)}
@@ -420,7 +422,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                         <p  key={'version'+i}
                             style={{ cursor: 'pointer' , border: obj.version === version ? '1px solid lightblue' : undefined }}
                             onClick={() => setObj(prevState => ({ ...prevState, dateTime: version }))}>
-                            {convertUTCDateTimeToLocal(version).date}-{convertUTCDateTimeToLocal(version).time}
+                            {formatDateTimeToString(obj.dateTime)}
                         </p>
                     ))
                 }
@@ -596,6 +598,10 @@ const DisplayObject = ({ objToDisplay, depth, keyOuter }) => (
                                 </div>
                                 <input readOnly value={value.value ? value.value : ''}/>
                             </div>
+                        : value.type === 'start' || value.type === 'end' ?
+                            <div key={keyOuter+'-'+i}>
+                                <p>{value.type}: {formatSplitDateToString(value)}</p>
+                            </div>
                         :   <div key={keyOuter+'-'+i} style={{ border: '1px solid black'}}>
                                 <p className="flexDivRows">Unrecognized type: {value.type}</p>
                                 <DisplayObject objToDisplay={value} depth={depth+1} keyOuter={keyOuter+1} />
@@ -604,11 +610,15 @@ const DisplayObject = ({ objToDisplay, depth, keyOuter }) => (
                 ))
             :   Object.entries(objToDisplay).map(([key, value]) => (
                    <div key={keyOuter+'-'+key} style={{ border: '1px solid black'}}>
-                       {typeof value === "object" ? (
+                       {typeof value === "object" && ['start', 'end', 'effectiveStart', 'effectiveEnd'].includes(key) ? (
                             <div>
-                                <p>{key}: </p>
-                                <DisplayObject objToDisplay={value} depth={depth + 1} keyOuter={keyOuter+1} />
+                                <p>{key}: {formatSplitDateToString(value)}</p>
                             </div>
+                        ) : typeof value === "object" ? (
+                        <div>
+                            <p>{key}: </p>
+                            <DisplayObject objToDisplay={value} depth={depth + 1} keyOuter={keyOuter + 1} />
+                        </div>
                        ) : (
                             <p className="flexDivRows">
                                 {key}:&nbsp;
