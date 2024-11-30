@@ -2,8 +2,14 @@ import React, { useState, useEffect, useRef
 } from 'react';
 
 import { 
-    getCurrentDateTime, chooseMostRecent, logCheck, convertUTCDateTimeToLocal
+    getCurrentDateTime, logCheck, convertUTCDateTimeToLocal,
+    formatSplitDateToDateTime,
 } from './oddsAndEnds';
+
+// Specifically imported for testing schedule fitting to calendar
+import {
+    splitDateDifference, checkSplitDateIsBefore, addToSplitDate, getCurrentSplitDate
+} from './oddsAndEnds'
 
 import { newSaveObject, newFetchDirsAndFiles, newFetchObject
 } from './generalFetch';
@@ -14,8 +20,18 @@ import { Calendar
 /** Renders the main menu and handles selection */
 export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
 
+    const time = getCurrentSplitDate(true);
+
     // Holds the quantity for massProduce
     const [numSaves, setNumSaves] = useState(20);
+    // Holds qty for specRpt test
+    const [cStart, setCStart] = useState({ ...time, hour: '00', minute: '00' });
+    const [cEnd, setCEnd] = useState({ ...time, hour: '00', minute: '00' });
+    const [refStart, setRefStart] = useState(time);
+    const [refEnd, setRefEnd] = useState(time);
+    const [repeatSpace, setRepeatSpace] = useState('0');
+    const [scheduledEvents, setScheduledEvents] = useState([]);
+    
 
     // Log the printLevel if 'bv' or 'pv' (basic verbose, parameter verbose)
     useEffect(() => {
@@ -35,16 +51,48 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
                 selectFn={selectFn}
                 currentObj={obj}
                 setCurrentObj={setCurrentObj} />
+            {/** Test specRpt fitting into calendar */}
+            {/* <div>
+                <div className="flexDivRows">
+                    <p>Calendar</p>
+                    <DateInput date={cStart} setDate={setCStart} />
+                    <p> - </p>
+                    <DateInput date={cEnd} setDate={setCEnd} />
+                </div>
+                <div className="flexDivRows">
+                    <p>Reference</p>
+                    <DateInput date={refStart} setDate={setRefStart} />
+                    <p> - </p>
+                    <DateInput date={refEnd} setDate={setRefEnd} />
+                </div>
+                <input 
+                    className="flexDivRows"
+                    value={repeatSpace}
+                    onChange={(e) => setRepeatSpace(e.target.value)}
+                    />
+                <button 
+                    className="flexDivRows"
+                    onClick={() => scheduleTest(setScheduledEvents, cStart, cEnd, refStart, refEnd, repeatSpace)}>
+                    Test it!
+                </button>
+                <div>
+                {
+                    scheduledEvents.length > 0 &&
+                        scheduledEvents.map((event, i) => (
+                            <div className="flexDivRows" key={i}>
+                                <p>{formatSplitDateToDateTime(event.start).date} at {formatSplitDateToDateTime(event.start).time}</p>
+                                <p> - </p>
+                                <p>{formatSplitDateToDateTime(event.end).date} at {formatSplitDateToDateTime(event.end).time}</p>
+                            </div>
+                        ))
+                }
+                </div>
+            </div> */}
             {/* // Mass production inputs
                 <div className="flexDivRows">
                     <button onClick={() => { massProduce('customUI', numSaves) }}>Save {numSaves} RNG CustomUIs</button>
                     <input value={numSaves} onChange={(e) => setNumSaves(e.target.value)} />
                 </div>
-            */}
-            {/*
-            <ClockOutOptions printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
-            <ScheduleView printLevel={printLevel} selectFn={selectFn} selectResolutionInfo={selectResolutionInfo} selectDirTitleAndVersion={selectDirTitleAndVersion} mode={'mainMenu'} />
-            <QuickNotes printLevel={printLevel} selectFn={selectFn} selectDirTitleAndVersion={selectDirTitleAndVersion} />
             */}
         </div>
     );
@@ -84,7 +132,7 @@ const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) =>
             const response = await newFetchObject({ 
                 userID: currentObj.userID, 
                 table: 'clockIn',
-                dir: file.directory,
+                dir: file.dir,
                 filename: file.filename,
                 dateTime: file.dateTime
             });
@@ -95,7 +143,7 @@ const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) =>
                 const updatedObj = {
                     userID: currentObj.userID,
                     table: 'clockIn',
-                    dir: file.directory,
+                    dir: file.dir,
                     filename: file.filename,
                     dateTime: file.dateTime,
                     options: response.options,
@@ -128,7 +176,7 @@ const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) =>
                         key={i}
                         onClick={() => clockOut(file)}
                         >
-                            {file.directory}/{file.filename}&nbsp;
+                            {file.dir}/{file.filename}&nbsp;
                             {convertUTCDateTimeToLocal(file.dateTime).date}-{convertUTCDateTimeToLocal(file.dateTime).time}
                     </button>
                 ))
@@ -138,6 +186,7 @@ const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) =>
 
 }
 
+// Below are temp functions for testing
 const massProduce = async (type, qty) => {
 
     const randString = ['alpha', 'beta', 'kappa']/*, 'omega', 'sigma', 'nu', 'mu',
@@ -193,4 +242,61 @@ const massProduce = async (type, qty) => {
     } else {
         console.error(`Cannot mass produce '${type}'`);
     }
+}
+
+
+const scheduleTest = (setScheduledEvents, cStart, cEnd, refStart, refEnd, repeatSpace) => {
+    const scheduledEvents = [];
+    // get difference in days between calendar start and event end
+    const cStarteEndDiff = splitDateDifference(cStart, refEnd, 'day');
+    // find the number of periods to add to reach calendar range (could be negative)
+    const periodsToAdd = Math.ceil(cStarteEndDiff / parseInt(repeatSpace));
+    // add days to get first start and end within calendar range
+    let eventStart = addToSplitDate(refStart, 'day', (periodsToAdd * repeatSpace).toString());
+    let eventEnd = addToSplitDate(refEnd, 'day', (periodsToAdd * repeatSpace).toString());
+    // add scheduled events until event start is after calendar end
+    while (checkSplitDateIsBefore(eventStart, cEnd)) {
+        scheduledEvents.push({ start: eventStart, end: eventEnd });
+        eventStart = addToSplitDate(eventStart, 'day', repeatSpace);
+        eventEnd = addToSplitDate(eventEnd, 'day', repeatSpace);
+    }
+    setScheduledEvents(scheduledEvents);
+}
+
+/** HTML element for editing start and end date/time of schedule */
+const DateInput = ({ date, setDate }) => {
+
+    /** Update date property with inputValue */
+    const uponDateChange = (inputValue, prop) => {
+        setDate(prevState => ({ ...prevState, [prop]: inputValue }));
+    }
+
+    return (
+        <div className="flexDivRows">
+            <input className="twoDigitInput flexDivColumns"
+                name='month1 box'
+                value={date.month}
+                onChange={(e) => uponDateChange(e.target.value, 'month')} />
+            <p className="flexDivColumns">/</p>
+            <input className="twoDigitInput"
+                name='day1 box'
+                value={date.day}
+                onChange={(e) => uponDateChange(e.target.value, 'day')} />
+            <p className="flexDivColumns">/</p>
+            <input className="fourDigitInput flexDivColumns"
+                name='year1 box'
+                value={date.year}
+                onChange={(e) => uponDateChange(e.target.value, 'year')} />
+            <p className="flexDivColumns">at</p>
+            <input className="twoDigitInput flexDivColumns"
+                name='hour1 box'
+                value={date.hour}
+                onChange={(e) => uponDateChange(e.target.value, 'hour')} />
+            <p className="flexDivColumns">:</p>
+            <input className="twoDigitInput flexDivColumns"
+                name='minute1 box'
+                value={date.minute}
+                onChange={(e) => uponDateChange(e.target.value, 'minute')} />
+        </div>
+    );
 }

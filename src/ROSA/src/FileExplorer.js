@@ -192,9 +192,9 @@ const CascadingDropdown = ({ printLevel, dirs, fileInfo, handleDelete, obj, setO
             // Add dir+filename fileInfo entries that match directories in newDirs 
             // that are not subdirectories of obj.dir and include type: 'file'
             const newFiles = fileInfo.map((file) => {
-                // If obj.dir === file.directory for f.dir's full extent include the file
-                if (file.directory === obj.dir.split('/').slice(0, file.directory.split('/').length).join('/')) {
-                    return file.directory + '/' + file.filename;
+                // If obj.dir === file.dir for f.dir's full extent include the file
+                if (file.dir === obj.dir.split('/').slice(0, file.dir.split('/').length).join('/')) {
+                    return file.dir + '/' + file.filename;
                 } else {
                     return null;
                 }
@@ -327,7 +327,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
     /** Filter to get all versions matching dir and filename */
     const getVersions = () => {
         const updatedVersions = fileInfo.map((file) => {
-            if (obj.dir === file.directory &&
+            if (obj.dir === file.dir &&
                 obj.filename === file.filename) {
                     return file.dateTime;
             } else {

@@ -42,7 +42,7 @@ export const convertUTCDateTimeToLocal = (inDate) => {
     const { date, time, ...rest } = inDate;
     const utcDate = new Date(date + ' ' + time);
     const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000));
-    return { ...rest, ...formatDateToDateTime(localDate)};
+    return { ...rest, ...formatJsDateToDateTime(localDate)};
 } 
 
 /** Converts {date, time} object from local to UTC. 
@@ -51,7 +51,7 @@ export const convertLocalDateTimeToUTC = (inDate) => {
     const { date, time, ...rest } = inDate;
     const localDate = new Date(date + ' ' + time);
     const utcDate = new Date(localDate.getTime() + (localDate.getTimezoneOffset() * 60000));
-    return { ...rest, ...formatDateToDateTime(utcDate)};
+    return { ...rest, ...formatJsDateToDateTime(utcDate)};
 }
 
 /** Convert {month, day, year, hour, minute} from local to UTC. 
@@ -126,24 +126,24 @@ export const formatSplitDateToJsDate = (inDate) => {
 }
 
 /** Accept js date object and output a {date,time} object */
-export const formatDateToDateTime = (date) => {
+export const formatJsDateToDateTime = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
 
-    return { date:`${month}/${day}/${year}`, time:`${hours}:${minutes}` };
+    return { date:`${month}/${day}/${year}`, time:`${hour}:${minute}` };
 }
 
 /** Accept js date object and output a {month, day, year, hour, minute} object */
-export const formatDateToSplitDate = (date) => {
+export const formatJsDateToSplitDate = (date) => {
     return {
         year: date.getFullYear(),
         month: String(date.getMonth() + 1).padStart(2, '0'),
         day: String(date.getDate()).padStart(2, '0'),
-        hours: String(date.getHours()).padStart(2, '0'),
-        minutes: String(date.getMinutes()).padStart(2, '0')
+        hour: String(date.getHours()).padStart(2, '0'),
+        minute: String(date.getMinutes()).padStart(2, '0')
     };
 }
 
@@ -164,59 +164,39 @@ export const formatSplitDateToDateTime = (inDate) => {
  * Any attributes not involved will return unchanged.
  */
 export const formatDateTimeToSplitDate = (inDate) => {
-    const { date, time = '00:00', ...rest } = inDate;
 
+    const { date, time = '00:00', ...rest } = inDate;
+    
     return { 
-        month: date.date.split('/')[0],
-        day: date.date.split('/')[1],
-        year: date.date.split('/')[2],
-        hour: date.time.split(':')[0],
-        minute: date.time.split(':')[1],
+        month: date.split('/')[0],
+        day: date.split('/')[1],
+        year: date.split('/')[2],
+        hour: time.split(':')[0],
+        minute: time.split(':')[1],
         ...rest
     };
+}
+
+export const formatDateTimeToString = (date) => {
+    return `${date.date}-${date.time}`;
+}
+
+export const formatSplitDateToString = (date, keepHHmm = true) => {
+    if (date.hour && keepHHmm) {
+        return `${date.month}/${date.day}/${date.year}-${date.hour}:${date.minute}`;
+    } else {
+        return `${date.month}/${date.day}/${date.year}`;
+    }
 }
 
 
 // DETERMINE WHICH IS MOST RECENT
 
-/**  Accept UI objects with directory and title elements 
- *   where title is MM-DD-YYYY.HH-mm and returns the most
- *   recent one where the directory aand title matches the input name
-*/
-export const chooseMostRecent = (files, directory, title) => {
-    let count = 0;
-    let UIdates = [];
-    //console.log(files,directory,title);
-    for (const possibility of files) {
-        if (possibility.directory === directory && possibility.title === title) {
-            UIdates.push(possibility);
-            count++;
-        }
-    }
-    if (UIdates.length > 0) {
-        let mostRecentDateObject = new Date(UIdates[0].dateTime.date + ' ' + UIdates[0].dateTime.time);
-        let mostRecentDateTime = UIdates[0].dateTime;
-        if (UIdates.length > 1) {
-            let testDateObject;
-            for (let i = 1; i < count; i++) {
-                testDateObject = new Date(UIdates[i].dateTime.date + ' ' + UIdates[i].dateTime.time);
-                if (testDateObject > mostRecentDateObject) {
-                    mostRecentDateObject = testDateObject;
-                    mostRecentDateTime = UIdates[i].dateTime;
-                }
-            }
-        }
-        return mostRecentDateTime;
-    } else {
-        return '';
-    }
-}
-
 /** 
  * Get the most recent version of a file from a list of file info.
  * 
  * @param {Object[]} fileInfo - An array of file objects containing file details.
- * @param {string} fileInfo[].directory - The directory path of the file.
+ * @param {string} fileInfo[].dir - The directory path of the file.
  * @param {string} fileInfo[].filename - The name of the file.
  * @param {Object} fileInfo[].dateTime - The timestamp of the file.
  * @param {string} fileInfo[].dateTime.date - The date of the file version in 'MM-DD-YYYY' format.
@@ -232,7 +212,7 @@ export const newChooseMostRecent = (fileInfo, dir, filename) => {
     let dates = [];
     //console.log(files,directory,title);
     for (const possibility of fileInfo) {
-        if (possibility.directory === dir && possibility.filename === filename) {
+        if (possibility.dir === dir && possibility.filename === filename) {
             dates.push(possibility);
             count++;
         }
@@ -353,7 +333,7 @@ export function addToDateTime(dateIn, period, num) {
  *
  * @param {Object} dateIn - {month, day, year, hour, minute}
  * @param {string} period - The period to add (must be one of 'year', 'month', 'day', 'hour', or 'minute').
- * @param {number} num - The number of periods to add (can be negative to subtract).
+ * @param {string} num - The number of periods to add (can be negative to subtract).
  * @returns {Object} The updated {month, day, year, hour, minute} object.
  */
 export function addToSplitDate(dateIn, period, num) {
@@ -380,22 +360,22 @@ export function addToSplitDate(dateIn, period, num) {
         }
 
         const newDate = new Date(date.year, date.month - 1, date.day, date.hour, date.minute);
-
+        
         switch (period) {
             case 'year':
-                newDate.setFullYear(newDate.getFullYear() + num);
+                newDate.setFullYear(newDate.getFullYear() + parseInt(num));
                 break;
             case 'month':
-                newDate.setMonth(newDate.getMonth() + num);
+                newDate.setMonth(newDate.getMonth() + parseInt(num));
                 break;
             case 'day':
-                newDate.setDate(newDate.getDate() + num);
+                newDate.setDate(newDate.getDate() + parseInt(num));
                 break;
             case 'hour':
-                newDate.setHours(newDate.getHours() + num);
+                newDate.setHours(newDate.getHours() + parseInt(num));
                 break;
             case 'minute':
-                newDate.setMinutes(newDate.getMinutes() + num);
+                newDate.setMinutes(newDate.getMinutes() + parseInt(num));
                 break;
             default:
                 throw new Error('Invalid period. Use "year", "month", "day", "hour", or "minute".');
@@ -403,17 +383,49 @@ export function addToSplitDate(dateIn, period, num) {
 
         return {
             ...dateIn,
-            year: newDate.getFullYear(),
-            month: newDate.getMonth() + 1, // getMonth() returns 0-11
-            day: newDate.getDate(),
-            hour: newDate.getHours(),
-            minute: newDate.getMinutes(),
+            ...formatJsDateToSplitDate(newDate)
         };
     } catch (err) {
         console.error('Error in addToDate:', err);
     }
 }
 
+
+// UNIQUE FUNCTIONS
+
+/** Check if date1 is before(or equal to) date2 with {month, day, year, hour, minute} objects and return boolean (true if before or equal) */
+export const checkSplitDateIsBefore = (date1, date2) => {
+    const date = formatSplitDateToJsDate(date1);
+    const refDate = formatSplitDateToJsDate(date2);
+
+    if (date <= refDate) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/** Find date1-date2 difference in units ('day','month','year') and round down to nearest whole number*/
+export const splitDateDifference = (date1, date2, unit) => {
+
+    if (unit = 'day') {
+        const date = formatSplitDateToJsDate(date1);
+        const refDate = formatSplitDateToJsDate(date2);
+        // Difference in milliseconds
+        const msDiff = date.getTime() - refDate.getTime();
+        // Return difference converted to days
+        return msDiff/ (1000*60*60*24);
+    } else if (unit === 'month') {
+        const monthDiff = date1.month - date2.month;
+        const yearDiff = date1.year - date2.year;
+        // return month difference considering years
+        return 12*yearDiff + monthDiff;
+    } else if (unit === 'year') {
+        return date1.year - date2.year;
+    } else {
+        throw new Error('Invalid unit provided');
+    }
+}
 
 /** Given int 0-6 returns associated weekday string */
 export const getWeekdayString = (weekdayNum) => {
@@ -433,7 +445,7 @@ export const getWeekdayString = (weekdayNum) => {
  * @param {Object} end - End date-time object with { date: 'mm/dd/yyyy', time: 'hh:mm' }.
  * @returns {Object} Filtered array of fileInfo objects within the date range.
  */
-export function filterByRange(fileInfo, start, end) {
+export const filterByRange = (fileInfo, start, end) => {
     // Convert date-time object to a JavaScript Date object
     const parseDateTime = ({ date, time }) => {
         const [month, day, year] = date.split('/');

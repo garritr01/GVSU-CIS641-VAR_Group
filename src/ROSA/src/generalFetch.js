@@ -68,7 +68,7 @@ export const newFetchDirsAndFiles = async (table, userID) => {
         if (!response.ok) {
             return { truth: false, msg: data.message, status: response.status, files: null, dirs: null };
         } else {
-            const dirs = [...new Set(data.files.map((file) => (file.directory)))];
+            const dirs = [...new Set(data.files.map((file) => (file.dir)))];
             return { truth: true, msg: data.message, status: response.status, files: data.files, dirs: dirs}
         }
     } catch (err) { 
@@ -105,7 +105,7 @@ export const newFetchObject = async (obj) => {
  * @param {string} table - The table name
  * @param {string} userID - user ID
  * @param {Object} fileInfo - contains information for finding each file
- * @param {string} fileInfo.directory - directory ('leadDir/subDir')
+ * @param {string} fileInfo.dir - directory ('leadDir/subDir')
  * @param {string} fileInfo.filename - filename ('someFilename')
  * @param {Object} fileInfo.dateTime - dateTime {date: 'mm/dd/yyyy', time: 'hh:mm'}
  * @param {Object} contentToRetrieve - defaults to both options and payload but ['options'] will return only options
