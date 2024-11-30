@@ -9,6 +9,10 @@
     box-sizing: border-box;
 }
 
+.testColors {
+    color:rgba(255, 0, 0, 0.219);
+}
+
 /* for visualizing:border: 1px solid rgba(0, 0, 0, 0.06); */
 
 /* ------------- BULLETED LIST STYLES ------------ */
