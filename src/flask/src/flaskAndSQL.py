@@ -416,6 +416,8 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
     - All entries with userID and directory if filename isn't defined.
     - All entries with userID, directory, and filename if dateTime isn't defined.
     - The entry with all parameters if all are defined.
+    Also remove 'resolve' entry if 'record' contains 'resolved' attribute
+    Also remove 'record' entry if removing 'resolved'
     '''
     try:
         with sqlite3.connect(db_path) as connection:
@@ -423,6 +425,7 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
             dateTime = json.loads(encodedDateTime.replace('_', '/'))
             filename = json.loads(encodedFilename)
             cursor = connection.cursor()
+            resolveCursor = connection.cursor()
 
             # Determine which conditions to apply:
             if filename and dateTime:
@@ -441,11 +444,33 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
                 cursor.execute(f'SELECT id FROM {tableName} WHERE userID = ? AND (directory = ? OR directory LIKE ?)',
                                (userID, directory, f'{directory}%'))
 
+            # Create new cursor for getting options from 'record' to delete associated 'resolve'
+            cursor2 = connection.cursor()
             # Fetch all the rows to delete
             rows = cursor.fetchall()
             rowsAffected = 0
             for row in rows:
                 id = row[0]
+
+                # Also delete 'record' where options.resolved is equal to dateTime of deleted 'resolve'
+                if tableName == 'resolve':
+                    cursor2.execute(f'SELECT directory, filename, dateTime FROM {tableName} WHERE id = ?', (id,))
+                    record = cursor2.fetchone()
+                    if record:
+                        rDirectory, rFilename, rDateTime = record
+                        rowsAffected += cursor.execute(f'DELETE FROM record WHERE userID = ? AND directory = ? AND filename = ? AND options LIKE ?', 
+                           (userID, rDirectory, rFilename, f'%resolved": {rDateTime}%')).rowcount
+                # Also delete 'resolve' where dateTime is equal to options.resolved of deleted 'record'
+                elif tableName == 'record':
+                    cursor2.execute(f'SELECT directory, filename, dateTime, options FROM {tableName} WHERE id = ?', (id,))
+                    resolve = cursor2.fetchone()
+                    if resolve:
+                        rDirectory, rFilename, rDateTime, rOptions = resolve
+                        rOptions = json.loads(rOptions)
+                        if 'resolved' in rOptions:
+                            rowsAffected += cursor.execute(f'DELETE FROM resolve WHERE userID = ? AND directory = ? AND filename = ? AND dateTime = ?',
+                                (userID, rDirectory, rFilename, json.dumps(rOptions['resolved']))).rowcount
+                # delete entry at id
                 rowsAffected += cursor.execute(f'DELETE FROM {tableName} WHERE id = ?', (id,)).rowcount
 
             if rowsAffected > 0:
