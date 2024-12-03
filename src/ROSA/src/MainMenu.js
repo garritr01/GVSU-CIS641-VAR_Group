@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef
 import { 
     getCurrentDateTime, logCheck, convertUTCDateTimeToLocal,
     formatSplitDateToDateTime,
+    convertUTCSplitDateToLocal,
+    formatDateTimeToString,
 } from './oddsAndEnds';
 
 // Specifically imported for testing schedule fitting to calendar
@@ -148,8 +150,10 @@ const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) =>
                     dateTime: file.dateTime,
                     options: response.options,
                     payload: response.payload.map((item) => {
-                        if (item.type === 'end') {
-                            return { ...item, ...getCurrentDateTime(false) };
+                        if (item.type === 'start') {
+                            return convertUTCSplitDateToLocal(item);
+                        } else if (item.type === 'end') {
+                            return { ...item, ...getCurrentSplitDate(true) };
                         } else {
                             return item;
                         }
@@ -177,7 +181,7 @@ const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) =>
                         onClick={() => clockOut(file)}
                         >
                             {file.dir}/{file.filename}&nbsp;
-                            {convertUTCDateTimeToLocal(file.dateTime).date}-{convertUTCDateTimeToLocal(file.dateTime).time}
+                            {formatDateTimeToString(convertUTCDateTimeToLocal(file.dateTime))}
                     </button>
                 ))
             }

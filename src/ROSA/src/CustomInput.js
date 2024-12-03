@@ -3,7 +3,10 @@ import React, { useState, useEffect, useRef
 
 import {
     convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, getCurrentSplitDate,
-    convertUTCDateTimeToLocal, logCheck, newChooseMostRecent
+    convertUTCDateTimeToLocal, logCheck, newChooseMostRecent,
+    formatSplitDateToString,
+    formatDateTimeToString,
+    formatSplitDateToDateTime
 } from './oddsAndEnds';
 
 import { 
@@ -140,11 +143,38 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
     const saveRecord = async (overwrite, saveTable) => {
 
         try {
+
+            // deconstruct options to get 'resolved' property
+            const { resolved, rest } = obj.options;
+            // if 'resolved' property, save a resolution file using end of schedule resolved in UTC
+            if (resolved && !resolved.date) {
+                const resolveResponse = await newSaveObject({
+                    userID: obj.userID,
+                    table: 'resolve',
+                    dir: obj.dir,
+                    filename: obj.filename,
+                    dateTime: formatSplitDateToDateTime(convertLocalSplitDateToUTC(resolved.end)),
+                    options: null,
+                    payload: null
+                });
+                if (resolveResponse.truth) {
+                    if (logCheck(printLevel, ['d','b']) > 0) {console.log(`resolved ${obj.dir}/${obj.filename} version (${formatSplitDateToString(convertLocalSplitDateToUTC(resolved.end))})`)}
+                } else {
+                    throw new Error(`failed to resolve ${obj.dir}/${obj.filename} version (${formatSplitDateToString(convertLocalSplitDateToUTC(resolved.end))})`)
+                }
+            }
+
             // update types 'start' and 'end' with UTC times
             // also confirm type 'end' is present
             let endCheck = false;
             let validityCheck = true;
+
+            // Add resolved schedule end time if resolving
+            // Check validity of start and end values and convert to UTC
             let objToSave = { ...obj,
+                options: resolved && !resolved.date
+                    ? { ...obj.options, resolved: formatSplitDateToDateTime(convertLocalSplitDateToUTC(resolved.end)) }
+                    : { ...obj.options },
                 payload: obj.payload.map((item) => {
                     if (item.type === 'start') {
                         const truth = checkDateInputs(item, 'start');
@@ -168,12 +198,16 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                     }
                 })
             };
+
+            // Kill save if start or end inputs are invalid
             if (!validityCheck) {
                 throw new Error('date inputs are invalid', dateValidity);
             }
+            // Kill save if type: 'end' not within last element
             if (!endCheck) {
                 throw new Error("No type 'end' in obj.payload:", obj.payload);
             }
+
             // Use end time for dateTime in saving and set table to given table
             const UTCend = objToSave.payload[objToSave.payload.length - 1];
             const saveDateTime = { date: `${UTCend.month}/${UTCend.day}/${UTCend.year}`, time: `${UTCend.hour}:${UTCend.minute}` };
@@ -263,6 +297,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                     throw new Error(`${response.status} Error attempting to save '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}':\n ${response.msg}`);
                 }
             }
+
         } catch (err) {
             console.error('Error saving record:', err);
         }

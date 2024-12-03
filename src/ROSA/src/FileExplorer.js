@@ -7,7 +7,9 @@ import {
     newChooseMostRecentSimple,
     logCheck,
     formatDateTimeToString,
-    formatSplitDateToString
+    formatSplitDateToString,
+    convertUTCSplitDateToLocal,
+    convertObjTimes
 } from './oddsAndEnds';
 
 import {
@@ -87,9 +89,8 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
                 throw new Error(`deleteLevel: '${deleteLevel}' is unaccounted for`);
             }
             if (response.truth) {
-                console.log(`Successfully deleted ${obj.dir}/${obj.filename} version: (${obj.dateTime.date}-${obj.dateTime.time})`);
                 if (deleteLevel === 0) {
-                    if (logCheck(printLevel,['d','b']) > 0) {console.log(`all files in directory: '${obj.dir}' in '${obj.table}' successfully deleted.`)}
+                    if (logCheck(printLevel,['d','b']) > 0) {console.log(`${obj.dir}/${obj.filename} version: (${formatDateTimeToString(obj.dateTime)}) succesfully deleted`)}
                     //unsetting handled for version delete in DisplayFile
                 } else if (deleteLevel === 1) {
                     if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`all versions of file: '${obj.dir}/${obj.filename}' in '${obj.table}' successfully deleted.`)}
@@ -105,11 +106,11 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
             }
         } catch (err) {
             if (deleteLevel === 0) {
-                console.log(`Error deleting: file: '${obj.dir}/${obj.filename}' version (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}'`, err);
+                console.error(`Error deleting: file: '${obj.dir}/${obj.filename}' version (${obj.dateTime.date}-${obj.dateTime.time}) in '${obj.table}'`, err);
             } else if (deleteLevel === 1) {
-                console.log(`Error deleting: all versions of file: '${obj.dir}/${obj.filename}' in '${obj.table}'`, err);
+                console.error(`Error deleting: all versions of file: '${obj.dir}/${obj.filename}' in '${obj.table}'`, err);
             } else if (deleteLevel === 2) {
-                console.log(`Error deleting: dir: '${obj.dir} in '${obj.table}'`, err);
+                console.error(`Error deleting: dir: '${obj.dir} in '${obj.table}'`, err);
             } else {
                 console.error(err);
             }
@@ -133,6 +134,14 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
                 <p  style={{ cursor: 'pointer' }}
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))}>
                     Records
+                </p>
+                <p style={{ cursor: 'pointer' }}
+                    onClick={() => setObj(prevState => ({ ...prevState, table: 'resolve' }))}>
+                    Resolved Events
+                </p>
+                <p style={{ cursor: 'pointer' }}
+                    onClick={() => setObj(prevState => ({ ...prevState, table: 'clockIn' }))}>
+                    Clock Ins
                 </p>
             </div>
             {// Render directory and file selection
@@ -399,6 +408,8 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
      * This will need updating constantly as new functions are added
      */
     const handleFunctionSelection = () => {
+        // Convert any contained schedules and startEnd times
+        setCurrentObj(prevState => convertObjTimes(prevState, true, false, true, true));
         if (obj.table === 'journal') {
             if (logCheck(printLevel,['b']) === 2) {console.log(`opening ${obj.table} to edit ${obj.dir}/${obj.filename} version: (${convertUTCDateTimeToLocal(obj.dateTime).date}-${convertUTCDateTimeToLocal(obj.dateTime).time}`)}
             selectFn('journal', false); // false blocks emptying of object
@@ -422,7 +433,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
                         <p  key={'version'+i}
                             style={{ cursor: 'pointer' , border: obj.version === version ? '1px solid lightblue' : undefined }}
                             onClick={() => setObj(prevState => ({ ...prevState, dateTime: version }))}>
-                            {formatDateTimeToString(obj.dateTime)}
+                            {formatDateTimeToString(version)}
                         </p>
                     ))
                 }

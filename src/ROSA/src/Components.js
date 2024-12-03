@@ -109,7 +109,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
       || loadedInfo.filename !== obj.filename
       || loadedInfo.dateTime.date !== obj.dateTime.date
       || loadedInfo.dateTime.time !== obj.dateTime.time) {
-      if (fileInfo.map(i => i.directory).includes(obj.dir) && fileInfo.map(i => i.filename).includes(obj.filename)) {
+      if (fileInfo.map(i => i.dir).includes(obj.dir) && fileInfo.map(i => i.filename).includes(obj.filename)) {
         const mostRecent = newChooseMostRecent(fileInfo, obj.dir, obj.filename);
         if (logCheck(printLevel,['o']) === 2) {console.log(`obj.dateTime set to '${mostRecent.date}'-'${mostRecent.time}'`)}
         setObj(prevState => ({ ...prevState, dateTime: mostRecent }));
@@ -239,7 +239,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
             { // Return all suggested filenames, set removes duplicates
               fileInfo.length > 0 &&
                 [...new Set(fileInfo
-                  .filter((file) => file.directory === obj.dir) // Filter out files that don't match dir input
+                  .filter((file) => file.dir === obj.dir) // Filter out files that don't match dir input
                   .filter((file) => file.filename.startsWith(obj.filename)) // Filter out files that don't match obj.filename up to its length
                   .map((file) => file.filename) // Extract the filename
                 )].map((filename, index) => (
@@ -265,7 +265,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
             <option key={'new'} value={'new'}>New</option>
             { // Create option for each version and order in reverse of database import
               fileInfo.length > 0 && fileInfo.slice().reverse().map((file, index) => {
-                if (file.filename === obj.filename && file.directory === obj.dir) {
+                if (file.filename === obj.filename && file.dir === obj.dir) {
                   return (
                     <option key={index} value={JSON.stringify(file.dateTime)}>
                       {convertUTCDateTimeToLocal(file.dateTime).date + '-' + convertUTCDateTimeToLocal(file.dateTime).time}

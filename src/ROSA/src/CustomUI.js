@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef
 
 import {
     getCurrentDateTime, getCurrentSplitDate,
-    getWeekdayString, convertLocalSplitDateToUTC, convertUTCSplitDateToLocal, logCheck
+    getWeekdayString, convertLocalSplitDateToUTC, convertUTCSplitDateToLocal, logCheck,
+    convertObjTimes
 } from './oddsAndEnds';
 
 import { 
@@ -56,11 +57,13 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                 // Remove 'start' but remember it was there
                 if (response.payload.find(item => item.type === 'start')) {setIncludeStart(true)}
                 // Load options and payload (without start and end times)
-                const updatedObj = {
+                const startEndFilteredObj = {
                     ...obj,
-                    options: convertScheduleIn(response.options),
+                    options: response.options,
                     payload: response.payload.filter(item => item.type !== 'start' && item.type !== 'end')
                 };
+                // Convert the schedule
+                const updatedObj = convertObjTimes(startEndFilteredObj, true, false, true, false);
                 if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`Succesfully retrieved ${obj.dir}/${obj.filename} (${obj.dateTime.date}-${obj.dateTime.time})`) }
                 if (logCheck(printLevel, ['o']) === 1) { console.log('obj updated by fetch') }
                 else if (logCheck(printLevel, ['o']) === 2) { console.log('obj updated by fetch\n obj:', updatedObj) }
@@ -76,8 +79,8 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
     const saveCustomUI = async (overwrite) => {
 
         try {
-
-            const convertedObj = convertScheduleOut();
+            // Convert any schedules to UTC where local is false
+            const convertedObj = convertObjTimes(obj, false, false, true, false);
             // empty date
             const emptyTime = { month: "NA", day: "NA", year: "NA", hour: "NA", minute: "NA"}
             // Add start if desired, add end always
@@ -116,101 +119,9 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                     throw new Error(`${response.status} Error attempting to save '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}':\n ${response.msg}`);
                 }
             }
+
         } catch (err) {
             console.error('Error saving customUI:', err);
-        }
-    }
-
-    /** Convert all options.schedules to to local if option.schedule[i].local === false
-     * setObject
-     */
-    const convertScheduleIn = (newOptions) => {
-        // return null if DNE
-        if (newOptions) {
-            // return newOptions if DNE
-            if (newOptions.schedule) {
-                const updatedOptions = {
-                    ...newOptions,
-                    schedule: newOptions.schedule.map((schedule) => {
-                        // If saved as UTC convert to local
-                        if (!schedule.local) {
-                            const startLocal = convertUTCSplitDateToLocal(schedule.start);
-                            const endLocal = convertUTCSplitDateToLocal(schedule.end);
-                            const effectiveStartLocal = convertUTCSplitDateToLocal(schedule.effectiveStart);
-                            
-                            // Convert effective end unless 'NA'
-                            let effectiveEndLocal = schedule.effectiveEnd;
-                            if (effectiveEndLocal.month !== 'NA') {
-                                effectiveEndLocal = convertUTCSplitDateToLocal(schedule.effectiveEnd);
-                            }
-                        
-                            return { ...schedule,
-                                start: startLocal, end: endLocal,
-                                effectiveStart: effectiveStartLocal, 
-                                effectiveEnd: effectiveEndLocal
-                            };
-                        } else {
-                            return { ...schedule };
-                        }
-                    })
-                }
-                return updatedOptions;
-            } else {
-                return newOptions;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    /** Convert all options.schedules to UTC if option.schedule[i].local === false 
-     * return object
-    */
-    const convertScheduleOut = () => {
-        // if DNE return obj
-        if (obj.options) {
-            // if DNE return obj
-            if (obj.options.schedule) {
-                const updatedObj = {
-                    ...obj,
-                    options: {
-                        ...obj.options,
-                        schedule: obj.options.schedule.map((schedule) => {
-                            // If `schedule.local` is false, convert times to UTC
-                            if (!schedule.local) {
-                                // Convert start and end to UTC with hour and minute set to midnight
-                                const startUTC = convertLocalSplitDateToUTC(schedule.start);
-                            
-                                const endUTC = convertLocalSplitDateToUTC(schedule.end);
-                            
-                                // Conditionally convert effectiveStart and effectiveEnd only if the month is not 'NA'
-                                const effectiveStartUTC = convertLocalSplitDateToUTC(schedule.effectiveStart);
-                            
-                                let effectiveEndUTC = schedule.effectiveEnd;
-                                if (effectiveEndUTC.month !== 'NA') {
-                                    effectiveEndUTC = convertLocalSplitDateToUTC(effectiveEndUTC);
-                                }
-                            
-                                return {
-                                    ...schedule,
-                                    start: startUTC,
-                                    end: endUTC,
-                                    effectiveStart: effectiveStartUTC,
-                                    effectiveEnd: effectiveEndUTC
-                                };
-                            } else {
-                                // If `schedule.local` is true, leave the schedule unchanged
-                                return { ...schedule };
-                            }
-                        })
-                    }
-                };
-                return updatedObj;
-            } else {
-                return obj;
-            }
-        } else {
-            return obj;
         }
     }
 

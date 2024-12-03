@@ -464,6 +464,97 @@ export const filterByRange = (fileInfo, start, end) => {
     });
 }
 
+/** Pass in a full object and convert times of all requested elements based on toLocal
+ * @param {Object} obj - standard file object
+ * @param {Boolean} toLocal - set to true to convert UTC->Local or false for Local->UTC
+ * @param {Boolean} dateTime - set to true to convert dateTime
+ * @param {Boolean} schedule - set to true to convert schedule in options
+ * @param {Boolean} startEnd - set to true to convert "start" and "end" times in payload
+ * 
+ * @returns {Object} - obj with requested conversions
+ */
+export const convertObjTimes = (obj, toLocal, dateTime, schedule, startEnd) => {
+
+    let updatedDateTime = obj.dateTime;
+    // if dateTime === true commence conversion
+    if (dateTime) {
+        updatedDateTime = toLocal
+            ?   convertUTCDateTimeToLocal(obj.dateTime)
+            :   convertLocalDateTimeToUTC(obj.dateTime);
+    }
+
+    let updatedOptions = obj.options;
+    // if schedule === true and obj.options.schedule exists commence conversion
+    if (schedule && obj.options?.schedule) {
+        updatedOptions = {
+            ...obj.options,
+            schedule: obj.options.schedule.map((schedule) => {
+                // If local === false convert
+                if (!schedule.local) {
+
+                    // Convert start, end and effectiveStart, End
+                    const convertedStart = toLocal
+                        ?   convertUTCSplitDateToLocal(schedule.start)
+                        :   convertLocalSplitDateToUTC(schedule.start);
+
+                    const convertedEnd = toLocal
+                        ?   convertUTCSplitDateToLocal(schedule.end)
+                        :   convertLocalSplitDateToUTC(schedule.end);
+
+                    const convertedEffectiveStart = toLocal
+                        ? convertUTCSplitDateToLocal(schedule.effectiveStart)
+                        : convertLocalSplitDateToUTC(schedule.effectiveStart);
+
+                    // If filled with "NA"s don't attempt conversion
+                    const convertedEffectiveEnd = schedule.effectiveEnd.month === "NA"
+                        ?   schedule.effectiveEnd
+                        :   toLocal
+                            ?   convertUTCSplitDateToLocal(schedule.effectiveEnd)
+                            :   convertLocalSplitDateToUTC(schedule.effectiveEnd);
+                    
+                    return {
+                        ...schedule,
+                        start: convertedStart, 
+                        end: convertedEnd,
+                        effectiveStart: convertedEffectiveStart,
+                        effectiveEnd: convertedEffectiveEnd
+                    };
+                } 
+                // If local === true do not convert
+                else {
+                    return { ...schedule };
+                }
+            })
+        }
+    }
+
+    let updatedPayload = obj.payload;
+    if (startEnd && Array.isArray(obj.payload)) {
+        updatedPayload = obj.payload.map((item) => {
+            if (item?.type === "start" && item?.month !== "NA") {
+                const newStart = toLocal
+                    ?   convertUTCSplitDateToLocal(item)
+                    :   convertLocalSplitDateToUTC(item);
+                return newStart;
+            } else if (item?.type === "end" && item?.month !== "NA") {
+                const newEnd = toLocal
+                    ? convertUTCSplitDateToLocal(item)
+                    : convertLocalSplitDateToUTC(item);
+                return newEnd;
+            } else {
+                return item;
+            }
+        })
+    }
+
+    return {
+        ...obj,
+        dateTime: updatedDateTime,
+        options: updatedOptions,
+        payload: updatedPayload
+    };
+}
+
 /**
  * Determines whether to log and how verbose the logging should be based on the provided log level and characters.
  *
