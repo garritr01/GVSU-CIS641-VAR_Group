@@ -18,7 +18,8 @@ import {
 
 import { 
     newDeleteEntry,
-    newFetchDirsAndFiles, newFetchObject, newFetchObjects
+    newFetchDirsAndFiles, newFetchObject, newFetchObjects,
+    newSaveObject
 } from './generalFetch';
 
 /** Displays calendar and handles opening functions from calendar */
@@ -69,10 +70,9 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
     // Remove record or schedule upon deletion
     useEffect(() => {
         if (detectDelete) {
-            console.log('triggered',detectDelete.type);
             if (detectDelete.type === 'schedule') {
                 getScheduleInfo();
-            } else {
+            } else if (detectDelete.type === 'resolve' || detectDelete.type === 'record') {
                 getRecords();
                 getResolutions();
             }
@@ -137,12 +137,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
         try {
             const response = await newFetchDirsAndFiles('record', userID);
             if (response.truth) {
-                setRecords(response.files.map((file) => {
-                    return {
-                        ...file,
-                        dateTime: convertUTCDateTimeToLocal(file.dateTime)
-                    };
-                }));
+                setRecords(response.files);
                 if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got dirs and filenames from 'record'`) }
             } else {
                 throw new Error(`${response.status} Error getting dirs and files from 'record': ${response.msg}`);
@@ -157,12 +152,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
         try {
             const response = await newFetchDirsAndFiles('resolve', userID);
             if (response.truth) {
-                setResolutions(response.files.map((file) => {
-                    return {
-                        ...file,
-                        dateTime: convertUTCDateTimeToLocal(file.dateTime)
-                    };
-                }));
+                setResolutions(response.files);
                 if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got dirs and filenames from 'resolve'`) }
             } else {
                 throw new Error(`${response.status} Error getting dirs and files from 'resolve': ${response.msg}`);
@@ -426,7 +416,7 @@ const CalendarView = ({ printLevel, userID, setCurrentObj, selectFn, dates, reco
                             row.map((date, j) => {
                                 // Only use records with end times equal to the cell's date
                                 const filteredRecords = records.filter((record) => (
-                                    record.dateTime.date === formatSplitDateToString(date, false)
+                                    convertUTCDateTimeToLocal(record.dateTime).date === formatSplitDateToString(date, false)
                                 ));
                                 // Only use schedules that overlap with cell's date
                                 const filteredSchedules = schedules.filter((schedule) => (
@@ -440,7 +430,7 @@ const CalendarView = ({ printLevel, userID, setCurrentObj, selectFn, dates, reco
                                     (checkSplitDateIsBefore(schedule.start, date) && checkSplitDateIsBefore(date, schedule.end))
                                 ));
                                 const filteredResolutions = resolutions.filter((resolution) => (
-                                    resolution.dateTime.date === formatSplitDateToString(date, false)
+                                    convertUTCDateTimeToLocal(resolution.dateTime).date === formatSplitDateToString(date, false)
                                 ));
                                 return (
                                     <Cell
@@ -473,7 +463,9 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
 
     // list records and schedules in chronological order
     const [chronologicalEvents, setChronologicalEvents] = useState([]);
-    
+    // When set, overlay appears with corresponding question and options
+    const [overlay, setOverlay] = useState({ method: 'none' });
+
     // Call orderEvents on load of schedules and records
     useEffect(() => {
         orderEvents(schedules, records);
@@ -487,8 +479,8 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
         ];
 
         newOrderedEvents.sort((a, b) => {
-            const dateA = a.type === 'record' ? formatDateTimeToSplitDate(a.dateTime) : a.end;
-            const dateB = b.type === 'record' ? formatDateTimeToSplitDate(b.dateTime) : b.end;
+            const dateA = a.type === 'record' ? formatDateTimeToSplitDate(convertUTCDateTimeToLocal(a.dateTime)) : a.end;
+            const dateB = b.type === 'record' ? formatDateTimeToSplitDate(convertUTCDateTimeToLocal(b.dateTime)) : b.end;
             if (checkSplitDateIsBefore(dateA, dateB)) {
                 return -1;
             } else {
@@ -499,126 +491,32 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
         setChronologicalEvents(newOrderedEvents);
     }
 
-    return (
-        <div key={`${cellLoc.row}-${cellLoc.row}`} className="flexDivColumns" style={{ height: '20vh', width: cellWidth, border: '1px solid black' }}>
-            { /** Display cell */
-                date.month !== "NA" &&
-                <div onClick={() => setSelectedCell(cellLoc)} style={{ overflow: 'auto'}}>
-                    <h3>{formatSplitDateToString(date, false)}</h3>
-                    {
-                        chronologicalEvents.length > 0 &&
-                        chronologicalEvents.map((event,i) => {
-                            if (event.type === 'record') {
-                                const isSelected = (
-                                    selection?.type === 'record' &&
-                                    selection?.dir === event.dir &&
-                                    selection?.filename === event.filename &&
-                                    formatDateTimeToString(selection?.dateTime) === formatDateTimeToString(event.dateTime)
-                                );
-                                return (
-                                    <div className="flexDivRows">
-                                        <p  key={'record'+i}
-                                            style={{ 
-                                                fontSize: '60%', 
-                                                color: 'blue',
-                                                fontWeight: isSelected ? 'bold' : undefined
-                                            }} 
-                                            onClick={() => setSelection(event)}>
-                                            {event.dir}/{event.filename} {formatDateTimeToString(event.dateTime)}
-                                        </p>
-                                        {// Include buttons if selected
-                                            isSelected &&
-                                            <SelectionInterface
-                                                printLevel={printLevel}
-                                                userID={userID}
-                                                selection={selection}
-                                                isResolved={false}
-                                                setDetectDelete={setDetectDelete}
-                                                setCurrentObj={setCurrentObj}
-                                                selectFn={selectFn} />
-                                        }
-                                    </div>
-                                );
-                            } else if (event.type === 'schedule') {
-                                const isSelected = (
-                                    selection?.type === 'schedule' &&
-                                    selection?.dir === event.dir &&
-                                    selection?.filename === event.filename &&
-                                    formatDateTimeToString(selection?.dateTime) === formatDateTimeToString(event.dateTime) &&
-                                    formatSplitDateToString(selection?.end) === formatSplitDateToString(event.end) &&
-                                    formatSplitDateToString(selection?.start) === formatSplitDateToString(event.start)
-                                );
-                                const isResolved = resolutions.some(resolution => 
-                                    resolution.dir === event.dir &&
-                                    resolution.filename === event.filename &&
-                                    formatDateTimeToString(resolution.dateTime) === formatSplitDateToString(event.end)
-                                );
-                                return (
-                                    <div className="flexDivRows">
-                                        <p  key={'schedule'+i}
-                                            style={{ 
-                                                fontSize: '60%', 
-                                                color: 'green',
-                                                textDecoration: isResolved ? 'line-through' : undefined,
-                                                fontWeight: isSelected ? 'bold' : undefined
-                                            }} 
-                                            onClick={() => setSelection(event)}>
-                                            {event.dir}/{event.filename} {formatSplitDateToString(event.start)}-{formatSplitDateToString(event.end)}
-                                        </p>
-                                        {// Include buttons if selected
-                                            isSelected &&
-                                            <SelectionInterface
-                                                printLevel={printLevel}
-                                                userID={userID}
-                                                selection={selection}
-                                                isResolved={isResolved}
-                                                setDetectDelete={setDetectDelete}
-                                                setCurrentObj={setCurrentObj}
-                                                selectFn={selectFn} />
-                                        }
-                                    </div>
-                                );
-                            } else {
-                                return null;
-                            }
-                        })
-                    }
-                </div>
-            }
-        </div>
-    );
-}
-
-/** Displays UI to act on selection with */
-const SelectionInterface = ({ printLevel, userID, selection, isResolved, setDetectDelete, setCurrentObj, selectFn }) => {
-
-    const [overlay, setOverlay] = useState('');
-
     /** gets object and setsCuurent object then calls function */
-    const openFile = async (mode) => {
-        /** Get customUI, remove options.schedule, 
-         * set start and end to scheduled time, empty dateTime
-         * then open 'record' function 
-         * */
-        if (mode === 'resolve') {
+    const openFile = async (open) => {
+        /** Get customUI 
+         * In options: remove schedule and add schedule converted to UTC end as 'resolve' attribute
+         * In payload: Set start and end times according to schedule
+         * Open 'record' function with new object
+        */
+        if (open.method === 'resolve') {
             try {
                 const obj = {
                     userID: userID,
                     table: 'customUI',
-                    dir: selection.dir,
-                    filename: selection.filename,
-                    dateTime: selection.dateTime
+                    dir: open.dir,
+                    filename: open.filename,
+                    dateTime: open.dateTime
                 };
                 const response = await newFetchObject(obj);
                 // Remove schedules and add resolution property with dateTime of schedule
                 const { schedule, ...other } = response.options;
-                const updatedOptions = { ...other, resolved: selection };
+                const updatedOptions = { ...other, resolved: formatSplitDateToDateTime(convertLocalSplitDateToUTC(open.end)) };
                 // Set start and end time to scheduled times
                 const updatedPayload = response.payload.map((item) => {
                     if (item.type === 'start') {
-                        return { ...item, ...selection.start };
+                        return { ...item, ...open.start };
                     } else if (item.type === 'end') {
-                        return { ...item, ...selection.end };
+                        return { ...item, ...open.end };
                     } else {
                         return item;
                     }
@@ -638,26 +536,27 @@ const SelectionInterface = ({ printLevel, userID, selection, isResolved, setDete
                 console.error(err);
             }
         }
-        /** Get customUI or record and open respective function */
-        else if (mode === 'edit') {
+        /** Get customUI or record 
+         * convert options.schedule and payload elements with type 'start' and 'end' to local
+         * (schedule will only apply to customUI and payload will only apply to record)
+         */
+        else if (open.method === 'edit') {
             try {
                 let tableToUse;
-                if (selection.type === 'schedule') {
+                if (open.type === 'schedule') {
                     tableToUse = 'customUI';
-                } else if (selection.type === 'record') {
+                } else if (open.type === 'record') {
                     tableToUse = 'record';
                 } else {
-                    throw new Error(`Unexpected selection type: ${selection.type}`);
+                    throw new Error(`Unexpected selection type: ${open.type}`);
                 }
                 // record dateTimes were converted upon load, but not schedules
                 const obj = {
                     userID: userID,
                     table: tableToUse,
-                    dir: selection.dir,
-                    filename: selection.filename,
-                    dateTime: tableToUse === 'record'
-                        ?   convertLocalDateTimeToUTC(selection.dateTime)
-                        :   selection.dateTime
+                    dir: open.dir,
+                    filename: open.filename,
+                    dateTime: open.dateTime
                 };
                 const response = await newFetchObject(obj);
                 if (response.truth) {
@@ -677,43 +576,40 @@ const SelectionInterface = ({ printLevel, userID, selection, isResolved, setDete
                 console.error(err);
             }
         }
-        /** Delete record or schedule (also delete resolution if 'unresolve') */
-        else if (mode === 'delete') {
+        /** Delete according to contents of open */
+        else if (open.method === 'delete') {
             try {
                 let tableToUse;
-                let dateTimeToUse;
-                if (selection.type === 'schedule') {
+                if (open.type === 'schedule') {
                     tableToUse = 'customUI';
-                    dateTimeToUse = selection.dateTime;
-                } else if (selection.type === 'record') {
+                } else if (open.type === 'record') {
                     tableToUse = 'record';
-                    dateTimeToUse = convertLocalDateTimeToUTC(selection.dateTime);
                 } else {
-                    throw new Error(`Unexpected selection type: ${selection.type}`);
+                    throw new Error(`Unexpected selection type: ${open.type}`);
                 }
-                const response = await newDeleteEntry(tableToUse, dateTimeToUse, userID, selection.dir, selection.filename);
+                const response = await newDeleteEntry(tableToUse, open.dateTime, userID, open.dir, open.filename);
                 if (response.truth) {
-                    if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`${selection.dir}/${selection.filename} version: (${formatDateTimeToString(dateTimeToUse)}) succesfully deleted`) }
-                    setOverlay('');
-                    setDetectDelete({ type: selection.type });
+                    if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`${open.dir}/${open.filename} version: (${formatDateTimeToString(open.dateTime)}) succesfully deleted`) }
+                    setOverlay({ method: 'none' });
+                    setDetectDelete({ type: open.type });
                 } else {
-                    throw new Error(`${response.status} Error deleting file: '${selection.dir}/${selection.filename}' version(${formatDateTimeToString(dateTimeToUse)}) in '${selection.table}', err: ${response.message}`);
+                    throw new Error(`${response.status} Error deleting file: '${open.dir}/${open.filename}' version(${formatDateTimeToString(open.dateTime)}) in '${open.table}', err: ${response.message}`);
                 }
             } catch (err) {
                 console.error(err);
             }
         }
-        /** Delete resolve */
-        else if (mode === 'unresolve') {
+        /** Delete resolution according to contents of open where .end is converted to UTC */
+        else if (open.method === 'unresolve') {
             try {
-                const dateTimeToUse = formatSplitDateToDateTime(convertLocalSplitDateToUTC(selection.end));
-                const response = await newDeleteEntry('resolve', dateTimeToUse, userID, selection.dir, selection.filename);
+                const dateTimeToUse = formatSplitDateToDateTime(convertLocalSplitDateToUTC(open.end));
+                const response = await newDeleteEntry('resolve', dateTimeToUse, userID, open.dir, open.filename);
                 if (response.truth) {
-                    if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`${selection.dir}/${selection.filename} version: (${formatDateTimeToString(dateTimeToUse)}) succesfully deleted`) }
-                    setOverlay('');
+                    if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`${open.dir}/${open.filename} version: (${formatDateTimeToString(dateTimeToUse)}) succesfully deleted with unresolve`) }
+                    setOverlay({ method: 'none' });
                     setDetectDelete({ type: 'resolve' });
                 } else {
-                    throw new Error(`${response.status} Error deleting file: '${selection.dir}/${selection.filename}' version(${formatDateTimeToString(dateTimeToUse)}) in 'resolve', err: ${response.message}`);
+                    throw new Error(`${response.status} Error deleting file with unresolve: '${open.dir}/${open.filename}' version(${formatDateTimeToString(dateTimeToUse)}) in 'resolve', err: ${response.message}`);
                 }
             } catch (err) {
                 console.error(err);
@@ -725,51 +621,176 @@ const SelectionInterface = ({ printLevel, userID, selection, isResolved, setDete
         }
     }
 
-    return (
-        <div>
-            {/** Display actions related to selection */
-                selection.type === 'schedule' ?
-                    <div>
-                        {// display resolve of unresolve depending on isResolved value
-                            !isResolved
-                            ?   <button onClick={() => setOverlay('resolve')}>Resolve</button>
-                            :   <button onClick={() => setOverlay('unresolve')}>Unresolve</button>
-                        }
-                        <button onClick={() => setOverlay('edit')}>Edit</button>
-                        <button onClick={() => setOverlay('delete')}>Delete</button>
-                    </div>
-                : selection.type === 'record' ?
-                    <div>
-                        <button onClick={() => setOverlay('edit')}>Edit</button>
-                        <button onClick={() => setOverlay('delete')}>Delete</button>
-                    </div>
-                : null
-            }
+    /** Save resolution upon checkbox click or delete on overlay call */
+    const quickResolve = async (schedule) => {
+        const resolveResponse = await newSaveObject({
+            userID: userID,
+            table: 'resolve',
+            dir: schedule.dir,
+            filename: schedule.filename,
+            dateTime: formatSplitDateToDateTime(convertLocalSplitDateToUTC(schedule.end)),
+            options: null,
+            payload: null
+        });
+        if (resolveResponse.truth) {
+            if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`resolved ${schedule.dir}/${schedule.filename} version (${formatSplitDateToString(convertLocalSplitDateToUTC(schedule.end))})`) }
+            setDetectDelete({ type: 'resolve' });
+        } else {
+            throw new Error(`failed to resolve ${schedule.dir}/${schedule.filename} version (${formatSplitDateToString(convertLocalSplitDateToUTC(schedule.end))})`)
+        }
+    }
 
-            {/** Overlay content with edit inquiry */
-                overlay &&
+    return (
+        <div key={`${cellLoc.row}-${cellLoc.row}`} className="flexDivColumns" style={{ cursor: 'pointer', height: '20vh', width: cellWidth, border: '1px solid black' }}>
+            { /** Display cell */
+                date.month !== "NA" &&
+                <div onClick={() => setSelectedCell(cellLoc)} style={{ overflow: 'auto'}}>
+                    <h3>{formatSplitDateToString(date, false)}</h3>
+                    {
+                        chronologicalEvents.length > 0 &&
+                        chronologicalEvents.map((event,i) => {
+                            if (event.type === 'record') {
+                                const isSelected = (
+                                    selection?.type === 'record' &&
+                                    selection?.dir === event.dir &&
+                                    selection?.filename === event.filename &&
+                                    formatDateTimeToString(selection?.dateTime) === formatDateTimeToString(event.dateTime)
+                                );
+                                let displayString = isSelected
+                                    ? `${event.dir}/${event.filename} ${convertUTCDateTimeToLocal(event.dateTime).time}`
+                                    : `${event.filename} ${convertUTCDateTimeToLocal(event.dateTime).time}`;
+                                return (
+                                    <div className="flexDivRows" style={{ flexWrap: 'nowrap'}}>
+                                        <p  key={'record'+i}
+                                            style={{ 
+                                                fontSize: '60%', 
+                                                color: 'blue',
+                                                fontWeight: isSelected ? 'bold' : undefined
+                                            }} 
+                                            onClick={() => setSelection(event)}>
+                                            {displayString}
+                                        </p>
+                                        {// Include buttons if selected
+                                            isSelected &&
+                                            <SelectionInterface
+                                                printLevel={printLevel}
+                                                selection={event}
+                                                isResolved={false}
+                                                setOverlay={setOverlay} />
+                                        }
+                                    </div>
+                                );
+                            } else if (event.type === 'schedule') {
+                                const isSelected = (
+                                    selection?.type === 'schedule' &&
+                                    selection?.dir === event.dir &&
+                                    selection?.filename === event.filename &&
+                                    formatDateTimeToString(selection?.dateTime) === formatDateTimeToString(event.dateTime) &&
+                                    formatSplitDateToString(selection?.end) === formatSplitDateToString(event.end) &&
+                                    formatSplitDateToString(selection?.start) === formatSplitDateToString(event.start)
+                                );
+                                const isResolved = resolutions.some(resolution => 
+                                    resolution.dir === event.dir &&
+                                    resolution.filename === event.filename &&
+                                    formatDateTimeToString(convertUTCDateTimeToLocal(resolution.dateTime)) === formatSplitDateToString(event.end)
+                                );
+                                let displayString = isSelected 
+                                    ?   `${event.dir}/${event.filename} `
+                                    :   `${event.filename} `;
+                                if (formatSplitDateToString(event.start, false) === formatSplitDateToString(date, false)) {
+                                    displayString += `${event.start.hour}:${event.start.minute} - `;
+                                } else {
+                                    displayString += `${formatSplitDateToString(event.start)} - `;
+                                } if (formatSplitDateToString(event.end, false) === formatSplitDateToString(date, false)) {
+                                    displayString += `${event.end.hour}:${event.end.minute}`;
+                                } else {
+                                    displayString += `${formatSplitDateToString(event.start)}`;
+                                }
+                                return (
+                                    <div className="flexDivColumns">
+                                        <div className="flexDivRows" style={{ flexWrap: 'nowrap' }}>
+                                            <p 
+                                                className={isResolved ? "checked" : "unchecked"}
+                                                onClick={() => !isResolved ? quickResolve(event) : setOverlay({ method: 'unresolve', ...event })}>
+                                                &#10003;
+                                            </p>
+                                            <p  key={'schedule'+i}
+                                                style={{ 
+                                                    fontSize: '60%', 
+                                                    color: 'green',
+                                                    textWrap: 'nowrap',
+                                                    fontWeight: isSelected ? 'bold' : undefined
+                                                }} 
+                                                onClick={() => setSelection(event)}>
+                                                {displayString}
+                                            </p>
+                                        </div>
+                                        {// Include buttons if selected
+                                            isSelected &&
+                                            <SelectionInterface
+                                                printLevel={printLevel}
+                                                selection={event}
+                                                isResolved={isResolved}
+                                                setOverlay={setOverlay} />
+                                        }
+                                    </div>
+                                );
+                            } else {
+                                return <p>You shouldn't see this...</p>;
+                            }
+                        })
+                    }
+                </div>
+            } 
+            {/** Overlay content with inquiry and options */
+                overlay.method !== 'none' &&
                 <div className="overlay">
                     <div className="flexDivColumns">
                         {
-                            overlay === 'resolve' ?
-                            <p>Continue to be redirected to resolve {selection.dir}/{selection.filename}?</p>
-                            : overlay === 'edit' ?
-                            <p>Continue to be redirected to edit {selection.dir}/{selection.filename}?</p>
-                            : overlay === 'delete' ?
-                            <p>Are you sure you want to delete {selection.dir}/{selection.filename}?</p>
-                            : overlay === 'unresolve' ?
-                            <p>Are you sure you want to unresolve {selection.dir}/{selection.filename} and delete the corresponding record?</p>
-                            : <p>Not sure how you got here... press "No"</p>
+                            overlay.method === 'resolve' ?
+                                <p>Continue to be redirected to resolve {overlay.dir}/{overlay.filename}?</p>
+                            : overlay.method === 'edit' ?
+                                <p>Continue to be redirected to edit {overlay.dir}/{overlay.filename}?</p>
+                            : overlay.method === 'delete' ?
+                                <p>Are you sure you want to delete {overlay.dir}/{overlay.filename}?</p>
+                            : overlay.method === 'unresolve' ?
+                                <p>Are you sure you want to unresolve {overlay.dir}/{overlay.filename}? If you resolved this with a record it will be deleted.</p>
+                            :   <p>Not sure how you got here... press "No"</p>
                         }
                         <div>
                             <button onClick={() => openFile(overlay)}>
                                 Yes
                             </button>
-                            <button onClick={() => setOverlay('')}>No</button>
+                            <button onClick={() => setOverlay({ method: 'none' })}>No</button>
                         </div>
                     </div>
                 </div>
             }
         </div>
     );
+}
+
+/** Displays UI to act on selection with */
+const SelectionInterface = ({ printLevel, selection, isResolved, setOverlay }) => {
+
+    if (selection.type === 'schedule') {
+        return (
+            <div className="flexDivRows" style={{ flexWrap: 'nowrap' }}>
+                {// display resolve of unresolve depending on isResolved value
+                    !isResolved && <button onClick={() => setOverlay({ method: 'resolve', ...selection })}>Record</button>
+                }
+                <button onClick={() => setOverlay({ method: 'edit', ...selection })}>Edit</button>
+                <button onClick={() => setOverlay({ method: 'delete', ...selection })}>Delete</button>
+            </div>
+        );
+    } else if (selection.type === 'record') {
+        return (
+            <div className="flexDivRows" style={{ flexWrap: 'nowrap' }}>
+                <button onClick={() => setOverlay({ method: 'edit', ...selection })}>Edit</button>
+                <button onClick={() => setOverlay({ method: 'delete', ...selection })}>Delete</button>
+            </div>
+        );
+    } else {
+        return <p>You shouldn't be here...</p>
+    }
 }

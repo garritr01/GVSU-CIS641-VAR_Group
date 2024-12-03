@@ -177,10 +177,14 @@ export const formatDateTimeToSplitDate = (inDate) => {
     };
 }
 
+/** Convert {date, time} object to string.*/
 export const formatDateTimeToString = (date) => {
     return `${date.date}-${date.time}`;
 }
 
+/** Convert {month, day, year, hour, minute} object to string.
+ * Set keepHHmm to false to return without the time.
+ */
 export const formatSplitDateToString = (date, keepHHmm = true) => {
     if (date.hour && keepHHmm) {
         return `${date.month}/${date.day}/${date.year}-${date.hour}:${date.minute}`;

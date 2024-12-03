@@ -37,10 +37,17 @@
 
 /* --- */
 
-/* ------------- CSS CLASS STYLES ---------------- */
+/* ------------- CHECKBOX STYLES ----------------- */
 
-input {
-    height: 20px;
+.checked, .unchecked {
+    display: inline-flex;
+    justify-content: center;
+    font-size: 50%;
+    border: 1px solid black;
+}
+
+.unchecked {
+    color: transparent;
 }
 
 /* --- */
@@ -82,6 +89,14 @@ input {
 
 /* --- */
 
+/* ------------- CSS CLASS STYLES ---------------- */
+
+input {
+    height: 20px;
+}
+
+/* --- */
+
 /* ------------- ERROR DISPLAY STYLES ------------ */
 
 .errorP {
@@ -113,7 +128,7 @@ input {
 .flexDivRows {
     display: flex;
     flex-direction: row;
-    align-items: normal;
+    align-items: center;
     max-width: 100%;
     flex-wrap: wrap;
 }

@@ -143,37 +143,20 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
     const saveRecord = async (overwrite, saveTable) => {
 
         try {
-
-            // deconstruct options to get 'resolved' property
-            const { resolved, rest } = obj.options;
-            // if 'resolved' property, save a resolution file using end of schedule resolved in UTC
-            if (resolved && !resolved.date) {
-                const resolveResponse = await newSaveObject({
-                    userID: obj.userID,
-                    table: 'resolve',
-                    dir: obj.dir,
-                    filename: obj.filename,
-                    dateTime: formatSplitDateToDateTime(convertLocalSplitDateToUTC(resolved.end)),
-                    options: null,
-                    payload: null
-                });
-                if (resolveResponse.truth) {
-                    if (logCheck(printLevel, ['d','b']) > 0) {console.log(`resolved ${obj.dir}/${obj.filename} version (${formatSplitDateToString(convertLocalSplitDateToUTC(resolved.end))})`)}
-                } else {
-                    throw new Error(`failed to resolve ${obj.dir}/${obj.filename} version (${formatSplitDateToString(convertLocalSplitDateToUTC(resolved.end))})`)
-                }
-            }
-
             // update types 'start' and 'end' with UTC times
             // also confirm type 'end' is present
             let endCheck = false;
             let validityCheck = true;
-
+            // hold object so resolutions can save later (works around overwrite deleting them)
+            const heldObj = { ...obj };
+            // deconstruct options to get 'resolved' property
+            const { resolved, rest } = heldObj.options;
+            
             // Add resolved schedule end time if resolving
             // Check validity of start and end values and convert to UTC
             let objToSave = { ...obj,
-                options: resolved && !resolved.date
-                    ? { ...obj.options, resolved: formatSplitDateToDateTime(convertLocalSplitDateToUTC(resolved.end)) }
+                options: resolved
+                    ? { ...obj.options, resolved: resolved }
                     : { ...obj.options },
                 payload: obj.payload.map((item) => {
                     if (item.type === 'start') {
@@ -295,6 +278,30 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                 } else {
                     setSavedInfo({ table: objToSave.table, dir: objToSave.dir, filename: objToSave.filename, dateTime: objToSave.dateTime, message: 'Failed to save', truth: false });
                     throw new Error(`${response.status} Error attempting to save '${objToSave.dir}/${objToSave.filename}' version: (${objToSave.dateTime.date}-${objToSave.dateTime.time}) in '${objToSave.table}':\n ${response.msg}`);
+                }
+            }
+
+            // if 'resolved' property, save a resolution file using end of schedule resolved in UTC
+            if (resolved) {
+                const resolveResponse = await newSaveObject({
+                    userID: heldObj.userID,
+                    table: 'resolve',
+                    dir: heldObj.dir,
+                    filename: heldObj.filename,
+                    dateTime: resolved,
+                    options: null,
+                    payload: null
+                });
+                if (resolveResponse.truth) {
+                    if (resolveResponse.status === 200) {
+                        if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`resolved: updated ${obj.dir}/${obj.filename} version (${formatDateTimeToString(resolved)})`) }
+                    } else if (resolveResponse.status === 201) {
+                        if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`resolved: created ${obj.dir}/${obj.filename} version (${formatDateTimeToString(resolved)})`) }
+                    } else {
+                        throw new Error(`unexpected success resolving ${obj.dir}/${obj.filename} version (${formatDateTimeToString(resolved)})`);
+                    }
+                } else {
+                    throw new Error(`failed to resolve ${obj.dir}/${obj.filename} version (${formatDateTimeToString(resolved)})`)
                 }
             }
 
