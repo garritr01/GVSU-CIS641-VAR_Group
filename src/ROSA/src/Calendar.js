@@ -59,6 +59,13 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
         spanRange();
     }, []);
 
+    // trigger loading of event on change in dates array
+    useEffect(() => {
+        getScheduleInfo();
+        getRecords();
+        getResolutions();
+    },[dates]);
+
     // Remove record or schedule upon deletion
     useEffect(() => {
         if (detectDelete) {
@@ -80,6 +87,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
             ...records.map(rec => rec.dir)
         ])]);
     },[records, scheduleInfo]);
+
 
     const getScheduleInfo = async () => {
         try {
@@ -180,14 +188,38 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                                 eventEnd = addToSplitDate(eventEnd, 'day', s.repeatInfo);
                             }
                             return;
-                        case 'weekly':
+                        case 'daily':
                             // get difference in days between calendar start and event end
                             cStart_eEndDiff = splitDateDifference(start, s.end, 'day');
                             // find the number of weeks to add to reach calendar range (could be negative)
                             periodsToAdd = Math.ceil(cStart_eEndDiff / 7);
                             // add days to get first start and end within calendar range
-                            eventStart = addToSplitDate(s.start, 'day', (periodsToAdd * 7).toString());
-                            eventEnd = addToSplitDate(s.end, 'day', (periodsToAdd * 7).toString());
+                            eventStart = addToSplitDate(s.start, 'day', (periodsToAdd).toString());
+                            eventEnd = addToSplitDate(s.end, 'day', (periodsToAdd).toString());
+                            // add scheduled events until event start is after calendar end
+                            while (checkSplitDateIsBefore(eventStart, end)) {
+                                // Add start and end to schedule unless start-end is completely out of its effective range
+                                if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
+                                    newScheduledEvents.push({ ...eventSkeleton, start: eventStart, end: eventEnd });
+                                }
+                                // Add one interval to start and end
+                                eventStart = addToSplitDate(eventStart, 'day', '1');
+                                eventEnd = addToSplitDate(eventEnd, 'day', '1');
+                            }
+                            return;
+                        case 'weekly':
+                            // get difference in days between calendar start and event end
+                            cStart_eEndDiff = splitDateDifference(start, s.end, 'day');
+                            // find the number of weeks to add to reach calendar range (could be negative)
+                            periodsToAdd = Math.ceil(cStart_eEndDiff);
+                            // add days to get first start and end within calendar range
+                            eventStart = addToSplitDate(s.start, 'day', (periodsToAdd).toString());
+                            eventEnd = addToSplitDate(s.end, 'day', (periodsToAdd).toString());
+                            let iter = 0;
+                            while (iter < 10 && formatSplitDateToJsDate(eventEnd).getDay() !== parseInt(s.repeatInfo)) {
+                                eventStart = addToSplitDate(eventStart, 'day', '-1');
+                                eventEnd = addToSplitDate(eventEnd, 'day', '-1');
+                            }
                             // add scheduled events until event start is after calendar end
                             while (checkSplitDateIsBefore(eventStart, end)) {
                                 // Add start and end to schedule unless start-end is completely out of its effective range
@@ -214,19 +246,15 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                                 year: ((parseInt(s.end.year) + Math.floor((parseInt(s.end.month) + periodsToAdd - 1) / 12)))
                             };
                             // start one early and end one late to catch literal edge cases
-                            console.log('monthly');
-                            console.log(formatSplitDateToString(initStart), formatSplitDateToString(initEnd));
                             for (let i = -1; i < splitDateDifference(end, start, 'month') + 1; i++) {
                                 eventStart = addToSplitDate(initStart, 'month', i.toString());
                                 eventEnd = addToSplitDate(initEnd, 'month', i.toString());
-                                console.log('testing', formatSplitDateToString(eventStart), formatSplitDateToString(eventEnd))
                                 if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
                                     newScheduledEvents.push({
                                         ...eventSkeleton,
                                         start: eventStart,
                                         end: eventEnd
                                     });
-                                    console.log('added');
                                 }
                             }
                             return;
@@ -242,20 +270,16 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                                 ...s.end,
                                 year: (parseInt(s.end.year) + periodsToAdd).toString()
                             };
-                            console.log('annually');
-                            console.log(formatSplitDateToString(initStart), formatSplitDateToString(initEnd));
                             // start one early and end one late to catch literal edge cases
                             for (let i = -1; i < splitDateDifference(end, start, 'year') + 1; i++) {
                                 eventStart = addToSplitDate(initStart, 'year', i.toString());
                                 eventEnd = addToSplitDate(initEnd, 'year', i.toString());
-                                console.log('testing', formatSplitDateToString(eventStart), formatSplitDateToString(eventEnd))
                                 if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
                                     newScheduledEvents.push({
                                         ...eventSkeleton,
                                         start: eventStart,
                                         end: eventEnd
                                     });
-                                    console.log('added');
                                 }
                             }
                             return;
@@ -288,8 +312,8 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
         } else {
             while (checkSplitDateIsBefore(date, end)) {
                 // If Saturday and row not empty, push the row into newDates
+                row.push(date);
                 if (formatSplitDateToJsDate(date).getDay() === 6 && row.length > 0) {
-                    row.push(date);
                     // Fill not full first row with empty cells
                     while (row.length < 7) {
                         row = [{
@@ -302,8 +326,6 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                     }
                     newDates.push(row);
                     row = [];
-                } else {
-                    row.push(date);
                 }
                 date = addToSplitDate(date, 'day', '1');
             }
@@ -320,9 +342,6 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
             newDates.push(row);
         }
         setDates(newDates);
-        getScheduleInfo();
-        getRecords();
-        getResolutions();
         if (logCheck(printLevel, ['s']) === 1) { console.log('Calendar date span updated') }
         else if (logCheck(printLevel, ['s']) === 2) { console.log('Range:', start, ' to ', end, ' yielded: ', newDates) }
     }
