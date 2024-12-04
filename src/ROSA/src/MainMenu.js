@@ -31,7 +31,7 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
     const [cEnd, setCEnd] = useState({ ...time, hour: '00', minute: '00' });
     const [refStart, setRefStart] = useState(time);
     const [refEnd, setRefEnd] = useState(time);
-    const [repeatSpace, setRepeatSpace] = useState('0');
+    const [repeatSpace, setRepeatSpace] = useState('1');
     const [scheduledEvents, setScheduledEvents] = useState([]);
     
 
@@ -54,7 +54,8 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
                 currentObj={obj}
                 setCurrentObj={setCurrentObj} />
             {/** Test specRpt fitting into calendar */}
-            {/* <div>
+            {
+            <div>
                 <div className="flexDivRows">
                     <p>Calendar</p>
                     <DateInput date={cStart} setDate={setCStart} />
@@ -89,7 +90,8 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
                         ))
                 }
                 </div>
-            </div> */}
+            </div> 
+            }
             {/* // Mass production inputs
                 <div className="flexDivRows">
                     <button onClick={() => { massProduce('customUI', numSaves) }}>Save {numSaves} RNG CustomUIs</button>
@@ -251,9 +253,11 @@ const massProduce = async (type, qty) => {
 
 const scheduleTest = (setScheduledEvents, cStart, cEnd, refStart, refEnd, repeatSpace) => {
     const scheduledEvents = [];
+    // specRpt/weekly method
+    /*
     // get difference in days between calendar start and event end
     const cStarteEndDiff = splitDateDifference(cStart, refEnd, 'day');
-    // find the number of periods to add to reach calendar range (could be negative)
+    // find the number of periods to add to reach calendar range (could be negative) 
     const periodsToAdd = Math.ceil(cStarteEndDiff / parseInt(repeatSpace));
     // add days to get first start and end within calendar range
     let eventStart = addToSplitDate(refStart, 'day', (periodsToAdd * repeatSpace).toString());
@@ -263,7 +267,31 @@ const scheduleTest = (setScheduledEvents, cStart, cEnd, refStart, refEnd, repeat
         scheduledEvents.push({ start: eventStart, end: eventEnd });
         eventStart = addToSplitDate(eventStart, 'day', repeatSpace);
         eventEnd = addToSplitDate(eventEnd, 'day', repeatSpace);
+    }*/
+
+    // monthly/yearly method
+    // get difference in days between calendar start and event end
+    const periodsToAdd = splitDateDifference(cStart, refEnd, 'month');
+    const initStart = { ...refStart, 
+        month: ((parseInt(refStart.month) + periodsToAdd - 1) % 12 + 1).toString(),
+        year: ((parseInt(refStart.year) + Math.floor((parseInt(refStart.month) + periodsToAdd - 1) / 12)))
+    };
+    const initEnd = { ...refEnd,
+        month: ((parseInt(refEnd.month) + periodsToAdd - 1) % 12 + 1).toString(),
+        year: ((parseInt(refEnd.year) + Math.floor((parseInt(refEnd.month) + periodsToAdd - 1) / 12)))
+    };
+    console.log('given', refStart, refEnd);
+    console.log('periods to find start',periodsToAdd);
+    console.log('inits',initStart, initEnd);
+
+    for (let i = -1; i < splitDateDifference(cEnd, cStart, 'month') + 1; i++) {
+        scheduledEvents.push({ 
+            start: addToSplitDate(initStart, 'month', i.toString()), 
+            end: addToSplitDate(initEnd, 'month', i.toString()) 
+        });
     }
+
+
     setScheduledEvents(scheduledEvents);
 }
 

@@ -278,7 +278,7 @@ export const newChooseMostRecentSimple = (versions) => {
  * @param {number} num - The number of periods to add (can be negative to subtract).
  * @returns {Object} The updated {date, time} object.
  */
-export function addToDateTime(dateIn, period, num) {
+/*export function addToDateTime(dateIn, period, num) {
 
     const date = {
         month: dateIn.date.split('/')[0],
@@ -330,7 +330,7 @@ export function addToDateTime(dateIn, period, num) {
     } catch (err) {
         console.error('Error in addToDate:', err);
     }
-}
+}*/
 
 /**
  * Adds or subtracts a specified number of periods to a date object.
@@ -339,6 +339,8 @@ export function addToDateTime(dateIn, period, num) {
  * @param {string} period - The period to add (must be one of 'year', 'month', 'day', 'hour', or 'minute').
  * @param {string} num - The number of periods to add (can be negative to subtract).
  * @returns {Object} The updated {month, day, year, hour, minute} object.
+ * 
+ * In months and years case make sure to avoid adding compounding (1/31->2/28->3/38 instead of 1/31->2/28->3/31)
  */
 export function addToSplitDate(dateIn, period, num) {
 
@@ -363,31 +365,43 @@ export function addToSplitDate(dateIn, period, num) {
             throw new Error(`No minute provided for calculation with period '${period}'`);
         }
 
-        const newDate = new Date(date.year, date.month - 1, date.day, date.hour, date.minute);
+        let lastDayOfMonth;
+        const newJsDate = new Date(date.year, date.month - 1, date.day, date.hour, date.minute);
         
         switch (period) {
             case 'year':
-                newDate.setFullYear(newDate.getFullYear() + parseInt(num));
+                // Given 3/31/year, returns 3/30/year using day before first day of April
+                lastDayOfMonth = new Date(newJsDate.getFullYear() + parseInt(num), newJsDate.getMonth()+ 1, 0);
+                if (lastDayOfMonth.getDate() < dateIn.day) {
+                    newJsDate.setFullYear(newJsDate.getMonth() + parseInt(num) + 1, 0);
+                } else {
+                    newJsDate.setFullYear(newJsDate.getMonth() + parseInt(num));
+                }
                 break;
             case 'month':
-                newDate.setMonth(newDate.getMonth() + parseInt(num));
+                // Given 3/31/year, returns 3/30/year using day before first day of April
+                lastDayOfMonth = new Date(newJsDate.getFullYear(), newJsDate.getMonth() + parseInt(num) + 1, 0);
+                if (lastDayOfMonth.getDate() < dateIn.day) {
+                    newJsDate.setMonth(newJsDate.getMonth() + parseInt(num) + 1, 0);
+                } else {
+                    newJsDate.setMonth(newJsDate.getMonth() + parseInt(num));
+                }
                 break;
             case 'day':
-                newDate.setDate(newDate.getDate() + parseInt(num));
+                newJsDate.setDate(newJsDate.getDate() + parseInt(num));
                 break;
             case 'hour':
-                newDate.setHours(newDate.getHours() + parseInt(num));
+                newJsDate.setHours(newJsDate.getHours() + parseInt(num));
                 break;
             case 'minute':
-                newDate.setMinutes(newDate.getMinutes() + parseInt(num));
+                newJsDate.setMinutes(newJsDate.getMinutes() + parseInt(num));
                 break;
             default:
                 throw new Error('Invalid period. Use "year", "month", "day", "hour", or "minute".');
         }
-
         return {
             ...dateIn,
-            ...formatJsDateToSplitDate(newDate)
+            ...formatJsDateToSplitDate(newJsDate)
         };
     } catch (err) {
         console.error('Error in addToDate:', err);
@@ -412,7 +426,7 @@ export const checkSplitDateIsBefore = (date1, date2) => {
 /** Find date1-date2 difference in units ('day','month','year') and round down to nearest whole number*/
 export const splitDateDifference = (date1, date2, unit) => {
 
-    if (unit = 'day') {
+    if (unit === 'day') {
         const date = formatSplitDateToJsDate(date1);
         const refDate = formatSplitDateToJsDate(date2);
         // Difference in milliseconds
@@ -420,12 +434,12 @@ export const splitDateDifference = (date1, date2, unit) => {
         // Return difference converted to days
         return msDiff/ (1000*60*60*24);
     } else if (unit === 'month') {
-        const monthDiff = date1.month - date2.month;
-        const yearDiff = date1.year - date2.year;
+        const monthDiff = parseInt(date1.month) - parseInt(date2.month);
+        const yearDiff = parseInt(date1.year) - parseInt(date2.year);
         // return month difference considering years
         return 12*yearDiff + monthDiff;
     } else if (unit === 'year') {
-        return date1.year - date2.year;
+        return parseInt(date1.year) - parseInt(date2.year);
     } else {
         throw new Error('Invalid unit provided');
     }
