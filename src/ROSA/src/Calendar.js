@@ -13,7 +13,8 @@ import {
     convertUTCDateTimeToLocal,
     convertLocalDateTimeToUTC,
     formatSplitDateToDateTime,
-    convertObjTimes
+    convertObjTimes,
+    formatJsDateToSplitDate
 } from './oddsAndEnds';
 
 import { 
@@ -52,18 +53,9 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
     // Used to contain dir input to add to selected array
     const [selectedDir, setSelectedDir] = useState('');
 
-    // Get Records and define scheduled events on start or end change
-    useEffect(() => {
-        getRecords();
-        if (scheduleInfo.length > 0) {
-            defineSchedules(scheduleInfo);
-        }
-    }, [start, end]);
 
     // Get ScheduleInfo on initial render
     useEffect(() => {
-        getScheduleInfo();
-        getResolutions();
         spanRange();
     }, []);
 
@@ -97,26 +89,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                 if (objectsResponse.truth) {
                     // Convert any schedules that are in UTC to local
                     const convertedObjs = objectsResponse.objects.map((obj) => {
-                        const convertedSchedules = obj.options?.schedule.map((s) => {
-                            if (!s.local) {
-                                return {
-                                    ...s,
-                                    effectiveStart: convertUTCSplitDateToLocal(s.effectiveStart),
-                                    effectiveEnd: convertUTCSplitDateToLocal(s.effectiveEnd),
-                                    start: convertUTCSplitDateToLocal(s.start),
-                                    end: convertUTCSplitDateToLocal(s.end),
-                                };
-                            } else {
-                                return { ...s };
-                            }
-                        });
-                        return {
-                            ...obj,
-                            options: {
-                                ...obj.options,
-                                schedule: convertedSchedules
-                            }
-                        }
+                        return { ...convertObjTimes(obj, true, false, true, false)}
                     });
                     setScheduleInfo(convertedObjs);
                     defineSchedules(convertedObjs);
@@ -180,6 +153,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                 }
                 
                 try {
+                    let cStart_eEndDiff, periodsToAdd, eventStart, eventEnd, initStart, initEnd;
                     switch (s.repeatType) {
                         case 'none':
                             // if calendar start is before event end or event start is before calendar end add the schedule
@@ -189,22 +163,102 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                             return;
                         case 'specRpt':
                             // get difference in days between calendar start and event end
-                            const cStarteEndDiff = splitDateDifference(start, s.end, 'day');
+                            cStart_eEndDiff = splitDateDifference(start, s.end, 'day');
                             // find the number of periods to add to reach calendar range (could be negative)
-                            const periodsToAdd = Math.ceil(cStarteEndDiff/ parseInt(s.repeatInfo));
+                            periodsToAdd = Math.ceil(cStart_eEndDiff/ parseInt(s.repeatInfo));
                             // add days to get first start and end within calendar range
-                            let eventStart = addToSplitDate(s.start, 'day', (periodsToAdd*s.repeatInfo).toString());
-                            let eventEnd = addToSplitDate(s.end, 'day', (periodsToAdd*s.repeatInfo).toString());
+                            eventStart = addToSplitDate(s.start, 'day', (periodsToAdd*s.repeatInfo).toString());
+                            eventEnd = addToSplitDate(s.end, 'day', (periodsToAdd*s.repeatInfo).toString());
                             // add scheduled events until event start is after calendar end
                             while (checkSplitDateIsBefore(eventStart,end)) {
-                                newScheduledEvents.push({ ...eventSkeleton, start: eventStart, end: eventEnd });
+                                // Add start and end to schedule unless start-end is completely out of its effective range
+                                if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
+                                    newScheduledEvents.push({ ...eventSkeleton, start: eventStart, end: eventEnd });
+                                }
+                                // Add one interval to start and end
                                 eventStart = addToSplitDate(eventStart, 'day', s.repeatInfo);
                                 eventEnd = addToSplitDate(eventEnd, 'day', s.repeatInfo);
                             }
                             return;
                         case 'weekly':
+                            // get difference in days between calendar start and event end
+                            cStart_eEndDiff = splitDateDifference(start, s.end, 'day');
+                            // find the number of weeks to add to reach calendar range (could be negative)
+                            periodsToAdd = Math.ceil(cStart_eEndDiff / 7);
+                            // add days to get first start and end within calendar range
+                            eventStart = addToSplitDate(s.start, 'day', (periodsToAdd * 7).toString());
+                            eventEnd = addToSplitDate(s.end, 'day', (periodsToAdd * 7).toString());
+                            // add scheduled events until event start is after calendar end
+                            while (checkSplitDateIsBefore(eventStart, end)) {
+                                // Add start and end to schedule unless start-end is completely out of its effective range
+                                if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
+                                    newScheduledEvents.push({ ...eventSkeleton, start: eventStart, end: eventEnd });
+                                }
+                                // Add one interval to start and end
+                                eventStart = addToSplitDate(eventStart, 'day', '7');
+                                eventEnd = addToSplitDate(eventEnd, 'day', '7');
+                            }
+                            return;
                         case 'monthly':
+                            // find difference in months between reference end and calendar start
+                            periodsToAdd = splitDateDifference(start, s.end, 'month');
+                            // create initial dates
+                            initStart = {
+                                ...s.start,
+                                month: ((parseInt(s.start.month) + periodsToAdd - 1) % 12 + 1).toString(),
+                                year: ((parseInt(s.start.year) + Math.floor((parseInt(s.start.month) + periodsToAdd - 1) / 12)))
+                            };
+                            initEnd = {
+                                ...s.end,
+                                month: ((parseInt(s.end.month) + periodsToAdd - 1) % 12 + 1).toString(),
+                                year: ((parseInt(s.end.year) + Math.floor((parseInt(s.end.month) + periodsToAdd - 1) / 12)))
+                            };
+                            // start one early and end one late to catch literal edge cases
+                            console.log('monthly');
+                            console.log(formatSplitDateToString(initStart), formatSplitDateToString(initEnd));
+                            for (let i = -1; i < splitDateDifference(end, start, 'month') + 1; i++) {
+                                eventStart = addToSplitDate(initStart, 'month', i.toString());
+                                eventEnd = addToSplitDate(initEnd, 'month', i.toString());
+                                console.log('testing', formatSplitDateToString(eventStart), formatSplitDateToString(eventEnd))
+                                if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
+                                    newScheduledEvents.push({
+                                        ...eventSkeleton,
+                                        start: eventStart,
+                                        end: eventEnd
+                                    });
+                                    console.log('added');
+                                }
+                            }
+                            return;
                         case 'annually':
+                            // find difference in years between reference end and calendar start
+                            periodsToAdd = splitDateDifference(start, s.end, 'year');
+                            // create initial dates
+                            initStart = {
+                                ...s.start,
+                                year: (parseInt(s.start.year) + periodsToAdd).toString()
+                            };
+                            initEnd = {
+                                ...s.end,
+                                year: (parseInt(s.end.year) + periodsToAdd).toString()
+                            };
+                            console.log('annually');
+                            console.log(formatSplitDateToString(initStart), formatSplitDateToString(initEnd));
+                            // start one early and end one late to catch literal edge cases
+                            for (let i = -1; i < splitDateDifference(end, start, 'year') + 1; i++) {
+                                eventStart = addToSplitDate(initStart, 'year', i.toString());
+                                eventEnd = addToSplitDate(initEnd, 'year', i.toString());
+                                console.log('testing', formatSplitDateToString(eventStart), formatSplitDateToString(eventEnd))
+                                if (checkSplitDateIsBefore(s.effectiveStart, eventEnd) && (s.effectiveEnd.month === "NA" || checkSplitDateIsBefore(eventStart, s.effectiveEnd))) {
+                                    newScheduledEvents.push({
+                                        ...eventSkeleton,
+                                        start: eventStart,
+                                        end: eventEnd
+                                    });
+                                    console.log('added');
+                                }
+                            }
+                            return;
                         default:
                             return;
                     }
@@ -233,9 +287,10 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
             newDates = [row];
         } else {
             while (checkSplitDateIsBefore(date, end)) {
-                // If Sunday and row not empty, push the row into newDates
-                if (formatSplitDateToJsDate(date).getDay() === 0 && row.length > 0) {
+                // If Saturday and row not empty, push the row into newDates
+                if (formatSplitDateToJsDate(date).getDay() === 6 && row.length > 0) {
                     row.push(date);
+                    // Fill not full first row with empty cells
                     while (row.length < 7) {
                         row = [{
                             month: 'NA',
@@ -252,8 +307,22 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                 }
                 date = addToSplitDate(date, 'day', '1');
             }
+            // Fill not full last row with empty cells
+            while (row.length < 7) {
+                row.push({
+                    month: 'NA',
+                    day: 'NA',
+                    year: 'NA',
+                    hour: 'NA',
+                    minute: 'NA'
+                });
+            }
+            newDates.push(row);
         }
         setDates(newDates);
+        getScheduleInfo();
+        getRecords();
+        getResolutions();
         if (logCheck(printLevel, ['s']) === 1) { console.log('Calendar date span updated') }
         else if (logCheck(printLevel, ['s']) === 2) { console.log('Range:', start, ' to ', end, ' yielded: ', newDates) }
     }

@@ -365,26 +365,21 @@ export function addToSplitDate(dateIn, period, num) {
             throw new Error(`No minute provided for calculation with period '${period}'`);
         }
 
-        let lastDayOfMonth;
         const newJsDate = new Date(date.year, date.month - 1, date.day, date.hour, date.minute);
         
         switch (period) {
             case 'year':
-                // Given 3/31/year, returns 3/30/year using day before first day of April
-                lastDayOfMonth = new Date(newJsDate.getFullYear() + parseInt(num), newJsDate.getMonth()+ 1, 0);
-                if (lastDayOfMonth.getDate() < dateIn.day) {
-                    newJsDate.setFullYear(newJsDate.getMonth() + parseInt(num) + 1, 0);
-                } else {
-                    newJsDate.setFullYear(newJsDate.getMonth() + parseInt(num));
+                newJsDate.setFullYear(newJsDate.getFullYear() + parseInt(num));
+                // If rolled over to next month, use last day of desired month
+                if (newJsDate.getMonth() !== (parseInt(dateIn.month) - 1)) {
+                    newJsDate.setMonth((parseInt(dateIn.month)), 0);
                 }
                 break;
             case 'month':
-                // Given 3/31/year, returns 3/30/year using day before first day of April
-                lastDayOfMonth = new Date(newJsDate.getFullYear(), newJsDate.getMonth() + parseInt(num) + 1, 0);
-                if (lastDayOfMonth.getDate() < dateIn.day) {
-                    newJsDate.setMonth(newJsDate.getMonth() + parseInt(num) + 1, 0);
-                } else {
-                    newJsDate.setMonth(newJsDate.getMonth() + parseInt(num));
+                newJsDate.setMonth(newJsDate.getMonth() + parseInt(num));
+                // If rolled over to next month, use last day of desired month
+                if (newJsDate.getDate() !== parseInt(dateIn.day)) {
+                    newJsDate.setDate(0);
                 }
                 break;
             case 'day':
@@ -404,7 +399,7 @@ export function addToSplitDate(dateIn, period, num) {
             ...formatJsDateToSplitDate(newJsDate)
         };
     } catch (err) {
-        console.error('Error in addToDate:', err);
+        console.error('Error in addToDate:', err, 'using dateIn', dateIn);
     }
 }
 
