@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef
 import {
     getCurrentDateTime, getCurrentSplitDate,
     getWeekdayString, convertLocalSplitDateToUTC, convertUTCSplitDateToLocal, logCheck,
-    convertObjTimes
+    convertObjTimes,
+    checkSplitDateIsBefore
 } from './oddsAndEnds';
 
 import { 
@@ -197,6 +198,27 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
             if (logCheck(printLevel, ['s', 'e']) > 0) {console.log(`Did not pass schedule validity check. repeatInfo is not a positive integer: ${scheduleInfo.repeatInfo}`)}
         } else {
             updatedValidity = { ...updatedValidity, repeatInfo: true };
+        }
+
+        // check that start is before end and effectiveStart is before effectiveEnd
+        if (scheduleIsValid && !checkSplitDateIsBefore(scheduleInfo.start, scheduleInfo.end)) {
+            scheduleIsValid = false;
+            updatedValidity = {
+                ...updatedValidity,
+                start: { month: false, day: false, year: false, hour: false, minute: false },
+                end: { month: false, day: false, year: false, hour: false, minute: false }
+            };
+            if (logCheck(printLevel, ['s', 'e']) > 0) { console.log(`Did not pass schedule validity check. start is not before end.`) }
+        }
+        if (scheduleIsValid && scheduleInfo.effectiveEnd.month !== "NA" && 
+            !checkSplitDateIsBefore(scheduleInfo.effectiveStart, scheduleInfo.effectiveEnd)) {
+            scheduleIsValid = false;
+            updatedValidity = {
+                ...updatedValidity,
+                effectiveStart: { month: false, day: false, year: false, hour: false, minute: false },
+                effectiveEnd: { month: false, day: false, year: false, hour: false, minute: false }
+            };
+            if (logCheck(printLevel, ['s', 'e']) > 0) { console.log(`Did not pass schedule validity check. effectiveStart is not before effectiveEnd.`) };
         }
 
         // update schedule validity and return true or false

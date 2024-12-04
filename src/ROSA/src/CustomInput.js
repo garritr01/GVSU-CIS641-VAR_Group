@@ -6,7 +6,8 @@ import {
     convertUTCDateTimeToLocal, logCheck, newChooseMostRecent,
     formatSplitDateToString,
     formatDateTimeToString,
-    formatSplitDateToDateTime
+    formatSplitDateToDateTime,
+    checkSplitDateIsBefore
 } from './oddsAndEnds';
 
 import { 
@@ -146,6 +147,8 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
             // update types 'start' and 'end' with UTC times
             // also confirm type 'end' is present
             let endCheck = false;
+            let startForCheck = null;
+            let endForCheck = null;
             let validityCheck = true;
             // hold object so resolutions can save later (works around overwrite deleting them)
             const heldObj = { ...obj };
@@ -165,6 +168,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                             validityCheck = false;
                             return item;
                         } else {
+                            startForCheck = item;;
                             return convertLocalSplitDateToUTC(item);
                         }
                     } else if (item.type === 'end') {
@@ -174,6 +178,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                             validityCheck = false;
                             return item;
                         } else {
+                            endForCheck = item;
                             return convertLocalSplitDateToUTC(item);
                         }
                     } else {
@@ -189,6 +194,14 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
             // Kill save if type: 'end' not within last element
             if (!endCheck) {
                 throw new Error("No type 'end' in obj.payload:", obj.payload);
+            }
+            // Kill save if 'start' exists and is after 'end'
+            if (!checkSplitDateIsBefore(startForCheck, endForCheck)) {
+                setDateValidity({
+                    start: { month: false, day: false, year: false, hour: false, minute: false },
+                    end: { month: false, day: false, year: false, hour: false, minute: false }
+                });
+                throw new Error("Start time is after end time");
             }
 
             // Use end time for dateTime in saving and set table to given table
