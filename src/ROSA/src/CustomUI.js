@@ -5,7 +5,10 @@ import {
     getCurrentDateTime, getCurrentSplitDate,
     getWeekdayString, convertLocalSplitDateToUTC, convertUTCSplitDateToLocal, logCheck,
     convertObjTimes,
-    checkSplitDateIsBefore
+    checkSplitDateIsBefore,
+    formatJsDateToSplitDate,
+    formatSplitDateToJsDate,
+    formatSplitDateToString
 } from './oddsAndEnds';
 
 import { 
@@ -84,11 +87,11 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
             const convertedObj = convertObjTimes(obj, false, false, true, false);
             // empty date
             const emptyTime = { month: "NA", day: "NA", year: "NA", hour: "NA", minute: "NA"}
-            // Add start if desired, add end always
+            // Add start if desired, add end always, '(...payload || [])' accounts for empty payload
             const outObj = { ...convertedObj, 
                 payload: includeStart 
-                    ? [...convertedObj.payload, { type: "start", ...emptyTime }, { type: "end", ...emptyTime }]
-                    : [ ...convertedObj.payload, { type: "end", ...emptyTime }]}
+                    ? [ ...(convertedObj.payload || []), { type: "start", ...emptyTime }, { type: "end", ...emptyTime }]
+                    : [ ...(convertedObj.payload || []), { type: "end", ...emptyTime }]}
 
             if (overwrite) {
                 const response = await newSaveObject(outObj);
@@ -189,6 +192,18 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                     }
                 }
             })
+            // Make sure date is a real date (convert 4/31 to 5/1 and revert find !==)
+            if (scheduleIsValid && scheduleInfo?.[date].month !== "NA" && 
+                formatSplitDateToString(formatJsDateToSplitDate(formatSplitDateToJsDate(scheduleInfo?.[date]))) 
+                !== formatSplitDateToString(scheduleInfo?.[date])
+            ) {
+                scheduleIsValid = false;
+                updatedValidity = {
+                    ...updatedValidity,
+                    [date]: { month: false, day: false, year: false, hour: false, minute: false }
+                };
+                if (logCheck(printLevel, ['s', 'e']) > 0) { console.log(`Did not pass schedule validity check... ${date}: ${formatSplitDateToString(scheduleInfo?.[date])} does not exist.`) }
+            }
         });
 
         // check that specRpt integer greater than 0

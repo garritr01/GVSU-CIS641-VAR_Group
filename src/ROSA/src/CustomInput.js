@@ -7,7 +7,9 @@ import {
     formatSplitDateToString,
     formatDateTimeToString,
     formatSplitDateToDateTime,
-    checkSplitDateIsBefore
+    checkSplitDateIsBefore,
+    formatJsDateToSplitDate,
+    formatSplitDateToJsDate
 } from './oddsAndEnds';
 
 import { 
@@ -35,7 +37,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
         end: { month: true, day: true, year: true, hour: true, minute: true }
     });
 
-    /** Determines whether all inputs are in proper form and blocks save if not */
+    /** Determines whether all inputs are in proper form and are real dates (eg. no 4/31) and blocks save if not */
     const checkDateInputs = (date, type) => {
 
         const parts = ['month', 'day', 'year', 'hour', 'minute'];
@@ -51,31 +53,31 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                 // Check for 4-digit input
                 if (part === 'year') {
                     isValid = /^\d{4}$/.test(value);
-                    if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not four digits: ${value}`) }
+                    if (!isValid && logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type} ${part} is not four digits: ${value}`) }
                 }
                 // Check for 2-digit input
                 else {
                     isValid = /^\d{2}$/.test(value);
-                    if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not two digits: ${value}`) }
+                    if (!isValid && logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type} ${part} is not two digits: ${value}`) }
                     // convert value to number (+value will return false if cannot convert)
                     // confirm months [1,12], days [1,31], hours [0,23] and minuntes [0,59]
                     if (isValid && part === 'month' && (!(+value >= 1) || !(+value <= 12))) {
                         isValid = false;
-                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [1,12]: ${value}`) }
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type} ${part} is not in range [1,12]: ${value}`) }
                     } else if (isValid && part === 'day' && (!(+value >= 1) || !(+value <= 31))) {
                         isValid = false;
-                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [1,31]: ${value}`) }
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type} ${part} is not in range [1,31]: ${value}`) }
                     } else if (isValid && part === 'hour' && (!(+value >= 0) || !(+value <= 23))) {
                         isValid = false;
-                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [0,23]: ${value}`) }
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type} ${part} is not in range [0,23]: ${value}`) }
                     } else if (isValid && part === 'minute' && (!(+value >= 0) || !(+value <= 59))) {
                         isValid = false;
-                        if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not in range [0,59]: ${value}`) }
+                        if (!isValid && logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type} ${part} is not in range [0,59]: ${value}`) }
                     }
                 }
             } else {
                 isValid = false;
-                if (!isValid && logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not an accepted value: ${value}`) }
+                if (logCheck(printLevel, ['s', 'e']) === 2) { console.log(`${type} ${part} is not an accepted value: ${value}`) }
             }
             // set return value to false if anything fails
             if (!isValid) {
@@ -83,6 +85,16 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
             }
             updatedValidity = { ...updatedValidity, [part]: isValid };
         })
+
+        // Make sure date exists (eg. no 4/31)
+        if (formatSplitDateToString(formatJsDateToSplitDate(formatSplitDateToJsDate(date)))
+            !== formatSplitDateToString(date)) {
+            scheduleIsValid = false;
+            updatedValidity = {
+                month: false, day: false, year: false, hour: false, minute: false
+            };
+            if (logCheck(printLevel, ['s', 'e']) > 0) { console.log(`${type}: ${formatSplitDateToString(date)} is not an existing date.`) }
+        }
         
         setDateValidity(prevState => ({ ...prevState, [type]: updatedValidity }));
         return scheduleIsValid;
@@ -186,7 +198,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                     }
                 })
             };
-
+            validityCheck = false;
             // Kill save if start or end inputs are invalid
             if (!validityCheck) {
                 throw new Error('date inputs are invalid', dateValidity);
