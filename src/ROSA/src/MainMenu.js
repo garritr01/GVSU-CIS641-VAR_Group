@@ -20,19 +20,21 @@ import { Calendar
 } from './Calendar';
 
 /** Renders the main menu and handles selection */
-export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
+export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj, setCurrentObj }) => {
 
     const time = getCurrentSplitDate(true);
 
     // Holds the quantity for massProduce
     const [numSaves, setNumSaves] = useState(20);
     // Holds qty for specRpt test
+    /*
     const [cStart, setCStart] = useState({ ...time, hour: '00', minute: '00' });
     const [cEnd, setCEnd] = useState({ ...time, hour: '00', minute: '00' });
     const [refStart, setRefStart] = useState(time);
     const [refEnd, setRefEnd] = useState(time);
     const [repeatSpace, setRepeatSpace] = useState('1');
     const [scheduledEvents, setScheduledEvents] = useState([]);
+    */
     
 
     // Log the printLevel if 'bv' or 'pv' (basic verbose, parameter verbose)
@@ -43,18 +45,43 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
     // Renders military time and all main menu functions
     return (
         <div className="mainContainer">
-            <h1>ROSA</h1>
+            <div className="flexDivRows">
+                <h1 className="moreLink">
+                    ROSA
+                    <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+                        <h3>ROSA</h3>
+                        <p>Hello I'm ROSA and I'm here to help you organize yourself!</p>
+                    </span>
+                </h1>
+            </div>
+            <button className="moreLink" 
+                style={{ color: rookie ? 'gray' : undefined }}
+                onClick={() => setRookie(!rookie)}>
+                Rookie Mode
+                <span className="more" style={{ color: 'black' }}>
+                    <h3>Rookie Mode</h3>
+                    <p>Enabling Rookie Mode will display info about everything throughout the page, similar to what you see here.</p>
+                </span>
+            </button>
             <div className="flexDivRows">
                 <p>{getCurrentDateTime().date}</p>
                 <p>-{getCurrentDateTime().time}</p>
             </div>
             <ClockOutOptions
+                rookie={rookie}
                 printLevel={printLevel}
                 selectFn={selectFn}
                 currentObj={obj}
                 setCurrentObj={setCurrentObj} />
+            <Calendar
+                rookie={rookie}
+                printLevel={printLevel}
+                selectFn={selectFn}
+                setCurrentObj={setCurrentObj}
+                userID={userID} 
+                fullDisplay={false}/>
             {/** Test specRpt fitting into calendar */}
-            {
+            {/*
             <div>
                 <div className="flexDivRows">
                     <p>Calendar</p>
@@ -91,7 +118,7 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
                 }
                 </div>
             </div> 
-            }
+            */}
             {/* // Mass production inputs
                 <div className="flexDivRows">
                     <button onClick={() => { massProduce('customUI', numSaves) }}>Save {numSaves} RNG CustomUIs</button>
@@ -102,7 +129,7 @@ export const MainMenu = ({ printLevel, selectFn, obj, setCurrentObj }) => {
     );
 }
 
-const ClockOutOptions = ({ printLevel, selectFn, currentObj, setCurrentObj }) => {
+const ClockOutOptions = ({ rookie, printLevel, selectFn, currentObj, setCurrentObj }) => {
 
     const [fileInfo, setFileInfo] = useState([]);
 

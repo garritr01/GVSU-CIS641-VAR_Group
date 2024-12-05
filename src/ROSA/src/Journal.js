@@ -10,7 +10,7 @@ import { newFetchText, newSaveText
 } from './generalFetch';
 
 
-export const Journal = ({ printLevel, preselectedObj }) => {
+export const Journal = ({ rookie, printLevel, preselectedObj }) => {
 
     // Use object and replace payload with empty string if null
     const [obj, setObj] = useState({ ...preselectedObj, payload: preselectedObj.payload || ''});
@@ -88,6 +88,7 @@ export const Journal = ({ printLevel, preselectedObj }) => {
     return(
         <div className="mainContainer">
             <FileAccess
+                rookie={rookie}
                 printLevel={printLevel}
                 defaultPayload={''}
                 obj={obj}

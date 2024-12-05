@@ -14,7 +14,8 @@ import {
     convertLocalDateTimeToUTC,
     formatSplitDateToDateTime,
     convertObjTimes,
-    formatJsDateToSplitDate
+    formatJsDateToSplitDate,
+    getCurrentDateTime
 } from './oddsAndEnds';
 
 import { 
@@ -24,7 +25,7 @@ import {
 } from './generalFetch';
 
 /** Displays calendar and handles opening functions from calendar */
-export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisplay = true }) => {
+export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, fullDisplay = true }) => {
 
     const time = getCurrentSplitDate(true);
     // Define range of calendar to display
@@ -347,7 +348,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
     }
 
     return (
-        <div className="mainContainer">
+        <div className={ fullDisplay ? "mainContainer" : undefined }>
             { /** Customize Dates and include/exclude only available when fullDisplay is true */
                 fullDisplay &&
                     <div>
@@ -423,6 +424,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
                         </button>
                     </div>
             }
+            { /* Logging buttons
             <button onClick={() => console.log(records)}>Log Records</button>
             <button onClick={() => console.log(schedules)}>Log Schedules</button>
             <button onClick={() => console.log(scheduleInfo)}>Log ScheduleInfo</button>
@@ -431,6 +433,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
             <button onClick={() => console.log(selectedDirs)}>Log selectedDirs</button>
             <button onClick={() => console.log(dates)}>Log dates</button>
             <button onClick={() => console.log(selection)}>Log Selection</button>
+            */}
             {/** Display calendar */}
             <CalendarView
                 printLevel={printLevel}
@@ -449,7 +452,7 @@ export const Calendar = ({ printLevel, selectFn, setCurrentObj, userID, fullDisp
 }
 
 /** For editing start and end date/time of schedule */
-const DateInput = ({ date, setDate }) => {
+const DateInput = ({ rookie, date, setDate }) => {
 
     /** Update date property with inputValue */
     const uponDateChange = (inputValue, prop) => {
@@ -477,9 +480,19 @@ const DateInput = ({ date, setDate }) => {
 }
 
 /** Displays calendar */
-const CalendarView = ({ printLevel, userID, setCurrentObj, selectFn, dates, records, schedules, resolutions, selection, setSelection, setDetectDelete }) => {
+const CalendarView = ({ rookie, printLevel, userID, setCurrentObj, selectFn, dates, records, schedules, resolutions, selection, setSelection, setDetectDelete }) => {
 
-    const [selectedCell, setSelectedCell] = useState({ row: null, col: null});
+    const [selectedCell, setSelectedCell] = useState({ row: null, col: null });
+
+    // Set selected cell to today in default range, else set to null
+    useEffect(() => {
+        if (dates.length > 0 && dates[0].length > 1 &&
+            formatSplitDateToString(dates[0][1], false) === getCurrentDateTime(true).date) {
+            setSelectedCell({ row: 0, col: 1 });
+        } else {
+            setSelectedCell({ row: null, col: null});
+        }
+    },[dates]);
 
     /** calculates the width of a given cell based on which cell was selected */
     const calcCellWidth = (i, j) => {
@@ -521,7 +534,8 @@ const CalendarView = ({ printLevel, userID, setCurrentObj, selectFn, dates, reco
                                     convertUTCDateTimeToLocal(resolution.dateTime).date === formatSplitDateToString(date, false)
                                 ));
                                 return (
-                                    <Cell
+                                    <Cell key={'cell'+i+'-'+j}
+                                        rookie={rookie}
                                         printLevel={printLevel}
                                         userID={userID}
                                         date={date}
@@ -547,7 +561,7 @@ const CalendarView = ({ printLevel, userID, setCurrentObj, selectFn, dates, reco
 }
 
 /** Displays each day in the calendar */
-const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, schedules, resolutions, selection, setSelection, setDetectDelete, cellWidth, cellLoc, setSelectedCell }) => {
+const Cell = ({ rookie, printLevel, userID, setCurrentObj, selectFn, date, records, schedules, resolutions, selection, setSelection, setDetectDelete, cellWidth, cellLoc, setSelectedCell }) => {
 
     // list records and schedules in chronological order
     const [chronologicalEvents, setChronologicalEvents] = useState([]);
@@ -729,7 +743,7 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
     }
 
     return (
-        <div key={`${cellLoc.row}-${cellLoc.row}`} className="flexDivColumns" style={{ cursor: 'pointer', height: '20vh', width: cellWidth, border: '1px solid black' }}>
+        <div key={`cellDiv${cellLoc.row}-${cellLoc.row}`} className="flexDivColumns" style={{ cursor: 'pointer', height: '20vh', width: cellWidth, border: '1px solid black' }}>
             { /** Display cell */
                 date.month !== "NA" &&
                 <div onClick={() => setSelectedCell(cellLoc)} style={{ overflow: 'auto'}}>
@@ -748,8 +762,8 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
                                     ? `${event.dir}/${event.filename} ${convertUTCDateTimeToLocal(event.dateTime).time}`
                                     : `${event.filename} ${convertUTCDateTimeToLocal(event.dateTime).time}`;
                                 return (
-                                    <div className="flexDivRows" style={{ flexWrap: 'nowrap'}}>
-                                        <p  key={'record'+i}
+                                    <div key={`cellDiv${cellLoc.row}-${cellLoc.row}-index${i}`} className="flexDivRows" style={{ flexWrap: 'nowrap'}}>
+                                        <p  
                                             style={{ 
                                                 fontSize: '60%', 
                                                 color: 'blue',
@@ -795,7 +809,7 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
                                     displayString += `${formatSplitDateToString(event.start)}`;
                                 }
                                 return (
-                                    <div className="flexDivColumns">
+                                    <div key={`cellDiv${cellLoc.row}-${cellLoc.row}-index${i}`} className="flexDivColumns">
                                         <div className="flexDivRows" style={{ flexWrap: 'nowrap' }}>
                                             <p 
                                                 className={isResolved ? "checked" : "unchecked"}
@@ -824,7 +838,7 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
                                     </div>
                                 );
                             } else {
-                                return <p>You shouldn't see this...</p>;
+                                return <p key={`cellDiv${cellLoc.row}-${cellLoc.row}-index${i}`}>You shouldn't see this...</p>;
                             }
                         })
                     }
@@ -859,7 +873,7 @@ const Cell = ({ printLevel, userID, setCurrentObj, selectFn, date, records, sche
 }
 
 /** Displays UI to act on selection with */
-const SelectionInterface = ({ printLevel, selection, isResolved, setOverlay }) => {
+const SelectionInterface = ({ rookie, printLevel, selection, isResolved, setOverlay }) => {
 
     if (selection.type === 'schedule') {
         return (

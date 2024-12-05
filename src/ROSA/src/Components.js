@@ -6,10 +6,17 @@ import {
   logCheck, newChooseMostRecent, convertUTCDateTimeToLocal 
 } from './oddsAndEnds';
 
+import { PositionMorePopup } from './dynamicDisplays';
+
 import { newFetchDirsAndFiles } from './generalFetch';
 
 /** Renders the buttons for choosing functions on the main menu */
-export const Functions = ({ printLevel, selectFn, setUserID }) => {
+export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
+
+  // Position .more Popups on load
+  useEffect(() => {
+    PositionMorePopup();
+  },[]);
 
   // select a function based on funcName
   const anyPress = (funcName) => {
@@ -20,34 +27,86 @@ export const Functions = ({ printLevel, selectFn, setUserID }) => {
   // renders the buttons for selecting different functions on the main menu
   return (
     <div className="stickyHeader">
-      <div style={({ width: 'calc(100% - 53px)' })}>
-        <button onClick={() => anyPress("main")}>Main Menu</button>
-        {/* <button onClick={() => anyPress("file manager")}>File Manager</button> */}
-        <button onClick={() => anyPress("fileExplorer")}>File Manager</button>
-        {/* <button onClick={() => anyPress("journals")}>Journal</button> */}
-        <button onClick={() => anyPress("journal")}>Journal</button>
-        {/* <button onClick={() => anyPress("customInfo")}>Custom Record</button> */}
-        <button onClick={() => anyPress("record")}>Record</button>
-        {/* <button onClick={() => anyPress("customClockIn")}>Clock In</button> */}
-        {/* <button onClick={() => anyPress("scheduledEvents")}>Schedule Event</button> */}
-        <button onClick={() => anyPress("customUI")}>Custom UI</button>
-        {/* <button onClick={() => anyPress("quick note")}>Quick Note</button> */}
-        {/* <button onClick={() => anyPress("schedule view")}>Calendar</button> */}
-        <button onClick={() => anyPress("calendar")}>Calendar</button>
-        {/* The below buttons can be rendered for infrequently used functions. Code found in manualEdit.js*/}
-        {/*<button onClick={() => alterMatches("CustomUI", null, null,"Earning ($)","Earning ($)", "earning")}>Alter UI</button>*/}
-        {/*<button onClick={() => createCustomUIDropdown()}>CustomUI Dropdown</button>*/}
-        {/*<button onClick={() => createCustomInfoDropdowns()}>CustomInfo Dropdowns</button>*/}
-        {/*<button onClick={() => convertSchedules()}>Convert Schedules</button>*/}
-        {/*<button onClick={() => moveTables()}>Move Tables</button>*/}
+      {/** Functions Div */}
+      <div style={({ width: '85%', textAlign: 'left' })}>
+        <button className="moreLink" onClick={() => anyPress("main")}>
+          Main Menu
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>Main Menu</h3>
+            <div className="bulletList">
+              <p>Rookie mode toggle</p>
+              <p>Links to clock out of clocked in events</p>
+              <p>4 day Calendar from yesterday</p>
+              <p>Quick notes checklist</p>
+            </div>
+          </span>
+        </button>
+        <button className="moreLink" onClick={() => anyPress("fileExplorer")}>
+          File Manager
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>File Manager</h3>
+            <div className="bulletList">
+              <p>Use to find, view and delete your files</p>
+              <p>Redirect to edit files in respective page</p>
+            </div>
+          </span>
+        </button>
+        <button className="moreLink" onClick={() => anyPress("journal")}>
+          Journal
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>Journal</h3>
+            <div className="bulletList">
+              <p>Edit and save your journal entries.</p>
+            </div>
+          </span>
+        </button>
+        <button className="moreLink" onClick={() => anyPress("record")}>
+          Record
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>Record</h3>
+            <div className="bulletList">
+              <p>Record information using your custom user interfaces</p>
+            </div>
+          </span>
+        </button>
+        <button className="moreLink" onClick={() => anyPress("customUI")}>
+          Custom UI
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>Custom UI</h3>
+            <div className="bulletList">
+              <p>Create interfaces to use in Record</p>
+              <p>Create schedules to view in Calendar</p>
+            </div>
+          </span>
+        </button>
+        <button className="moreLink" onClick={() => anyPress("calendar")}>
+          Calendar
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>Calendar</h3>
+            <div className="bulletList">
+              <p>View scheduled and recorded events</p>
+              <p>Resolve scheduled events</p>
+              <p>Delete and edit events</p>
+            </div>
+          </span>
+        </button>
       </div>
-      <div style={({ width: '53px' })}>
+      {/** Log out Div */}
+      <div style={({ width: '15%', textAlign: 'right' })}>
         <button
+          className="moreLink"
           onClick={() => {
             setUserID('');
             selectFn("login");
           }}>
           Log Out
+          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+            <h3>Log Out</h3>
+            <div className="bulletList">
+              <p>Log out of your account</p>
+              <p>Return to log in page</p>
+            </div>
+          </span>
         </button>
       </div>
     </div>
@@ -73,7 +132,7 @@ export const Functions = ({ printLevel, selectFn, setUserID }) => {
  *
  * @returns {JSX.Element} The rendered FileAccess component.
  */
-export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo, savedInfo, getFile, saveFile }) => {
+export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, loadedInfo, savedInfo, getFile, saveFile }) => {
 
   // Info for dropdown menus
   const [dirs, setDirs] = useState([]);
@@ -169,7 +228,14 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
       <div className="flexDivTable">
         {/** Directory row */}
         <div className="flexDivRows">
-          <p className="flexDivColumns">Directory:</p>
+          <p className="flexDivColumns moreLink">Directory:
+            <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+              <h3>Directory</h3>
+              <div className="bulletList">
+                <p>Rookie mode toggle</p>
+              </div>
+            </span>
+          </p>
           <input
             className="flexDivColumns"
             name='directory box'
@@ -298,7 +364,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
             loadedInfo.filename !== obj.filename ||
             loadedInfo.dateTime.date !== obj.dateTime.date ||
             loadedInfo.dateTime.time !== obj.dateTime.time)
-            ? <button className="moreButton"
+            ? <button className="moreLink"
                 style={{ border: '1px solid red'}}
                 onClick={() => saveFile(true)}>
                   Overwrite
@@ -326,7 +392,7 @@ export const FileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo
         </div>
       } { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
         savedInfo && (obj.payload === null || obj.payload === '') &&
-          <p className="moreButton" style={{ cursor: 'default' }}>
+          <p className="moreLink" style={{ cursor: 'default' }}>
             {savedInfo.message} {savedInfo.filename}
             <span className="more">
               {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;

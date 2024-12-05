@@ -17,7 +17,7 @@ import {
     newDeleteEntry
 } from './generalFetch';
 
-export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentObj }) => {
+export const FileExplorer = ({ rookie, printLevel, selectFn, preselectedObj, setCurrentObj }) => {
     
     // Use object
     const [obj, setObj] = useState(preselectedObj);
@@ -162,7 +162,7 @@ export const FileExplorer = ({ printLevel, selectFn, preselectedObj, setCurrentO
 }
 
 /** Display dropdown of directory and files */
-const CascadingDropdown = ({ printLevel, dirs, fileInfo, handleDelete, obj, setObj }) => {
+const CascadingDropdown = ({ rookie, printLevel, dirs, fileInfo, handleDelete, obj, setObj }) => {
 
     const [outOptions, setOutOptions] = useState([]);
     const [overlay, setOverlay] = useState({});
@@ -312,7 +312,7 @@ const CascadingDropdown = ({ printLevel, dirs, fileInfo, handleDelete, obj, setO
 }
 
 /** Display File, allow version selection, and handle deleting or editing */
-const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurrentObj, selectFn }) => {
+const DisplayFile = ({ rookie, printLevel, fileInfo, handleDelete, obj, setObj, setCurrentObj, selectFn }) => {
 
     // Contain dateTimes of selected table, file and dir
     const [versions, setVersions] = useState([]);
@@ -540,7 +540,7 @@ const DisplayFile = ({ printLevel, fileInfo, handleDelete, obj, setObj, setCurre
 }
 
 /** Display predicted elements in a defined manner or use best effort attempt */
-const DisplayObject = ({ objToDisplay, depth, keyOuter }) => (
+const DisplayObject = ({ rookie, objToDisplay, depth, keyOuter }) => (
     <div style={{ marginLeft: `${depth*2}%`, border: '1px solid black' }} key={keyOuter}>
         {   // Display array in controlled manner or recall DisplayObject
             !objToDisplay ?

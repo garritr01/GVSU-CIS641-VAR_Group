@@ -7,6 +7,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
 .testColors {
@@ -57,6 +58,7 @@
 .loginContainer {
     background-color: white;
     margin: 2%;
+    z-index: 0;
 }
 
 .mainContainer {
@@ -67,6 +69,7 @@
     margin: 2%;
     width: 96%;
     overflow: auto;
+    z-index: 0;
 }
 
 .fileAccessContainer {
@@ -135,24 +138,38 @@ input {
 
 /* --- */
 
+/* ------------- HEADER STYLES ------------------- */
+
+.h1 {
+    display: inline-block;
+    width: auto;
+}
+
+/* --- */
+
 /* ------------- MORE INFO STYLES ---------------- */
 
-.more {
+.more, .moreDisabled {
     display: none;
     position: absolute;
-    left: 0%;
+    max-width: 50%;
     border: 1px solid black;
     background-color: white;
     z-index: 1;
+    font-size: .75rem;
+    font-weight: normal;
+    color: black;
 }
 
 .more:empty {
     border: none;
 }
 
-.moreButton:hover .more {
+.moreLink:hover .more {
     display: block;
 }
+
+.moreLink.right-half 
 
 input:focus+.moreRightLink .moreRight {
     display: block;
@@ -237,6 +254,7 @@ input:not(:focus)+.moreRightLink {
     height: 10%;
     width: 100%;
     background-color: lightblue;
+    z-index: 1;
 }
 
 .stickyHeader button {

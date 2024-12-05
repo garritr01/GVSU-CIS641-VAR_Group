@@ -18,7 +18,7 @@ import {
 import { FileAccess } from './Components';
 
 /** Interface for creating UIs to use in CustomInput */
-export const CustomUI = ({ printLevel, preselectedObj }) => {
+export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
     
     // Get object with local month, day, year, hour, minute
     const time = getCurrentSplitDate(true);
@@ -281,6 +281,7 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
     return (
         <div className="mainContainer">
             <FileAccess 
+                rookie={rookie}
                 printLevel={printLevel}
                 defaultPayload={null}
                 obj={obj}
@@ -368,13 +369,13 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                     scheduleInfo.repeatType === 'none' ? (
                         <div>
                             <p className="flexDivRows">Scheduled Time</p>
-                            <StartEndInput info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <StartEndInput rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
                             <button onClick={() => scheduleIt()}>Schedule it!</button>
                         </div>
                     ) : scheduleInfo.repeatType === 'specRpt' ? (
                         <div>
                             <p className="flexDivRows">Scheduled Time</p>
-                            <StartEndInput info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <StartEndInput rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
                             <div className="flexDivRows">
                                 <p>Repeat every&nbsp;</p>
                                 <input
@@ -386,13 +387,13 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                                 />
                                 <p>&nbsp;days</p>
                             </div>
-                            <EffectiveTimeRange info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <EffectiveTimeRange rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
                             <button onClick={() => scheduleIt()}>Schedule it!</button>
                         </div>
                     ) : scheduleInfo.repeatType === 'weekly' ? (
                         <div>
                             <p className="flexDivRows">Scheduled Time</p>
-                            <StartEndInput info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <StartEndInput rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
                             <div className="flexDivRows">
                                 <p>Repeat every&nbsp;</p>
                                 <select
@@ -408,14 +409,14 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
                                         <option key={'6'} value={'6'}>Saturday</option>
                                 </select>
                             </div>
-                            <EffectiveTimeRange info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <EffectiveTimeRange rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
                             <button onClick={() => scheduleIt()}>Schedule it!</button>
                         </div>
                     ) : ['daily','monthly','annually'].includes(scheduleInfo.repeatType) ? (
                         <div>
                             <p className="flexDivRows">Scheduled Time</p>
-                            <StartEndInput info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
-                            <EffectiveTimeRange info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <StartEndInput rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
+                            <EffectiveTimeRange rookie={rookie} info={scheduleInfo} setInfo={setScheduleInfo} validity={scheduleValidity} />
                             <button onClick={() => scheduleIt()}>Schedule it!</button>
                         </div>
                     ) : (null)
@@ -424,6 +425,7 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
             {/** Only show Scheduled Dates if there are any and schedule is toggled*/
                 scheduleToggle && obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
                     <ScheduleDisplay 
+                        rookie={rookie}
                         obj={obj} setObj={setObj} 
                         setScheduleToggle={setScheduleToggle} 
                         setInfo={setScheduleInfo}/>
@@ -510,7 +512,7 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
             }
             <p>UI Representation:</p>
             {/** Display UI similar to how it will be in CustomRecord */
-                <EditUI obj={obj} setObj={setObj}/>
+                <EditUI rookie={rookie} obj={obj} setObj={setObj}/>
             }
             <div className="flexDivTable">
             {/** Display start if decided to include */
@@ -578,7 +580,7 @@ export const CustomUI = ({ printLevel, preselectedObj }) => {
 }
 
 /** HTML element for editing start and end date/time of schedule */
-const StartEndInput = ({ info, setInfo, validity }) => {
+const StartEndInput = ({ rookie, info, setInfo, validity }) => {
 
     /** Update date 1 property with inputValue */
     const uponStartChange = (inputValue, prop) => {
@@ -727,7 +729,7 @@ const StartEndInput = ({ info, setInfo, validity }) => {
 }
 
 /** HTML element for editing effective start and end date of schedule */
-const EffectiveTimeRange = ({ info, setInfo, validity }) => {
+const EffectiveTimeRange = ({ rookie, info, setInfo, validity }) => {
 
     // Update effective start date property with inputValue
     const uponEffectiveStartChange = (inputValue, prop) => {
@@ -872,7 +874,7 @@ const EffectiveTimeRange = ({ info, setInfo, validity }) => {
 }
 
 /** HTML element for displaying schedules that will be saved with UI */
-const ScheduleDisplay = ({ obj, setObj, setScheduleToggle, setInfo }) => {
+const ScheduleDisplay = ({ rookie, obj, setObj, setScheduleToggle, setInfo }) => {
 
     /** Remove content from obj.options.schedule */
     const removeSchedule = (index) => {
@@ -965,7 +967,7 @@ const ScheduleDisplay = ({ obj, setObj, setScheduleToggle, setInfo }) => {
 }
 
 /** payload element display including remove, move, and group buttons */
-const EditUI = ({ obj, setObj }) => {
+const EditUI = ({ rookie, obj, setObj }) => {
 
     // hold index of object to be moved
     const [moveIndex, setMoveIndex] = useState(null);

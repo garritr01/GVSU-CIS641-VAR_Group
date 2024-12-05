@@ -16,7 +16,7 @@ import {
     newFetchObject, newSaveObject, newFetchDirsAndFiles, newDeleteEntry
 } from './generalFetch';
 
-export const CustomInput = ({ printLevel, preselectedObj }) => {
+export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
 
     // Contain entire custom input object (use customUI if object with version not preselected)
     const [obj, setObj] = useState({ ...preselectedObj, table: preselectedObj.dateTime.date ? preselectedObj.table : 'customUI' });
@@ -198,7 +198,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                     }
                 })
             };
-            validityCheck = false;
+
             // Kill save if start or end inputs are invalid
             if (!validityCheck) {
                 throw new Error('date inputs are invalid', dateValidity);
@@ -208,7 +208,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
                 throw new Error("No type 'end' in obj.payload:", obj.payload);
             }
             // Kill save if 'start' exists and is after 'end'
-            if (!checkSplitDateIsBefore(startForCheck, endForCheck)) {
+            if (startForCheck && !checkSplitDateIsBefore(startForCheck, endForCheck)) {
                 setDateValidity({
                     start: { month: false, day: false, year: false, hour: false, minute: false },
                     end: { month: false, day: false, year: false, hour: false, minute: false }
@@ -403,7 +403,7 @@ export const CustomInput = ({ printLevel, preselectedObj }) => {
  *
  * @returns {JSX.Element} The rendered FileAccess component.
  */
-const RecordFileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo, savedInfo, getFile, saveFile }) => {
+const RecordFileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, loadedInfo, savedInfo, getFile, saveFile }) => {
 
     // Info for dropdown menus
     const [dirs, setDirs] = useState([]);
@@ -646,7 +646,7 @@ const RecordFileAccess = ({ printLevel, defaultPayload, obj, setObj, loadedInfo,
     );
 }
 
-const UI = ({ UI, setObj }) => {
+const UI = ({ rookie, UI, setObj }) => {
 
     /** Update payload with value */
     const updatePayload = (index, index2, inValue) => {
@@ -771,7 +771,7 @@ const UI = ({ UI, setObj }) => {
 }
 
 /** HTML element for editing start and end date/time of schedule */
-const DateInput = ({ date, setObj, dateValidity }) => {
+const DateInput = ({ rookie, date, setObj, dateValidity }) => {
 
     /** Update date property with inputValue */
     const uponDateChange = (inputValue, prop) => {

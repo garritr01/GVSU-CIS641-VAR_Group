@@ -18,6 +18,8 @@ const App = () => {
 
   // Variables for passing between functions
   const [open, setOpen] = useState('main');
+  // Deactivates display of .more class
+  const [rookieMode, setRookieMode] = useState(false);
   // array of strings for logging
   // b (basic) - use generally
   // p (params) - use for parameter logging
@@ -26,7 +28,7 @@ const App = () => {
   // d (database) - use to log database output (errors will always log)
   // e (exceptions) - use to log exceptional cases
   // v (verbose) - add to any character for verbose mode
-  const logLevel = ['b']; //['d','e','b','o','p','s'];
+  const logLevel = ['b','e']; //['d','e','b','o','p','s'];
   // Remains for old printout conditions
   // const printoutLevel = 1;
   const [userID, setUserID] = useState('garritr01');
@@ -131,6 +133,7 @@ const App = () => {
     <div>
       {/** Display menu atop screen */}
       {open !== 'logIn' && open !== 'signUp' && <Functions 
+        rookie={rookieMode}
         printLevel={logLevel}
         selectFn={handleOpen}
         setUserID={setUserID}/>}
@@ -145,29 +148,37 @@ const App = () => {
         selectFn={handleOpen} />}
       {/** Main Menu interface*/}
       {open === 'main' && <MainMenu
+        rookie={rookieMode}
+        setRookie={setRookieMode}
         printLevel={logLevel}
+        userID={userID}
         selectFn={handleOpen}
         obj={currentObj}
         setCurrentObj={setCurrentObj} />}
       {/** File Explorer interface */}
       {open === 'fileExplorer' && <FileExplorer
+        rookie={rookieMode}
         printLevel={logLevel}
         selectFn={handleOpen}
         preselectedObj={currentObj}
         setCurrentObj={setCurrentObj} />}
       {/** Journal interface */}
       {open === 'journal' && <Journal
+        rookie={rookieMode}
         printLevel={logLevel}
         preselectedObj={currentObj} />}
       {/** Custom UI creation interface */}
       {open === 'customUI' && <CustomUI
+        rookie={rookieMode}
         printLevel={logLevel}
         preselectedObj={currentObj} />}
       {/** Custom recording interface */}
       {open === 'record' && <CustomInput
+        rookie={rookieMode}
         printLevel={logLevel}
         preselectedObj={currentObj} />}
       {open === 'calendar' && <Calendar
+        rookie={rookieMode}
         printLevel={logLevel}
         selectFn={handleOpen}
         setCurrentObj={setCurrentObj} 
