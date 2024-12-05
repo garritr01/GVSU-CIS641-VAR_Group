@@ -6,6 +6,9 @@ import {
     formatSplitDateToDateTime,
     convertUTCSplitDateToLocal,
     formatDateTimeToString,
+    formatJsDateToDateTime,
+    getWeekdayString,
+    convertLocalDateTimeToUTC,
 } from './oddsAndEnds';
 
 // Specifically imported for testing schedule fitting to calendar
@@ -13,19 +16,23 @@ import {
     splitDateDifference, checkSplitDateIsBefore, addToSplitDate, getCurrentSplitDate
 } from './oddsAndEnds'
 
-import { newSaveObject, newFetchDirsAndFiles, newFetchObject
+import { 
+    newSaveObject, newFetchDirsAndFiles, newFetchObject,
+    newFetchObjects,
+    newDeleteEntry
 } from './generalFetch';
 
-import { Calendar
-} from './Calendar';
+import { Calendar } from './Calendar';
+
+import { positionMorePopup } from './dynamicDisplays';
 
 /** Renders the main menu and handles selection */
 export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj, setCurrentObj }) => {
 
-    const time = getCurrentSplitDate(true);
-
+    // Gets time for massProduce
+    // const time = getCurrentSplitDate(true);
     // Holds the quantity for massProduce
-    const [numSaves, setNumSaves] = useState(20);
+    // const [numSaves, setNumSaves] = useState(20);
     // Holds qty for specRpt test
     /*
     const [cStart, setCStart] = useState({ ...time, hour: '00', minute: '00' });
@@ -36,6 +43,24 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
     const [scheduledEvents, setScheduledEvents] = useState([]);
     */
     
+    // Hold time for display
+    const [clock, setClock] = useState(new Date());
+
+    // Creates interval on load to update time every 10 seconds
+    useEffect(() => {
+        // Define interval to update time every 10 seconds
+        const intervalId = setInterval(() => {
+            setClock(new Date());
+        }, 10000);
+
+        // Cleanup interval when the component unmounts
+        return () => clearInterval(intervalId);
+    }, []);
+
+    // Position .more Popups on load
+    useEffect(() => {
+        positionMorePopup();
+    }, []);
 
     // Log the printLevel if 'bv' or 'pv' (basic verbose, parameter verbose)
     useEffect(() => {
@@ -45,27 +70,42 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
     // Renders military time and all main menu functions
     return (
         <div className="mainContainer">
+            {/** Header div */}
             <div className="flexDivRows">
-                <h1 className="moreLink">
-                    ROSA
-                    <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+                <div className="moreLink">
+                    <h1>ROSA</h1>
+                    <span className={rookie ? "more" : "moreDisabled"}>
                         <h3>ROSA</h3>
                         <p>Hello I'm ROSA and I'm here to help you organize yourself!</p>
                     </span>
-                </h1>
+                </div>
             </div>
-            <button className="moreLink" 
-                style={{ color: rookie ? 'gray' : undefined }}
-                onClick={() => setRookie(!rookie)}>
-                Rookie Mode
-                <span className="more" style={{ color: 'black' }}>
+            {/** Clock div */}
+            <div className="flexDivRows">
+                <div className="moreLink">
+                    <p>
+                        {getWeekdayString(clock.getDay())}&nbsp;
+                        {formatDateTimeToString(formatJsDateToDateTime(clock))}&nbsp;
+                        {new Intl.DateTimeFormat('en-US', {
+                            timeZoneName: 'short'
+                        }).formatToParts(clock).find(part => part.type === 'timeZoneName')?.value}
+                    </p>
+                    <span className={rookie ? "more" : "moreDisabled"}>
+                        {getWeekdayString(clock.getUTCDay())}&nbsp;
+                        {formatDateTimeToString(convertLocalDateTimeToUTC(formatJsDateToDateTime(clock)))} UTC
+                    </span>
+                </div>
+            </div>
+            {/** Rookie Mode div */}
+            <div className="moreLink">
+                <button
+                    onClick={() => setRookie(!rookie)}>
+                    { rookie ? 'Disable Rookie Mode' : 'Enable Rookie Mode' }
+                </button>
+                <span className="more">
                     <h3>Rookie Mode</h3>
                     <p>Enabling Rookie Mode will display info about everything throughout the page, similar to what you see here.</p>
                 </span>
-            </button>
-            <div className="flexDivRows">
-                <p>{getCurrentDateTime().date}</p>
-                <p>-{getCurrentDateTime().time}</p>
             </div>
             <ClockOutOptions
                 rookie={rookie}
@@ -80,6 +120,10 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
                 setCurrentObj={setCurrentObj}
                 userID={userID} 
                 fullDisplay={false}/>
+            <QuickNoteChecklist
+                rookie={rookie}
+                printLevel={printLevel}
+                userID={userID} />
             {/** Test specRpt fitting into calendar */}
             {/*
             <div>
@@ -119,7 +163,8 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
                 </div>
             </div> 
             */}
-            {/* // Mass production inputs
+            {/** Mass production inputs */}
+            {/*
                 <div className="flexDivRows">
                     <button onClick={() => { massProduce('customUI', numSaves) }}>Save {numSaves} RNG CustomUIs</button>
                     <input value={numSaves} onChange={(e) => setNumSaves(e.target.value)} />
@@ -202,21 +247,136 @@ const ClockOutOptions = ({ rookie, printLevel, selectFn, currentObj, setCurrentO
     return (
         fileInfo.length > 0 &&
         <div className="flexDivRows">
-            <p>Clock out: </p>
+            <p>Clock Out: </p>
             {
                 fileInfo.map((file, i) => (
-                    <button
-                        key={i}
-                        onClick={() => clockOut(file)}
-                        >
+                    <div key={i} className="moreLink">
+                        <button
+                            onClick={() => clockOut(file)}>
                             {file.dir}/{file.filename}&nbsp;
                             {formatDateTimeToString(convertUTCDateTimeToLocal(file.dateTime))}
-                    </button>
+                        </button>
+                        <span className={rookie ? "more" : "moreDisabled"}>
+                            <h3>Clock Out</h3>
+                            <p>
+                                Load '{file.dir}/{file.filename}' which was clocked into at&nbsp;
+                                {formatDateTimeToString(convertUTCDateTimeToLocal(file.dateTime))}&nbsp;
+                                to finish recording and clock out
+                            </p>
+                        </span>
+                    </div>
                 ))
             }
         </div>
     )
 
+}
+
+const QuickNoteChecklist = ({ rookie, printLevel, userID }) => {
+
+    // contains all quick note titles (directories in quickNotes table)
+    const [notes, setNotes] = useState([]);
+    // hold true and false for whether each note should fully display
+    const [dropped, setDropped] = useState([]);
+    // used to trigger useEffect
+    const [detectDelete, setDetectDelete] = useState(false);
+
+    // Trigger getDirsAndFiles on delete and load
+    useEffect(() => {
+        getNotes();
+    },[detectDelete])
+
+    /** Get content of 'quickNotes' table given userID */
+    const getNotes = async () => {
+        try {
+            const response = await newFetchDirsAndFiles('quickNotes', userID);
+            if (response.truth) {
+                const objectsResponse = await newFetchObjects('quickNotes', userID, response.files, ['payload']);
+                if (objectsResponse.truth) {
+                    const newNotes = objectsResponse.objects.map((obj) => ({
+                        dir: obj.dir,
+                        filename: obj.filename,
+                        dateTime: obj.dateTime,
+                        priority: obj.payload[0].priority,
+                        timeNotes: obj.payload[0].timeNotes,
+                        notes: obj.payload[0].notes
+                    }));
+                    // Sort by priority in descending order and consider invalid priority to be 0
+                    setNotes(newNotes.sort((a, b) => {
+                        const priorityA = isNaN(parseInt(a.priority)) ? 0 : parseInt(a.priority);
+                        const priorityB = isNaN(parseInt(b.priority)) ? 0 : parseInt(b.priority);
+                        return priorityB - priorityA; // Ascending order
+                    }));
+                    // create array with length of newNotes and fill with false
+                    setDropped(Array(newNotes.length).fill(false));
+                    if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got 'quickNotes'`) }
+                } else {
+                    throw new Error(`${objectsResponse.status} Error getting 'quickNotes': ${objectsResponse.msg}`);
+                }
+            } else {
+                setNotes([]);
+                throw new Error(`${response.status} Error getting dirs and files from 'quickNotes': ${response.msg}`);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    /** Delete quick note */
+    const deleteQuickNote = async (obj) => {
+        try {
+            const response = await newDeleteEntry('quickNotes', obj.dateTime, userID, obj.dir, obj.filename);
+            if (response.truth) {
+                if (logCheck(printLevel, ['d', 'b']) > 0) { console.log(`${obj.dir}/${obj.filename} version: (${formatDateTimeToString(obj.dateTime)}) succesfully deleted`) }
+                // trigger reload
+                setDetectDelete(!detectDelete);
+            } else {
+                throw new Error(`${response.status} Error deleting quick note: '${obj.dir}/${obj.filename}' version(${formatDateTimeToString(obj.dateTime)}) in '${obj.table}', err: ${response.message}`);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    return (
+        <div>
+            { /** Display 'To Do List' if not empty */
+                notes.length > 0 &&
+                    <h3>To Do List</h3>
+            }
+            { /** map Quick Notes */
+                notes.map((note, i) => (
+                    <div key={i} style={{ cursor: 'pointer' }}>
+                        <div className="flexDivRows">
+                            <div className="moreLink">
+                                <button onClick={() => deleteQuickNote(note)}>
+                                    Remove
+                                </button>
+                                <span className={rookie ? "more" : "moreDisabled"}>
+                                    <h3>Remove Quick Note</h3>
+                                    <p>Quick Note '{note.dir}' will be deleted</p>
+                                </span>
+                            </div>
+                            <p onClick={() => setDropped(prevState => {
+                                    const newDropped = [...prevState];
+                                    newDropped[i] = !newDropped[i];
+                                    return newDropped;
+                                })}>
+                                {note.dir} - {note.timeNotes}&nbsp;
+                                {dropped[i] ? '▼' : '►'}
+                            </p>
+                        </div>
+                        {/** Full display of quick note */
+                            dropped[i] &&
+                                <div>
+                                    <p>{note.notes}</p>
+                                </div>
+                        }
+                    </div>
+                ))
+            }
+        </div>
+    );
 }
 
 // Below are temp functions for testing
