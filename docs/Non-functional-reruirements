@@ -22,5 +22,89 @@
 16.The website shall provide a dedicated Calender, File manager, Schedule Events options that remains visible at all times.
 17.The website shall support offline access for viewing previously loaded calendar data.
 18.The website shall provide a live preview of events while users are adding or editing them.
-19.The website shall support natural language input for creating events.
+19.The website shall support natural language input for creating events. 
+
+Functional Requirement
+
+1.Filesystem Requirements 
+
+FR1: The system shall create and provide access to database in local storage. 
+
+FR2: The system shall enable the user to access all of their files through the graphical user interface (GUI). 
+
+
+FR4: The system shall direct the user to the proper function to edit files based on the file type. 
+
+FR5: The system shall display files and directories in cascading dropdown menus based on the overarching directories. 
+
+FR: The system shall display versions.  
+FR6: The system shall display file contents upon file click. 
+
+FR7: The system shall allow users to delete files. 
+
+FR8: The system shall only allow the user to select a table before displaying any files or directories. 
+
+
+2.Scheduling Requirements 
+
+FR8: The system shall allow the user to schedule events in a specific or recurring manner. 
+
+FR9: The system shall allow users to update and remove events made. 
+
+FR10: The system shall remind the user of their scheduled events an hour before the scheduled time if desired. 
+
+FR11: The system shall provide a calendar view to visualize future commitments. 
+
+FR12: The system shall convert local time to UTC for storage. 
+
+FR13: The system shall convert UTC to local time upon display if necessary. 
+
+
+3.Recording Requirements 
+
+FR14: The system shall allow the user to create a user interface with a specific directory, filename, and date/time. 
+
+FR15: The system shall allow the user to load previous user interfaces of a specific directory and filename to edit. 
+
+FR16: The system shall allow the user to add buttons , multiple choice questions, text input  boxes and large text input boxes with a specified label to display. 
+
+FR17: The system shall automatically add an end date/time element. 
+
+FR18: The system shall save the UI with the user specified directory and filename, and the current date/time. 
+
+FR19: The system shall allow the user to open a specified directory and filename user interface for recording. 
+
+4.Calendar Requirements
+
+FR20: The system shall allow the user to choose the range of dates displayed. 
+
+FR21: The system shall display all scheduled events. 
+
+FR22: The system shall allow the user to edit scheduled and past events by opening the file in its associated function upon clicking edit. 
+
+FR23: The system shall allow the user to remove scheduled and past events upon clicking "Delete". 
+
+5.Main Menu Requirements
+
+FR24: The system shall allow the user to open the file system, clock in, record, quick note, calendar, and schedule interfaces.
+
+FR25: The system shall display today's, weekly, monthly, and annual calendar. 
+
+FR26: The system shall display quick notes. 
+
+FR27: The system shall allow the user to directly clock out of events clocked into. 
+
+FR28: The system shall allow the user to resolve quick notes.  
+
+6.Login Requirements
+
+FR29: The system shall allow the user to provide a username and password. 
+
+FR30: The system shall allow login upon correct combination of username and password. 
+
+FR31: The system shall allow the user to create an account with a unique username and password. 
+
+
+
+
 
