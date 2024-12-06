@@ -3,24 +3,18 @@ import React, { useState, useEffect, useRef
 
 import {
     getCurrentSplitDate, addToSplitDate, logCheck, filterByRange,
-    checkSplitDateIsBefore, splitDateDifference,
-    formatSplitDateToString,
-    formatSplitDateToJsDate,
-    formatDateTimeToSplitDate,
-    formatDateTimeToString,
-    convertUTCSplitDateToLocal,
-    convertLocalSplitDateToUTC,
-    convertUTCDateTimeToLocal,
-    convertLocalDateTimeToUTC,
-    formatSplitDateToDateTime,
-    convertObjTimes,
-    formatJsDateToSplitDate,
+    checkSplitDateIsBefore, splitDateDifference, formatSplitDateToString, 
+    formatSplitDateToJsDate, formatDateTimeToSplitDate, formatDateTimeToString, 
+    convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, 
+    convertUTCDateTimeToLocal, convertLocalDateTimeToUTC, 
+    formatSplitDateToDateTime, convertObjTimes, formatJsDateToSplitDate, 
     getCurrentDateTime
 } from './oddsAndEnds';
 
 import { 
     newDeleteEntry,
-    newFetchDirsAndFiles, newFetchObject, newFetchObjects,
+    newFetchDirsAndFiles, newFetchFilteredDirsAndFiles,
+    newFetchObject, newFetchObjects,
     newSaveObject
 } from './generalFetch';
 
@@ -30,13 +24,15 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
     const time = getCurrentSplitDate(true);
     // Define range of calendar to display
     const [start, setStart] = useState(addToSplitDate({ month: time.month, day: time.day, year: time.year }, 'day', '-1'));
-    const [end, setEnd] = useState(addToSplitDate({ month: time.month, day: time.day, year: time.year }, 'day', '2'));
+    const [end, setEnd] = useState({
+        ...addToSplitDate({ month: time.month, day: time.day, year: time.year }, 'day', '2'),
+        hour: '23',
+        minute: '59'
+    });
     // List of dates between start and end (inclusive)
     const [dates, setDates] = useState([]);
     // Contain directories from schedule and record
     const [allDirs, setAllDirs] = useState([]);
-    // Contain all customUI schedules
-    const [scheduleInfo, setScheduleInfo] = useState([]);
     // Contain all specific dates scheduled
     const [schedules, setSchedules] = useState([]);
     // Contain all records within range
@@ -56,10 +52,10 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
     // Used to contain dir input to add to selected array
     const [selectedDir, setSelectedDir] = useState('');
 
-
-    // Get ScheduleInfo on initial render
+    // Get calendar info and define allDirs on initial render
     useEffect(() => {
         spanRange();
+        defineAllDirs();
     }, []);
 
     // trigger loading of event on change in dates array
@@ -82,19 +78,38 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
         }
     },[detectDelete])
 
-    // Reset allDirs and allFiles on records or schedules change
-    useEffect(() => {
-        // Include each unique directory
-        setAllDirs([ ...new Set([
-            ...scheduleInfo.map(sched => sched.dir), 
-            ...records.map(rec => rec.dir)
-        ])]);
-    },[records, scheduleInfo]);
+    /** Get every directory */
+    const defineAllDirs = async () => {
+        try {
+            const recordResponse = await newFetchDirsAndFiles('record', userID);
+            const scheduleResponse = await newFetchDirsAndFiles('customUI', userID);
+            if (recordResponse.truth && scheduleResponse.truth) {
+                setAllDirs([...new Set([
+                    ...recordResponse.files.map(r => r.dir),
+                    ...scheduleResponse.files.map(s => s.dir)
+                ])]);
+            } else {
+                if (!recordResponse.truth && !scheduleResponse.truth) {
+                    throw new Error(`Error setting allDirs. 
+                        schedule ${scheduleResponse.status} Error: ${scheduleResponse.msg}
+                        record ${recordResponse.status} Error: ${recordResponse.msg}`);
+                } else if (!scheduleResponse.truth) {
+                    throw new Error(`Error setting allDirs. schedule ${scheduleResponse.status} Error: ${scheduleResponse.msg}`);
+                } else if (!recordResponse.truth) {
+                    throw new Error(`Error setting allDirs. record ${recordResponse.status} Error: ${recordResponse.msg}`);
+                } else {
+                    throw new Error('Not sure how this error could occurred.')
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
 
-
+    /** get everything but payload for each entry in 'customUI' */
     const getScheduleInfo = async () => {
         try {
-            const response = await newFetchDirsAndFiles('customUI', userID);
+            const response = await newFetchFilteredDirsAndFiles('customUI', userID, selectedDirs, include);
             if (response.truth) {
                 const objectsResponse = await newFetchObjects('customUI', userID, response.files, ['options']);
                 if (objectsResponse.truth) {
@@ -102,7 +117,6 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
                     const convertedObjs = objectsResponse.objects.map((obj) => {
                         return { ...convertObjTimes(obj, true, false, true, false)}
                     });
-                    setScheduleInfo(convertedObjs);
                     defineSchedules(convertedObjs);
                     if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got schedules from 'customUI'`) }
                 } else {
@@ -112,14 +126,15 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
                 throw new Error(`${response.status} Error getting dirs and files from 'customUI': ${response.msg}`);
             }
         } catch (err) {
-            setScheduleInfo([]);
+            setSchedules([]);
             console.error(err);
         }
     }
 
+    /** Get dir, filename, dateTime of 'record' table */
     const getRecords = async () => {
         try {
-            const response = await newFetchDirsAndFiles('record', userID);
+            const response = await newFetchFilteredDirsAndFiles('record', userID, selectedDirs, include);
             if (response.truth) {
                 setRecords(response.files);
                 if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got dirs and filenames from 'record'`) }
@@ -132,9 +147,10 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
         }
     }
 
+    /** Get dir, filename, dateTime of 'resolve' table */
     const getResolutions = async () => {
         try {
-            const response = await newFetchDirsAndFiles('resolve', userID);
+            const response = await newFetchFilteredDirsAndFiles('resolve', userID, selectedDirs, include);
             if (response.truth) {
                 setResolutions(response.files);
                 if (logCheck(printLevel, ['s']) === 1) { console.log(`Successfully got dirs and filenames from 'resolve'`) }
@@ -147,6 +163,7 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
         }
     }
 
+    /** Use schedule info to define specific events within the range of the calendar (turn repeating into series of single events) */
     const defineSchedules = (schedInfo) => {
         let newScheduledEvents = [];
         schedInfo.forEach((info) => {
@@ -349,6 +366,26 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
         else if (logCheck(printLevel, ['s']) === 2) { console.log('Range:', start, ' to ', end, ' yielded: ', newDates) }
     }
 
+    /** Add selected to selectedDirs and remove any subdirectories */
+    const addSelectedDir = (selected) => {
+        if (selected !== '') {
+            const newDirs = [ 
+                ...selectedDirs.filter(dir => (
+                    dir.split('/').length <= selected.split('/').length ||
+                    dir.split('/').slice(0, selected.split('/').length).join('/') !== selectedDir)
+                ), 
+                selected
+            ];
+            setSelectedDirs(newDirs);
+            setSelectedDir(selected.split('/').slice(0, selected.split('/').length - 1).join('/'));
+        }
+    }
+
+    /** Remove selected from selectedDirs */
+    const removeSelectedDir = (selected) => {
+        setSelectedDirs(prevState => prevState.filter(dir => dir !== selected));
+    }
+
     return (
         <div className={ fullDisplay ? "mainContainer" : undefined }>
             { /** Customize Dates and include/exclude only available when fullDisplay is true */
@@ -356,10 +393,10 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
                     <div>
                         {/** Input range of dates */}
                         <div className="flexDivRows">
+                            <p>Dates: </p>
                             <DateInput date={start} setDate={setStart} />
                             <p>-</p>
                             <DateInput date={end} setDate={setEnd} />
-                            <button onClick={() => spanRange()}>Apply Dates</button>
                         </div>
                         {/** Input dirs to exclude */}
                         <div className="flexDivRows">
@@ -371,26 +408,24 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
                                 <option key={'empty'} value={''}></option>
                                 {// Return all tiers of selectedDir
                                     selectedDir !== '' &&
-                                        selectedDir.split('/').map((dir, i) => {
-                                            if (!selectedDirs.includes(selectedDir.split('/').slice(0, i+1).join('/'))) {
-                                                return (
-                                                    <option key={i} value={selectedDir.split('/').slice(0,i+1).join('/')}>
-                                                        {selectedDir.split('/').slice(0,i+1).join('/')}
-                                                    </option>
-                                                );
-                                            }
-                                        })
+                                        selectedDir.split('/').map((dir, i) => (
+                                            <option key={i} value={selectedDir.split('/').slice(0,i+1).join('/')}>
+                                                {selectedDir.split('/').slice(0,i+1).join('/')}
+                                            </option>
+                                        ))
                                 }
                                 {// Return subdirectories based on selectedDir
                                     allDirs.length > 0 &&
                                     [...new Set(
                                         allDirs.map((dir) => {
-                                            // return all leading directories
+                                            // return all leading directories if selectedDir is empty
                                             if (selectedDir === '' && !selectedDirs.includes(dir.split('/')[0])) {
                                                 return dir.split('/')[0];
                                             }
-                                            // return all subdirectories of obj.dir
-                                            else if (dir.startsWith(selectedDir) && 
+                                            // return all subdirectories of selectedDir
+                                            else if (
+                                                selectedDir !== '' &&
+                                                dir.startsWith(selectedDir) && 
                                                 dir.split('/').length > selectedDir.split('/').length &&
                                                 !selectedDirs.includes(dir.split('/').slice(0, selectedDir.split('/').length + 1).join('/'))) {
                                                 return dir.split('/').slice(0, selectedDir.split('/').length + 1).join('/');
@@ -407,35 +442,69 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
                                     ))
                                 }
                             </select>
-                            <button onClick={() => {
-                                setSelectedDirs(prevState => [ ...prevState, selectedDir]);
-                                setSelectedDir('');
-                                }}>
-                                Add it!
-                            </button>
+                            <div className="moreLink">
+                                <button onClick={() => addSelectedDir(selectedDir)}>
+                                    +
+                                </button>
+                                <p className={rookie ? "more" : "moreDisabled"} style={{ textAlign: 'left' }}>
+                                    Add {selectedDir} to the list of directories to include or exclude.
+                                </p>
+                            </div>
+                            <div className="moreLink">
+                                <button onClick={() => setInclude(!include)}>
+                                    {include ? 'Exclude Directories' : 'Include Directories'}
+                                </button>
+                                <div className="more">
+                                    <p style={{ textAlign: 'left' }}>
+                                        Currently { include ? 'including ' : 'excluding ' }
+                                        { selectedDirs.length > 0 ? 'the following directories and their subdirectories. Click to remove from list.' : 'all directories.'}
+                                    </p>
+                                    <div className="bulletList">
+                                        {/** map selectedDirs */
+                                            selectedDirs.length > 0 && selectedDirs.map((dir, i) => (
+                                                <div key={i} className="flexDivRows">
+                                                    <p 
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => removeSelectedDir(dir)}>
+                                                        {dir}
+                                                    </p>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </div>                                                   
-                        <button 
-                            onClick={() => setInclude(true)}
-                            style={{ color: include ? 'gray' : undefined}}>
-                            Include
-                        </button>
-                        <button 
-                            onClick={() => setInclude(false)}
-                            style={{ color: !include ? 'gray' : undefined}}>
-                            Exclude
-                        </button>
+                        {/** .more display for Reload Calendar button */}
+                        <div className="flexDivRows">
+                            <div className="moreLink">
+                                <button onClick={() => spanRange()}>Reload Calendar</button>
+                                <div className="more">
+                                    <p style={{ textAlign: 'left' }}>
+                                        Load calendar information from&nbsp;
+                                        {formatSplitDateToString(start, false)}&nbsp;
+                                        to {formatSplitDateToString(end, false)}
+                                        {
+                                            selectedDirs[0] && (
+                                                <>{include ? ' including ' : ' excluding '} {selectedDirs.join(', ')}</>
+                                            )
+                                        }
+                                        .
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
             }
-            { /* Logging buttons
+            { /** Logging buttons
             <button onClick={() => console.log(records)}>Log Records</button>
             <button onClick={() => console.log(schedules)}>Log Schedules</button>
-            <button onClick={() => console.log(scheduleInfo)}>Log ScheduleInfo</button>
             <button onClick={() => console.log(resolutions)}>Log Resolutions</button>
             <button onClick={() => console.log(allDirs)}>Log allDirs</button>
             <button onClick={() => console.log(selectedDirs)}>Log selectedDirs</button>
             <button onClick={() => console.log(dates)}>Log dates</button>
             <button onClick={() => console.log(selection)}>Log Selection</button>
-            */}
+            */ }
             {/** Display calendar */}
             <CalendarView
                 printLevel={printLevel}
@@ -771,7 +840,7 @@ const Cell = ({ rookie, printLevel, userID, setCurrentObj, selectFn, date, recor
                                                 color: 'blue',
                                                 fontWeight: isSelected ? 'bold' : undefined
                                             }} 
-                                            onClick={() => setSelection(event)}>
+                                            onClick={() => isSelected ? setSelection(null) : setSelection(event)}>
                                             {displayString}
                                         </p>
                                         {// Include buttons if selected
@@ -825,7 +894,7 @@ const Cell = ({ rookie, printLevel, userID, setCurrentObj, selectFn, date, recor
                                                     textWrap: 'nowrap',
                                                     fontWeight: isSelected ? 'bold' : undefined
                                                 }} 
-                                                onClick={() => setSelection(event)}>
+                                                onClick={() => isSelected ? setSelection(null) : setSelection(event)}>
                                                 {displayString}
                                             </p>
                                         </div>
