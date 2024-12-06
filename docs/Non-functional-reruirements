@@ -1,0 +1,26 @@
+1.The system shall enforce a minimum password strength policy, requiring at least eight characters,      
+  one uppercase letter, one number, and one special character.
+2.Passwords shall be stored securely in the database.
+3.The system   Shall provide secure user authentication, including multi-factor authentication (MFA)  
+  For access
+4.The website shall provide a consistent user interface across all supported devices.
+5.The website shall allow calendar data to be exported in standard formats.
+6.The website shall display error messages that are clear and user-friendly.
+7.The calendar website shall provide clear and intuitive navigation for accessing key features such as
+  adding events and viewing schedules.
+8.The calendar website shall allow users to switch between different views (daily, weekly, monthly) 
+  with a single click or tap.
+9.The website shall allow users to customize their time zone preferences
+10.The calendar website shall allow users to set recurring events with an intuitive and clear   
+  interface.
+11.The website shall provide users with a simple and clear mechanism to filter events by category or     
+  Tag
+12.The website shall notify users of upcoming events.
+13.The website shall enable users to edit event details directly from the calendar view.
+14.The website shall visually differentiate past, current, and future events in the calendar view.
+15.The website shall provide a dedicated search bar that remains visible at all times.
+16.The website shall provide a dedicated Calender, File manager, Schedule Events options that remains visible at all times.
+17.The website shall support offline access for viewing previously loaded calendar data.
+18.The website shall provide a live preview of events while users are adding or editing them.
+19.The website shall support natural language input for creating events.
+
