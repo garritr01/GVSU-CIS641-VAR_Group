@@ -455,17 +455,21 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
                 # Also delete 'record' where options.resolved is equal to dateTime of deleted 'resolve'
                 if tableName == 'resolve':
                     cursor2.execute(f'SELECT directory, filename, dateTime FROM {tableName} WHERE id = ?', (id,))
-                    record = cursor2.fetchone()
-                    if record:
-                        rDirectory, rFilename, rDateTime = record
+                    resolve = cursor2.fetchone()
+                    if resolve:
+                        rDirectory, rFilename, rDateTime = resolve
                         rowsAffected += cursor.execute(f'DELETE FROM record WHERE userID = ? AND directory = ? AND filename = ? AND options LIKE ?', 
+                           (userID, rDirectory, rFilename, f'%resolved": {rDateTime}%')).rowcount
+                    if resolve:
+                        rDirectory, rFilename, rDateTime = resolve
+                        rowsAffected += cursor.execute(f'DELETE FROM clockIn WHERE userID = ? AND directory = ? AND filename = ? AND options LIKE ?', 
                            (userID, rDirectory, rFilename, f'%resolved": {rDateTime}%')).rowcount
                 # Also delete 'resolve' where dateTime is equal to options.resolved of deleted 'record'
                 elif tableName == 'record':
                     cursor2.execute(f'SELECT directory, filename, dateTime, options FROM {tableName} WHERE id = ?', (id,))
-                    resolve = cursor2.fetchone()
-                    if resolve:
-                        rDirectory, rFilename, rDateTime, rOptions = resolve
+                    record = cursor2.fetchone()
+                    if record:
+                        rDirectory, rFilename, rDateTime, rOptions = record
                         rOptions = json.loads(rOptions)
                         if 'resolved' in rOptions:
                             rowsAffected += cursor.execute(f'DELETE FROM resolve WHERE userID = ? AND directory = ? AND filename = ? AND dateTime = ?',
