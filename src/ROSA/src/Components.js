@@ -127,7 +127,7 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
           className="moreLink"
           onClick={() => {
             setUserID('');
-            selectFn("login");
+            selectFn("logIn");
           }}>
           Log Out
           <span className={rookie ? "more" : "moreDisabled"}>
@@ -261,6 +261,7 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
 
   return (
     <div className="fileAccessContainer">
+      {/** Directory, filename and version inputs */}
       <div className="flexDivTable">
         {/** Directory row */}
         <div className="flexDivRows">
@@ -407,7 +408,7 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
       { /** Display Save New and Overwrite */
         obj.dateTime.date
         ? 
-        <div>
+        <div className="flexDivRows">
           <button style={({ color: 'gray' })}>Save New</button>
           {/** If save location differs from load location, show red */
             loadedInfo.dir && 

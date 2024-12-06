@@ -136,7 +136,7 @@ export const LogIn = ({ printLevel, selectFn, setUserID }) => {
             </div>
             <div className="flexDivRows">
                 <button onClick={() => checkCombo()}>Enter</button>
-                <button onClick={() => selectFn('signup')}>Sign Up</button>
+                <button onClick={() => selectFn('signUp')}>Sign Up</button>
             </div>
             <div id="info" className="bulletList"></div>
         </div>
@@ -327,7 +327,7 @@ export const SignUp = ({ printLevel, selectFn }) => {
                     </div>
                 </div>
                 <button onClick={() => createUser()}>Create User</button>
-                <button onClick={() => selectFn('login')}>Return to Login</button>
+                <button onClick={() => selectFn('logIn')}>Return to Login</button>
             </div>
         </div>
     );
