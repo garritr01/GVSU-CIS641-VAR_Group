@@ -159,6 +159,49 @@ def getDirsAndTitles(tableName, userID):
         except Exception as e:
             return jsonify({'message': f"Exception fetching dirs and filenames from {userID}'s {tableName} table: "+str(e)}), 500
 
+@app.route('/getFilteredDirsAndTitles',methods=['POST'])
+def getFilteredDirsAndTitles():
+    '''
+    Return list of dicts containing directory and filename properties corresponding with input tableName and userID
+    that either do or do not start with any of the provided directories depending on include boolean
+    '''
+
+    args = request.get_json()
+    tableName, userID, filter, include = \
+        args.get('tableName'), args.get('userID'), args.get('filteredDirs'), args.get('include')
+    
+    print(tableName, userID, filter, include)
+
+    with sqlite3.connect(db_path) as connection:
+        cursor = connection.cursor()
+        try:
+            if include:
+                # LIKE for every dir
+                conditions = " AND ".join([f"directory LIKE ?" for _ in filter])
+            else:
+                # NOT LIKE for every dir
+                conditions = " AND ".join([f"directory NOT LIKE ?" for _ in filter])
+
+            # includes all dirs in params for query
+            if filter:
+                params = [userID] + [f"{dir}%" for dir in filter]
+                query = f"SELECT filename, directory, dateTime FROM {tableName} WHERE userID = ? AND {conditions}"
+            elif include:
+                params = [userID]
+                query = f"SELECT filename, directory, dateTime FROM {tableName} WHERE userID = ?"
+            else:
+                return jsonify({'message': f"GET successful", 'files': []}), 200
+
+            cursor.execute(query, params)
+
+            data = cursor.fetchall()
+            files = [{'dateTime':json.loads(row[2]), 'dir': row[1], 'filename': row[0]} for row in data]
+            return jsonify({'message': f"GET successful", 'files': files}), 200
+        except sqlite3.OperationalError as e:
+            return jsonify({'message': f"OperationalError fetching dirs and filenames from {userID}'s {tableName} table: "+str(e)}), 404
+        except Exception as e:
+            return jsonify({'message': f"Exception fetching dirs and filenames from {userID}'s {tableName} table: "+str(e)}), 500
+
 @app.route('/getObject/<tableName>/<encodedDateTime>/<userID>/<path:directory>/<filename>', methods=['GET'])
 def getObject(tableName, encodedDateTime, userID, directory, filename):
     '''

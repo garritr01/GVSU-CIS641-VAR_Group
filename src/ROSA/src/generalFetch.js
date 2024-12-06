@@ -77,6 +77,48 @@ export const newFetchDirsAndFiles = async (table, userID) => {
 }
 
 /**
+ * Fetches directories and file details from the server, then returns an array of objects containing directory, title, and dateTime,
+ * along with an array of unique directories.
+ *
+ * @param {string} table - The name of the table to fetch data from.
+ * @param {string} userID - The unique ID of the user for fetching their specific data.
+ * @param {Object} filteredDirs - The dirs which are to be included or excluded.
+ * @param {Boolean} include - determines whether filteredDirs are to be included or excluded. (true = include)
+ * 
+ * @returns {Promise<Object>} - A promise that resolves to an object containing:
+ *    - {boolean} truth - Indicates whether the request was successful (`true` for success, `false` for failure).
+ *    - {string} msg - A message related to the status of the request.
+ *    - {number} status - The HTTP status code of the response.
+ *    - {Array|null} files - An array of file objects if successful, otherwise `null`.
+ *    - {Array|null} dirs - An array of unique directories if successful, otherwise `null`.
+ */
+export const newFetchFilteredDirsAndFiles = async (table, userID, filteredDirs, include) => {
+    try {
+        const response = await fetch('http://localhost:5000/getFilteredDirsAndTitles', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tableName: table,
+                userID: userID,
+                filteredDirs: filteredDirs,
+                include: include,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { truth: false, msg: data.message, status: response.status, files: null, dirs: null };
+        } else {
+            const dirs = [...new Set(data.files.map((file) => (file.dir)))];
+            return { truth: true, msg: data.message, status: response.status, files: data.files, dirs: dirs }
+        }
+    } catch (err) {
+        return { truth: false, msg: err, status: 500, files: null, dirs: null };
+    }
+}
+
+/**
  * Get payload and content of database file
  * @param {Object} obj - The parameters for the function.
  * @param {string} obj.userID - The user ID.
