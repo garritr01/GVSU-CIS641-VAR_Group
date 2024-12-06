@@ -135,17 +135,17 @@ export const QuickNotes = ({ rookie, printLevel, userID }) => {
       </div>
       {/** Priority row */}
       <div className="flexDivRows">
-        <p className="moreLink">
-          Priority: 
-          <span className={rookie ? "more" : "moreDisabled"}>
+        <div className="moreLink">
+          <p>Priority: </p>
+          <div className={rookie ? "more" : "moreDisabled"}>
             <h3>Quick Note Priority</h3>
             <div className="bulletList">
-              <span>Priority should be a number</span>
-              <span>Using a range of 1-10 is recommended, but you're free to decide</span>
-              <span>Quick Notes are displayed in descending order on the main menu according to priority</span>
+              <p>Priority should be a number</p>
+              <p>Using a range of 1-10 is recommended, but you're free to decide</p>
+              <p>Quick Notes are displayed in descending order on the main menu according to priority</p>
             </div>
-          </span>
-        </p>
+          </div>
+        </div>
         <input className="fourDigitInput"
           value={prioirty}
           onChange={(e) => setPriority(e.target.value)}

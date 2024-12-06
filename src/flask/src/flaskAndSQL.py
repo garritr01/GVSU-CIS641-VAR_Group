@@ -490,13 +490,14 @@ def removeEntry(tableName,encodedFilename, encodedDateTime, userID, directory):
 
 #Prints out table info
 #Use table name for detailed printout of just that table
-tablePrintout()
+tablePrintout('resolve')
+tablePrintout('clockIn')
 #remove_messed_up_entry('miscDropdowns','Garrit','CustomInfo/Chores','Taking Dogs Out')
 #selection_test('loginInfo','Health','Gym')
 #find_string('customInfo','Garrit','ldes')
 
 '''IF YOU UNCOMMENT THIS LINE THE FILE WILL RERUN AND TABLE WILL BE DELETED IMMEDIATELY'''
-#removeTable('loginInfo')
+#removeTable('resolve')
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000)

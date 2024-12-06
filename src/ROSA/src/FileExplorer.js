@@ -135,14 +135,6 @@ export const FileExplorer = ({ rookie, printLevel, selectFn, preselectedObj, set
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))}>
                     Records
                 </p>
-                <p style={{ cursor: 'pointer' }}
-                    onClick={() => setObj(prevState => ({ ...prevState, table: 'resolve' }))}>
-                    Resolved Events
-                </p>
-                <p style={{ cursor: 'pointer' }}
-                    onClick={() => setObj(prevState => ({ ...prevState, table: 'clockIn' }))}>
-                    Clock Ins
-                </p>
             </div>
             {// Render directory and file selection
                 obj.table &&
