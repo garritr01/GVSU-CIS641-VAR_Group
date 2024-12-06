@@ -9,7 +9,8 @@ import {
     formatSplitDateToDateTime,
     checkSplitDateIsBefore,
     formatJsDateToSplitDate,
-    formatSplitDateToJsDate
+    formatSplitDateToJsDate,
+    getCurrentDateTime
 } from './oddsAndEnds';
 
 import { 
@@ -338,26 +339,42 @@ export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
 
     return (
         <div className="mainContainer">
-            <button onClick={() => console.log(obj)}>Log Object</button>
-            { /** Choose 'customUI' table (only save new or clock in) */
-                (!obj.payload && !obj.options && obj.table !== 'customUI')
-                ?   <button onClick={() => setObj(prevState => ({ ...prevState, table: 'customUI' }))} >
-                    Use UIs
-                </button>
-                :   <button style={{ color: 'gray' }} >
-                    Use UIs
-                </button>
-            } 
-            { /** Choose 'record' table (only overwrite) */
-                (!obj.payload && !obj.options && obj.table !== 'record')
-                ?   <button onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))} >
-                    Use Records
-                </button>
-                :   <button style={{ color: 'gray' }} >
-                    Use Records
-                </button>
-            }
+            <button onClick={() => {console.log(obj)}}>Log</button>
+            {/** Choose to load UIs or Records */}
+            <div className="flexDivRows">
+                <div className="moreLink">
+                    { /** Choose 'customUI' table (only save new or clock in) */
+                        (!obj.payload && !obj.options && obj.table !== 'customUI')
+                        ?   <button onClick={() => setObj(prevState => ({ ...prevState, table: 'customUI' }))} >
+                            Use UIs
+                        </button>
+                        :   <button style={{ color: 'gray' }} >
+                            Use UIs
+                        </button>
+                    }
+                    <span className={ rookie ? "more" : "moreDisabled" }>
+                        <h3>Use UIs</h3>
+                        <p>Use UIs to create new records with empty interfaces you created.</p>
+                    </span>
+                </div>
+                <div className="moreLink">
+                    { /** Choose 'record' table (only overwrite) */
+                        (!obj.payload && !obj.options && obj.table !== 'record')
+                        ?   <button onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))} >
+                            Use Records
+                        </button>
+                        :   <button style={{ color: 'gray' }} >
+                            Use Records
+                        </button>
+                    }
+                    <span className={ rookie ? "more" : "moreDisabled" }>
+                        <h3>Use Records</h3>
+                        <p>Use Records to load records you've saved to overwrite or save a new version</p>
+                    </span>
+                </div>
+            </div>
             <RecordFileAccess 
+                rookie={rookie}
                 printLevel={printLevel}
                 defaultPayload={null}
                 obj={obj}
@@ -369,14 +386,14 @@ export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
             { /** Display customized info interface */
                 obj.payload &&
                     <div>
-                        <UI UI={obj.payload} setObj={setObj} />
+                        <UI rookie={rookie} UI={obj.payload} setObj={setObj} />
                         { /** Display and allow edit of start time if desired */
                             obj.payload[obj.payload.length - 2]?.type === "start" &&
-                                <DateInput date={obj.payload[obj.payload.length - 2]} setObj={setObj} dateValidity={dateValidity.start} />
+                                <DateInput rookie={rookie} date={obj.payload[obj.payload.length - 2]} setObj={setObj} dateValidity={dateValidity.start} />
                         }
                         { /** Display and allow edit of end time */
                             obj.payload[obj.payload.length - 1]?.type === "end" &&
-                                <DateInput date={obj.payload[obj.payload.length - 1]} setObj={setObj} dateValidity={dateValidity.end} />
+                                <DateInput rookie={rookie} date={obj.payload[obj.payload.length - 1]} setObj={setObj} dateValidity={dateValidity.end} />
                         }
                     </div>
             } 
@@ -392,6 +409,7 @@ export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
  * Just straight hands.
  * 
  * @param {Object} props - The properties passed to the component.
+ * @param {boolean} props.rookie - Determines whether descriptions of everything appear on hover.
  * @param {string[]} props.printLevel - The array of strings defined in App.js to determine what to print
  * @param {any} props.defaultPayload - The default value to set for `obj.payload` when resetting.
  * @param {Object} props.obj - The state object containing information such as directory, filename, and dateTime.
@@ -504,7 +522,13 @@ const RecordFileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, loa
             <div className="flexDivTable">
                 {/** Directory row */}
                 <div className="flexDivRows">
-                    <p className="flexDivColumns">Directory:</p>
+                <div className="flexDivColumns moreLink">
+                  <p>Directory: </p>
+                  <span className={rookie ? "more" : "moreDisabled"}>
+                    <h3>Directory</h3>
+                      <p>Directory the file will be saved with</p>
+                  </span>
+                </div>
                     <select
                         value={obj.dir}
                         onChange={(e) => uponInputChange(e.target.value, 'dir')}
@@ -545,7 +569,13 @@ const RecordFileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, loa
                 </div>
                 {/** Filename row */}
                 <div className="flexDivRows">
-                    <p className="flexDivColumns">Filename:</p>
+                    <div className="flexDivColumns moreLink">
+                      <p>Filename:</p>
+                      <span className={rookie ? "more" : "moreDisabled"}>
+                        <h3>Filename</h3>
+                        <p>Filename the file will be saved with</p>
+                      </span>
+                    </div>
                     <select
                         value={obj.filename}
                         onChange={(e) => uponInputChange(e.target.value, 'filename')}
@@ -565,7 +595,16 @@ const RecordFileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, loa
                 </div>
                 {/** Version row */}
                 <div className="flexDivRows">
-                    <p className="flexDivColumns">Version:</p>
+                    <div className="flexDivColumns moreLink">
+                      <p>Version:</p>
+                      <span className={rookie ? "more" : "moreDisabled"}>
+                        <h3>Version</h3>
+                        <div className="bulletList">
+                          <p>Version allows you to save multiple files with the same directory and filename at different times</p>
+                          <p>If 'new', version will be the current date and time</p>
+                        </div>
+                      </span>
+                    </div>
                     <select
                         value={JSON.stringify(obj.dateTime)}
                         onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}
@@ -588,50 +627,143 @@ const RecordFileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, loa
             </div>
             {/** Button row (saving, loading, notifying) */}
             <div className="flexDivRows">
-                { // Render load content button if all necessary fields are filled and payload is empty
+                {/** Render load content button if all necessary fields are filled and payload is empty */}
+                {
                     obj.dir && obj.filename && obj.dateTime.date && !obj.payload
-                        ? <div>
+                        ? <div className="moreLink">
                             <button onClick={() => getFile()}>Load Content</button>
+                            <span className={ rookie ? "more" : "moreDisabled" }>
+                                <h3>Load Content</h3>
+                                <p>Load content from {obj.dir}/{obj.filename} version: {obj.dateTime.date !== '' && formatDateTimeToString(convertUTCDateTimeToLocal(obj.dateTime))}</p>
+                            </span>
                         </div>
-                        : <div>
+                        : <div className="moreLink">
                             <button style={({ color: 'gray' })}>Load Content</button>
+                            <span className={ rookie ? "more" : "moreDisabled" }>
+                                <h3>Load Content</h3>
+                                <p>Load content once you've filled out the directory, filename, and version fields</p>
+                            </span>
                         </div>
-                } 
-                { // Render empty content button if all necessary fields are filled and not clocking out
+                }
+                {/** Render empty content button if all necessary fields are filled and not clocking out */}
+                {
                     ((obj.payload || obj.options) && obj.table !== 'clockIn')
-                        ? <div>
+                        ? <div className="moreLink">
                             <button onClick={() => setObj(prevState => ({ ...prevState, options: null, payload: null}))}>Empty Content</button>
+                            <span className={ rookie ? "more" : "moreDisabled" }>
+                                <h3>Empty Content</h3>
+                                <p>Clears the current content</p>
+                            </span>
                         </div>
-                        : <div>
+                        : <div className="moreLink">
                             <button style={({ color: 'gray' })}>Empty Content</button>
+                            <span className={ rookie ? "more" : "moreDisabled" }>
+                                <h3>Empty Content</h3>
+                                <p>Clears the current content when there's content loaded</p>
+                            </span>
                         </div>
                 } 
-                { // Display Save New, Clock In, and Overwrite conditionally
+                {/** Display Save New, Clock In, and Overwrite conditionally */}
+                {
                     // If version defined and table is 'clockIn' gray out all but Clock Out
                     obj.dateTime.date && obj.table === 'clockIn' ? 
-                        <div>
-                            <button style={({ color: 'gray' })}>Save New</button>
-                            <button onClick={() => saveFile(true, 'clockOut')}>Clock Out</button>
-                            <button style={({ color: 'gray' })}>Overwrite</button>
+                        <div className="flexDivRows">
+                            <div className="moreLink">
+                                <button style={({ color: 'gray' })}>Save New</button>
+                                <span className="more">
+                                    <h3>Save New</h3>
+                                    <p>You can't save new when clocking out</p>
+                                </span>
+                            </div>
+                            <div className="moreLink">
+                                <button onClick={() => saveFile(true, 'clockOut')}>Clock Out</button>
+                                <span className="more">
+                                    <h3>Clock Out</h3>
+                                    <p>Remove the clock in file and save the current content of {obj.dir}/{obj.filename} version: {formatDateTimeToString(convertUTCDateTimeToLocal(obj.dateTime))}to record</p>
+                                </span>
+                            </div>
+                            <div className="moreLink">
+                                <button style={({ color: 'gray' })}>Overwrite</button>
+                                <span className="more">
+                                    <h3>Overwrite</h3>
+                                    <p>You can't overwrite when clocking out</p>
+                                </span>
+                            </div>
                         </div>
                     // Else if version is defined gray out all but Overwrite
-                        : obj.dateTime.date ?
-                        <div>
-                            <button style={({ color: 'gray' })}>Save New</button>
-                            <button style={({ color: 'gray' })}>Clock In</button>
-                            <button onClick={() => saveFile(true, 'record')}>Overwrite</button>
+                    : obj.dateTime.date ?
+                        <div className="flexDivRows">
+                            <div className="moreLink">
+                                <button style={({ color: 'gray' })}>Save New</button>
+                                <span className="more">
+                                    <h3>Save new</h3>
+                                    <p>You can't save a new file when the version is defined. You'll have to change the version or overwrite it.</p>
+                                </span>
+                            </div>
+                            <div className="moreLink">
+                                <button style={({ color: 'gray' })}>Clock In</button>
+                                <span className="more">
+                                    <h3>Clock In</h3>
+                                        <p>You can't clock in when the version is defined. You'll have to change the version or overwrite it.</p>
+                                </span>
+                            </div>
+                            <div className="moreLink">
+                                <button onClick={() => saveFile(true, 'record')}>Overwrite</button>
+                                <span className="more">
+                                    <h3>Overwrite</h3>
+                                    <p>Overwrite {obj.dir}/{obj.filename} version: {formatDateTimeToString(convertUTCDateTimeToLocal(obj.dateTime))}</p>
+                                </span>
+                            </div>
                         </div>
-                        // Else gray out overwrite
-                        : 
-                        <div>
-                            <button onClick={() => saveFile(false, 'record')}>Save New</button>
-                            <button onClick={() => saveFile(false, 'clockIn')}>Clock In</button>
-                            <button style={({ color: 'gray' })}>Overwrite</button>
+                    // Else gray out overwrite
+                    : 
+                        <div className="flexDivRows">
+                            { // Only allow save when there is a payload to save
+                                obj.payload
+                                ?   <div className="moreLink">
+                                        <button onClick={() => saveFile(false, 'record')}>Save New</button>
+                                        <span className="more">
+                                            <h3>Save New</h3>
+                                            <p>Save {obj.dir}/{obj.filename} version: {formatDateTimeToString(getCurrentDateTime(true))} as clocked in to display the option to clock out on the main menu</p>
+                                        </span>
+                                    </div>
+                                : <div className="moreLink">
+                                    <button style={{ color: 'gray' }}>Save New</button>
+                                    <span className="more">
+                                        <h3>Save New</h3>
+                                        <p>You can't save an empty file</p>
+                                    </span>
+                                </div>
+                            }
+                            { // Only allow clock in when start time is present
+                                obj?.payload?.find(item => item.type === "start")
+                                ? <div className="moreLink">
+                                    <button onClick={() => saveFile(false, 'clockIn')}>Clock In</button>
+                                    <span className="more">
+                                        <h3>Clock In</h3>
+                                        <p>Save {obj.dir}/{obj.filename} version: {formatDateTimeToString(getCurrentDateTime(true))} as clocked in to display the option to clock out on the main menu</p>
+                                    </span>
+                                </div>
+                                : <div className="moreLink">
+                                    <button style={{ color: 'gray' }}>Clock In</button>
+                                    <span className="more">
+                                        <h3>Clock In</h3>
+                                        <p>You can't clock in when the UI doesn't contain a start time</p>
+                                    </span>
+                                </div>
+                            }
+                            <div className="moreLink">
+                                <button style={({ color: 'gray' })}>Overwrite</button>
+                                <span className="more">
+                                    <h3>Overwrite</h3>
+                                    <p>You can't overwrite a file that doesn't exist</p>
+                                </span>
+                            </div>
                         </div>
                 } 
                 { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
                     savedInfo && (obj.payload === null || obj.payload === '') &&
-                    <p className="moreButton" style={{ cursor: 'default' }}>
+                    <p className="moreLink" style={{ cursor: 'default' }}>
                         {savedInfo.message} {savedInfo.filename}
                         <span className="more">
                             {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
@@ -674,10 +806,15 @@ const UI = ({ rookie, UI, setObj }) => {
     }
 
     /** add '' to grouped value */
-    const addToGroup = (group) => {
+    const addToGroup = (group, index) => {
         setObj(prevState => {
-            const newPayload = prevState.payload.map(item => {
-                if (item.group === group) { // Check if the group matches
+            const newPayload = prevState.payload.map((item, i) => {
+                if (item.group !== 0 && item.group === group) { // Check if the group matches
+                    return {
+                        ...item,
+                        value: [...item.value, ''] // Add an empty string to the value array
+                    };
+                } else if (i === index) {
                     return {
                         ...item,
                         value: [...item.value, ''] // Add an empty string to the value array
@@ -693,13 +830,19 @@ const UI = ({ rookie, UI, setObj }) => {
     }
 
     /** Remove index from grouped value */
-    const removeFromGroup = (group, index) => {
+    const removeFromGroup = (group, index, valIndex) => {
         setObj(prevState => {
-            const newPayload = prevState.payload.map(item => {
-                if (item.group === group) { // Check if the group matches
+            const newPayload = prevState.payload.map((item, i) => {
+                if (item.group !== 0 && item.group === group) { // Check if the group matches
+                    console.log(item);
                     return {
                         ...item,
-                        value: item.value.filter((_, i) => i !== index) // Remove the element at the given index
+                        value: item.value.filter((_, j) => j !== valIndex) // Remove the element at the given index
+                    };
+                } else if (i === index) {
+                    return {
+                        ...item,
+                        value: item.value.filter((_, j) => j !== valIndex) // Remove the element at the given index
                     };
                 }
                 return item; // Return unchanged for non-matching groups
@@ -715,6 +858,24 @@ const UI = ({ rookie, UI, setObj }) => {
 
     return (
         <div>
+            {
+                rookie &&
+                    <div className="moreLink">
+                        <p>Recording Methods</p>
+                        <div className="more">
+                            <h3>Button</h3>
+                            <p>Displays as a button with a label on it. When grayed out, the contained value is true. Otherwise, it is false.</p>
+                            <h3>Multiple Choice</h3>
+                            <p>Displays as a label followed by buttons with choices. Click the option that applies. Click it again to deselect if none apply.</p>
+                            <h3>Input</h3>
+                            <p>Displays as a label with an input box. Type your response.</p>
+                            <h3>Text Box</h3>
+                            <p>Displays as a label with a text box. Type your response.</p>
+                            <h3>Start & End</h3>
+                            <p>These are the times that define the period of the event. They use the format mm/dd/yyyy HH:mm where the time is in military time.</p>
+                        </div>
+                    </div>
+            }
             {/** Display different types of UI elements */
                 UI.map((element, i) => (
                     element?.type === "toggle" ?
@@ -723,6 +884,7 @@ const UI = ({ rookie, UI, setObj }) => {
                             className="flexDivRows"
                             style={{ color: element.value ? 'gray' : 'black' }}
                             onClick={() => updatePayload(i, null, !element.value)}>
+                                {element.label}
                         </button>
                     : element?.type === "choice" ?
                         <div key={i} className="flexDivRows">
@@ -732,7 +894,11 @@ const UI = ({ rookie, UI, setObj }) => {
                                     <button 
                                         key={i+'-'+iChoice}
                                         style={{ color: element.value === choice ? 'gray' : 'black' }}
-                                        onClick={() => updatePayload(i, null, choice)}>
+                                        onClick={() => 
+                                            element.value !== choice
+                                            ?   updatePayload(i, null, choice)
+                                            :   updatePayload(i, null, null)
+                                        }>
                                         {choice}
                                     </button>
                                 ))
@@ -747,11 +913,11 @@ const UI = ({ rookie, UI, setObj }) => {
                                         <input
                                             value={inVal}
                                             onChange={(e) => updatePayload(i, iVal, e.target.value)} />
-                                        <button onClick={() => removeFromGroup(element.group, iVal)}>-</button>
+                                        <button onClick={() => removeFromGroup(element.group, i, iVal)}>-</button>
                                     </div>
                                 ))
                             }
-                            <button onClick={() => addToGroup(element.group)}>+</button>
+                            <button onClick={() => addToGroup(element.group, i)}>+</button>
                         </div>
                     : element?.type === "text" ?
                         <div key={i}>
@@ -762,8 +928,7 @@ const UI = ({ rookie, UI, setObj }) => {
                         </div>
                     : element?.type === "start" || element?.type === "end" ?
                         null
-                    :    
-                        <p>Unrecognized element {JSON.stringify(element)}</p>
+                    :   <p>Unrecognized element {JSON.stringify(element)}</p>
                 ))
             }
         </div>

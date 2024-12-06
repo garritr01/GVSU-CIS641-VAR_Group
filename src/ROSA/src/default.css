@@ -7,11 +7,12 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
-.testColors {
+/* Just here for testing properties */
+.holder {
     color:rgba(255, 0, 0, 0.219);
+    border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
 /* for visualizing:border: 1px solid rgba(0, 0, 0, 0.06); */
@@ -28,11 +29,13 @@
     padding: 0;
 }
 
-.bulletList p {
+.bulletList p,
+.bulletList span {
     text-align: left;
 }
 
-.bulletList p::before {
+.bulletList p::before,
+.bulletList span::before {
     content: '•';
 }
 
@@ -94,6 +97,14 @@
 
 /* ------------- CSS CLASS STYLES ---------------- */
 
+p {
+    cursor: default;
+}
+
+button {
+    cursor: pointer;
+}
+
 input {
     height: 20px;
 }
@@ -152,10 +163,12 @@ input {
 .more, .moreDisabled {
     display: none;
     position: absolute;
-    max-width: 50%;
+    min-width: inherit;
+    max-width: 50vw;
     border: 1px solid black;
     background-color: white;
     z-index: 1;
+    text-align: center;
     font-size: .75rem;
     font-weight: normal;
     color: black;
@@ -168,8 +181,6 @@ input {
 .moreLink:hover .more {
     display: block;
 }
-
-.moreLink.right-half 
 
 input:focus+.moreRightLink .moreRight {
     display: block;
@@ -257,17 +268,9 @@ input:not(:focus)+.moreRightLink {
     z-index: 1;
 }
 
-.stickyHeader button {
+.stickyHeader div {
     margin-left: var(--smallMargin);
     margin-right: var(--smallMargin);
-}
-
-.stickyHeader>button:first-child {
-    margin-left: 0;
-}
-
-.stickyHeader>button:last-child {
-    margin-right: 0;
 }
 
 /* --- */

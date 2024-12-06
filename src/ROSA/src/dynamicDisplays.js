@@ -1,4 +1,5 @@
-export const PositionMorePopup = () => {
+/** Determines position of each .more popup */
+export const positionMorePopup = () => {
 
   const handleHover = (e) => {
     const moreLink = e.currentTarget;

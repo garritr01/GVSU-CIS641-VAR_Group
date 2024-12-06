@@ -9,6 +9,7 @@ import { CustomInput } from './CustomInput';
 import { CustomUI } from './CustomUI';
 import { Calendar } from './Calendar';
 import { FileExplorer } from './FileExplorer';
+import { QuickNotes } from './QuickNotes';
 import { logCheck } from './oddsAndEnds';
 
 import './default.css';
@@ -167,6 +168,11 @@ const App = () => {
         rookie={rookieMode}
         printLevel={logLevel}
         preselectedObj={currentObj} />}
+      {/** Quick notes interface */}
+      {open === 'quickNote' && <QuickNotes
+        rookie={rookieMode}
+        printLevel={logLevel}
+        userID={userID} />}
       {/** Custom UI creation interface */}
       {open === 'customUI' && <CustomUI
         rookie={rookieMode}

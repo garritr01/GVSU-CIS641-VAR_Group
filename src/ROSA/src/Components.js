@@ -6,7 +6,7 @@ import {
   logCheck, newChooseMostRecent, convertUTCDateTimeToLocal 
 } from './oddsAndEnds';
 
-import { PositionMorePopup } from './dynamicDisplays';
+import { positionMorePopup } from './dynamicDisplays';
 
 import { newFetchDirsAndFiles } from './generalFetch';
 
@@ -15,7 +15,7 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
 
   // Position .more Popups on load
   useEffect(() => {
-    PositionMorePopup();
+    positionMorePopup();
   },[]);
 
   // select a function based on funcName
@@ -28,10 +28,13 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
   return (
     <div className="stickyHeader">
       {/** Functions Div */}
-      <div style={({ width: '85%', textAlign: 'left' })}>
-        <button className="moreLink" onClick={() => anyPress("main")}>
-          Main Menu
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+      <div style={{ width: '85%', textAlign: 'left', display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/** Main Menu */}
+        <div className="moreLink">
+          <button onClick={() => anyPress("main")}>
+            Main Menu
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>Main Menu</h3>
             <div className="bulletList">
               <p>Rookie mode toggle</p>
@@ -40,48 +43,75 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
               <p>Quick notes checklist</p>
             </div>
           </span>
-        </button>
-        <button className="moreLink" onClick={() => anyPress("fileExplorer")}>
-          File Manager
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+        </div>
+        {/** File Manager */}
+        <div className="moreLink">
+          <button onClick={() => anyPress("fileExplorer")}>
+            File Manager
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>File Manager</h3>
             <div className="bulletList">
               <p>Use to find, view and delete your files</p>
               <p>Redirect to edit files in respective page</p>
             </div>
           </span>
-        </button>
-        <button className="moreLink" onClick={() => anyPress("journal")}>
-          Journal
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+        </div>
+        {/** Journal */}
+        <div className="moreLink">
+          <button onClick={() => anyPress("journal")}>
+            Journal
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>Journal</h3>
             <div className="bulletList">
-              <p>Edit and save your journal entries.</p>
+              <p>Edit and save your journal entries</p>
             </div>
           </span>
-        </button>
-        <button className="moreLink" onClick={() => anyPress("record")}>
-          Record
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+          </div>
+        {/** Record */}
+        <div className="moreLink">
+          <button className="moreLink" onClick={() => anyPress("quickNote")}>
+            Quick Note
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
+            <h3>Quick Note</h3>
+            <div className="bulletList">
+              <p>Save a quick note that shows up on main menu like a checklist</p>
+            </div>
+          </span>
+        </div>
+        {/** Record */}
+        <div className="moreLink">
+          <button className="moreLink" onClick={() => anyPress("record")}>
+            Record
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>Record</h3>
             <div className="bulletList">
               <p>Record information using your custom user interfaces</p>
             </div>
           </span>
-        </button>
-        <button className="moreLink" onClick={() => anyPress("customUI")}>
-          Custom UI
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+        </div>
+        {/** Custom UI */}
+        <div className="moreLink">
+          <button className="moreLink" onClick={() => anyPress("customUI")}>
+            Custom UI
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>Custom UI</h3>
             <div className="bulletList">
               <p>Create interfaces to use in Record</p>
               <p>Create schedules to view in Calendar</p>
             </div>
           </span>
-        </button>
-        <button className="moreLink" onClick={() => anyPress("calendar")}>
-          Calendar
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+        </div>
+        {/** Calendar */}
+        <div className="moreLink">
+          <button className="moreLink" onClick={() => anyPress("calendar")}>
+            Calendar
+          </button>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>Calendar</h3>
             <div className="bulletList">
               <p>View scheduled and recorded events</p>
@@ -89,10 +119,10 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
               <p>Delete and edit events</p>
             </div>
           </span>
-        </button>
+        </div>
       </div>
       {/** Log out Div */}
-      <div style={({ width: '15%', textAlign: 'right' })}>
+      <div style={{ width: '15%', textAlign: 'right' }}>
         <button
           className="moreLink"
           onClick={() => {
@@ -100,7 +130,7 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
             selectFn("login");
           }}>
           Log Out
-          <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+          <span className={rookie ? "more" : "moreDisabled"}>
             <h3>Log Out</h3>
             <div className="bulletList">
               <p>Log out of your account</p>
@@ -121,6 +151,7 @@ export const Functions = ({ rookie, printLevel, selectFn, setUserID }) => {
  * Just straight hands.
  * 
  * @param {Object} props - The properties passed to the component.
+ * @param {boolean} props.rookie - Determines whether descriptions of everything appear on hover.
  * @param {string[]} props.printLevel - The array of strings defined in App.js to determine what to print
  * @param {any} props.defaultPayload - The default value to set for `obj.payload` when resetting.
  * @param {Object} props.obj - The state object containing information such as directory, filename, and dateTime.
@@ -137,6 +168,11 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
   // Info for dropdown menus
   const [dirs, setDirs] = useState([]);
   const [fileInfo, setFileInfo] = useState([]);
+
+  // Position .more Popups on load
+  useEffect(() => {
+    positionMorePopup();
+  }, []);
 
   // Fetch dirs and files on load and when savedInfo changes
   // Also empty payload and options on savedInfo changes
@@ -228,14 +264,13 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
       <div className="flexDivTable">
         {/** Directory row */}
         <div className="flexDivRows">
-          <p className="flexDivColumns moreLink">Directory:
-            <span className={rookie ? "more" : "moreDisabled"} style={{ color: 'black' }}>
+          <div className="flexDivColumns moreLink">
+            <p>Directory: </p>
+            <span className={rookie ? "more" : "moreDisabled"}>
               <h3>Directory</h3>
-              <div className="bulletList">
-                <p>Rookie mode toggle</p>
-              </div>
+                <p>Directory the file will be saved with</p>
             </span>
-          </p>
+          </div>
           <input
             className="flexDivColumns"
             name='directory box'
@@ -248,51 +283,57 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
             onChange={(e) => uponInputChange(e.target.value, 'dir')}
           />
           <div className="moreRightLink flexDivColumns">
-          <span className="moreRight bulletList">
-            {// Return suggestions for dir, set removes duplicates
-              dirs.length > 0 &&
-                [...new Set(
-                  dirs.map((dir) => {
-                    // return all leading directories
-                    if (obj.dir === '') {
-                      return dir.split('/')[0];
-                    } 
-                    // return self
-                    else if (dir === obj.dir) {
-                      return dir;
-                    } 
-                    // if obj.dir === dir up to obj.dir's length return something
-                    else if (dir.startsWith(obj.dir)) {
-                      // return 'dir1/dir2' if 'dir1' or 'dir1/'
-                      if (obj.dir.split('/')[obj.dir.split('/').length - 1] === '' || dir[obj.dir.length] === '/') {
-                        return dir.split('/').slice(0, obj.dir.split('/').length + 1).join('/');
+            <span className="moreRight bulletList">
+              {// Return suggestions for dir, set removes duplicates
+                dirs.length > 0 &&
+                  [...new Set(
+                    dirs.map((dir) => {
+                      // return all leading directories
+                      if (obj.dir === '') {
+                        return dir.split('/')[0];
                       } 
-                      // return 'dir1/dir2' if 'dir1/d' or 'dir1/di' etc...
+                      // return self
+                      else if (dir === obj.dir) {
+                        return dir;
+                      } 
+                      // if obj.dir === dir up to obj.dir's length return something
+                      else if (dir.startsWith(obj.dir)) {
+                        // return 'dir1/dir2' if 'dir1' or 'dir1/'
+                        if (obj.dir.split('/')[obj.dir.split('/').length - 1] === '' || dir[obj.dir.length] === '/') {
+                          return dir.split('/').slice(0, obj.dir.split('/').length + 1).join('/');
+                        } 
+                        // return 'dir1/dir2' if 'dir1/d' or 'dir1/di' etc...
+                        else {
+                          return dir.split('/').slice(0, obj.dir.split('/').length).join('/');
+                        }
+                      } 
+                      // ignore other cases
                       else {
-                        return dir.split('/').slice(0, obj.dir.split('/').length).join('/');
+                        return null;
                       }
-                    } 
-                    // ignore other cases
-                    else {
-                      return null;
-                    }
-                  })
-                )].filter((dir) => dir !== null)
-                .map((dir, index) => (
-                  <p key={index} 
-                    onMouseDown={(e) => {
-                      e.preventDefault(); 
-                      uponInputChange(dir, 'dir');
-                    }}>
-                    {dir}
-                  </p>
-                ))}
-          </span>
+                    })
+                  )].filter((dir) => dir !== null)
+                  .map((dir, index) => (
+                    <p key={index} 
+                      onMouseDown={(e) => {
+                        e.preventDefault(); 
+                        uponInputChange(dir, 'dir');
+                      }}>
+                      {dir}
+                    </p>
+                  ))}
+            </span>
           </div>
         </div>
         {/** Filename row */}
         <div className="flexDivRows">
-          <p className="flexDivColumns">Filename:</p>
+          <div className="flexDivColumns moreLink">
+            <p>Filename:</p>
+            <span className={rookie ? "more" : "moreDisabled"}>
+              <h3>Filename</h3>
+              <p>Filename the file will be saved with</p>
+            </span>
+          </div>
           <input
             className="flexDivColumns"
             id='filename box'
@@ -323,7 +364,16 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
         </div>
         {/** Version row */}
         <div className="flexDivRows">
-          <p className="flexDivColumns">Version:</p>
+          <div className="flexDivColumns moreLink">
+            <p>Version:</p>
+            <span className={rookie ? "more" : "moreDisabled"}>
+              <h3>Version</h3>
+              <div className="bulletList">
+                <p>Version allows you to save multiple files with the same directory and filename at different times</p>
+                <p>If 'new', version will be the current date and time</p>
+              </div>
+            </span>
+          </div>
           <select
             value={JSON.stringify(obj.dateTime)}
             onChange={(e) => uponObjectInputChange(e.target.value, 'dateTime')}
@@ -353,31 +403,34 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
           : <div>
             <button style={({ color: 'gray' })}>Load Content</button>
           </div>
-      } { // Conditionally render overwrite button if dateTime is defined
+      } 
+      { /** Display Save New and Overwrite */
         obj.dateTime.date
         ? 
         <div>
           <button style={({ color: 'gray' })}>Save New</button>
-          {
+          {/** If save location differs from load location, show red */
             loadedInfo.dir && 
             (loadedInfo.dir !== obj.dir ||
             loadedInfo.filename !== obj.filename ||
             loadedInfo.dateTime.date !== obj.dateTime.date ||
             loadedInfo.dateTime.time !== obj.dateTime.time)
-            ? <button className="moreLink"
-                style={{ border: '1px solid red'}}
-                onClick={() => saveFile(true)}>
+            ? <div className="moreLink">
+                <button
+                  style={{ border: '1px solid red'}}
+                  onClick={() => saveFile(true)}>
                   Overwrite
-                  <span className="more bulletList">
-                    <h3>Save location will be different than loaded location</h3>
-                    <p>Loaded from {loadedInfo.dir}/{loadedInfo.filename}&nbsp;
-                      version: {convertUTCDateTimeToLocal(loadedInfo.dateTime).date}-{convertUTCDateTimeToLocal(loadedInfo.dateTime).time}
-                    </p>
-                    <p>Will save to {obj.dir}/{obj.filename}&nbsp;
-                      version: {convertUTCDateTimeToLocal(obj.dateTime).date}-{convertUTCDateTimeToLocal(obj.dateTime).time}
-                    </p>
-                  </span>
-              </button>
+                </button>
+                <span className="more bulletList">
+                  <h3>Save location will be different than loaded location</h3>
+                  <p>Loaded from {loadedInfo.dir}/{loadedInfo.filename}&nbsp;
+                    version: {convertUTCDateTimeToLocal(loadedInfo.dateTime).date}-{convertUTCDateTimeToLocal(loadedInfo.dateTime).time}
+                  </p>
+                  <p>Will save to {obj.dir}/{obj.filename}&nbsp;
+                    version: {convertUTCDateTimeToLocal(obj.dateTime).date}-{convertUTCDateTimeToLocal(obj.dateTime).time}
+                  </p>
+                </span>
+              </div>
             : <button onClick={() => saveFile(true)}>Overwrite</button>
           }
         </div>
@@ -390,17 +443,20 @@ export const FileAccess = ({ rookie, printLevel, defaultPayload, obj, setObj, lo
           }
           <button style={({ color: 'gray' })}>Overwrite</button>
         </div>
-      } { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
+      } 
+      { /** Display save result with more info available upon hover - disappear when payload or options is not empty*/
         savedInfo && (obj.payload === null || obj.payload === '') &&
-          <p className="moreLink" style={{ cursor: 'default' }}>
-            {savedInfo.message} {savedInfo.filename}
+          <div className="moreLink">
+            <p style={{ cursor: 'default' }}>
+              {savedInfo.message} {savedInfo.filename}
+            </p>
             <span className="more">
               {savedInfo.message} {savedInfo.dir}/{savedInfo.filename} version:&nbsp;
               {convertUTCDateTimeToLocal(savedInfo.dateTime).date}-
               {convertUTCDateTimeToLocal(savedInfo.dateTime).time}&nbsp;
               in {savedInfo.table}
             </span>
-          </p>
+          </div>
       }
       </div>
     </div>

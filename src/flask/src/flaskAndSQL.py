@@ -195,7 +195,7 @@ def getObject(tableName, encodedDateTime, userID, directory, filename):
 def getObjects():
     '''
     Accepts JSON payload with tableName, userID, files (array), and objectsToReturn (options or payload).\n
-    Returns an array of objects containing options and, optionally, payload.
+    Returns an array of objects containing options, payload or both.
     '''
     args = request.get_json()
     tableName, userID, files, contentToReturn = \
