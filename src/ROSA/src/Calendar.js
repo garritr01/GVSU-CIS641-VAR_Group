@@ -25,7 +25,7 @@ import {
 } from './generalFetch';
 
 /** Displays calendar and handles opening functions from calendar */
-export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, fullDisplay = true }) => {
+export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, fullDisplay = true, externalDetectDelete }) => {
 
     const time = getCurrentSplitDate(true);
     // Define range of calendar to display
@@ -45,8 +45,10 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
     const [resolutions, setResolutions] = useState([]);
     // object to contain file information when selected
     const [selection, setSelection] = useState(null);
-    // boolean to trigger reload upon deletion
-    const [detectDelete, setDetectDelete] = useState(null);
+    // boolean to trigger reload upon deletion (if externally defined, calling component detects too)
+    const [internalDetectDelete, setInternalDetectDelete] = useState(null);
+    const detectDelete = externalDetectDelete ? externalDetectDelete[0] : internalDetectDelete;
+    const setDetectDelete = externalDetectDelete ? externalDetectDelete[1] : setInternalDetectDelete;
     // Used to include or exclude selected dirs
     const [include, setInclude] = useState(true);
     // Used to contain dirs to include or exclude
@@ -806,7 +808,7 @@ const Cell = ({ rookie, printLevel, userID, setCurrentObj, selectFn, date, recor
                                 } if (formatSplitDateToString(event.end, false) === formatSplitDateToString(date, false)) {
                                     displayString += `${event.end.hour}:${event.end.minute}`;
                                 } else {
-                                    displayString += `${formatSplitDateToString(event.start)}`;
+                                    displayString += `${formatSplitDateToString(event.end)}`;
                                 }
                                 return (
                                     <div key={`cellDiv${cellLoc.row}-${cellLoc.row}-index${i}`} className="flexDivColumns">

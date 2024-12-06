@@ -45,6 +45,8 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
     
     // Hold time for display
     const [clock, setClock] = useState(new Date());
+    // Check for calendar delete. Update clock ins upon change
+    const [calendarDetectDelete, setCalendarDetectDelete] = useState(null);
 
     // Creates interval on load to update time every 10 seconds
     useEffect(() => {
@@ -97,17 +99,20 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
                 </div>
             </div>
             {/** Rookie Mode div */}
-            <div className="moreLink">
-                <button
-                    onClick={() => setRookie(!rookie)}>
-                    { rookie ? 'Disable Rookie Mode' : 'Enable Rookie Mode' }
-                </button>
-                <span className="more">
-                    <h3>Rookie Mode</h3>
-                    <p>Enabling Rookie Mode will display info about everything throughout the page, similar to what you see here.</p>
-                </span>
+            <div className="flexDivRows">
+                <div className="moreLink">
+                    <button
+                        onClick={() => setRookie(!rookie)}>
+                        { rookie ? 'Disable Rookie Mode' : 'Enable Rookie Mode' }
+                    </button>
+                    <span className="more">
+                        <h3>Rookie Mode</h3>
+                        <p>Enabling Rookie Mode will display info about everything throughout the page, similar to what you see here.</p>
+                    </span>
+                </div>
             </div>
             <ClockOutOptions
+                key={calendarDetectDelete}
                 rookie={rookie}
                 printLevel={printLevel}
                 selectFn={selectFn}
@@ -118,8 +123,9 @@ export const MainMenu = ({ rookie, setRookie, printLevel, userID, selectFn, obj,
                 printLevel={printLevel}
                 selectFn={selectFn}
                 setCurrentObj={setCurrentObj}
-                userID={userID} 
-                fullDisplay={false}/>
+                userID={userID}
+                fullDisplay={false}
+                externalDetectDelete={[calendarDetectDelete, setCalendarDetectDelete]}/>
             <QuickNoteChecklist
                 rookie={rookie}
                 printLevel={printLevel}

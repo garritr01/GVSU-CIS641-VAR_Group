@@ -21,18 +21,19 @@ const App = () => {
   const [open, setOpen] = useState('main');
   // Deactivates display of .more class
   const [rookieMode, setRookieMode] = useState(false);
-  // array of strings for logging
-  // b (basic) - use generally
-  // p (params) - use for parameter logging
-  // s (state) - use for state logging (excluding obj)
-  // o (object state) - use to specifically log obj state
-  // d (database) - use to log database output (errors will always log)
-  // e (exceptions) - use to log exceptional cases
-  // v (verbose) - add to any character for verbose mode
+  /* array of strings for logging
+  * b (basic) - use generally
+  * p (params) - use for parameter logging
+  * s (state) - use for state logging (excluding obj)
+  * o (object state) - use to specifically log obj state
+  * d (database) - use to log database output (errors will always log)
+  * e (exceptions) - use to log exceptional cases
+  * v (verbose) - add to any character for verbose mode
+  */
   const logLevel = ['b','e']; //['d','e','b','o','p','s'];
-  // Remains for old printout conditions
-  // const printoutLevel = 1;
+  // contain logged in userID
   const [userID, setUserID] = useState('garritr01');
+  // Contains the object passed between functions
   const [currentObj, setCurrentObj] = 
     useState({ 
       userID: userID,
@@ -44,31 +45,6 @@ const App = () => {
       payload: null
     });
 
-  /*
-  const [table, setTable] = useState(null);
-  const [dir, setDir] = useState(null);
-  const [title, setTitle] = useState(null);
-  const [version, setVersion] = useState(null);
-  const [resolutionInfo, setResolutionInfo] = useState(null);
-  const [currentMode, setCurrentMode] = useState('record');
-  */
-  /*
-  useEffect(() => {
-    if (open === 'login') {
-      setCurrentMode('login');
-    } else if (open === 'customInfo') {
-      setCurrentMode('record');
-    } else if (open === 'customEdit') {
-      setCurrentMode('edit');
-    } else if (open === 'customClockIn') {
-      setCurrentMode('clock in');
-    } else if (open === 'customClockOut') {
-      setCurrentMode('clock out');
-    } else if (open === 'schedule event') {
-      setCurrentMode('schedule');
-    }
-  }, [open])
-  */
 
   // Handles selection of the interface to be opened
   const handleOpen = (toOpen, emptyCurrentObj = true) => {
@@ -88,47 +64,9 @@ const App = () => {
     }
 
     setOpen(toOpen);
-    // Only want to have a dir and title selected when opening a function
-    // from another function (not main)
-    /*if (toOpen === 'main') {
-      setDir(null);
-      setTitle(null);
-      setVersion(null);
-      setCurrentObj({
-        userID: 'garritr01',
-        table: '',
-        dir: '',
-        filename: '',
-        dateTime: { date: '', time: '' },
-        options: null,
-        payload: null
-      });
-    }*/
   }
 
-  /*
-  // Sets dir and title from one function to be passed into another
-  const handleReturnedDirTitleAndVersion = (dirToOpen, titleToOpen, versionToOpen, tableToOpen) => {
-    console.log('at dir/title/version:', dirToOpen, '/', titleToOpen, '/', versionToOpen, ' in ', tableToOpen);
-    setTable(tableToOpen);
-    setDir(dirToOpen);
-    setTitle(titleToOpen);
-    setVersion(versionToOpen);
-    setCurrentObj(prevState => ({
-      ...prevState,
-      table: tableToOpen,
-      dir: dirToOpen,
-      filename: titleToOpen,
-      dateTime: versionToOpen
-    }));
-  }
 
-  const handleResolutionInfo = (info) => {
-    console.log('scheduled for', info);
-    setResolutionInfo(info);
-  }
-  */
-  
   // Handles the opening of interfaces and the variables they need to operate
   return (
     <div>
@@ -188,7 +126,9 @@ const App = () => {
         printLevel={logLevel}
         selectFn={handleOpen}
         setCurrentObj={setCurrentObj} 
-        userID={userID} />}
+        userID={userID} 
+        fullDisplay={true}
+        externalDetectDelete={null}/>}
 
       {/** Old functions below
       {open === 'journals' && <Journal
