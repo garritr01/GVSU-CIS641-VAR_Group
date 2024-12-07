@@ -33,8 +33,6 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
     const [elementInfo, setElementInfo] = useState({ type: '', label: '', choices: null, group: 0 });
     // include start time?
     const [includeStart, setIncludeStart] = useState(false);
-    // Toggle schedule UI
-    const [scheduleToggle, setScheduleToggle] = useState(false);
     // ScheduleInfo contains info to add to obj.options.schedule
     const [scheduleInfo, setScheduleInfo] = useState({
         repeatType: '', repeatInfo: '1', local: true,
@@ -290,79 +288,88 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
                 savedInfo={savedInfo}
                 getFile={getCustomUI}
                 saveFile={saveCustomUI} />
-            {/** Schedule toggle */}
-            <div className="flexDivRows">
-                <button 
-                    onClick={() => {
-                        setScheduleToggle(!scheduleToggle);
-                        setScheduleInfo({
-                            repeatType: '', repeatInfo: '1', local: true,
-                            start: time, end: time,
-                            effectiveStart: time, effectiveEnd: time
-                        });
-                    }}>
-                        Toggle Schedule
-                </button>
-            </div>
             {/** Schedule repeat options */
-                scheduleToggle &&
-                    <div className="flexDivRows">
-                        <p>Repeat Type:</p>
-                        <button className="moreButton" onClick={() => setScheduleInfo(prevState => ({ ...prevState, repeatType: 'none' }))}>
-                            Specific
-                            <span className="more bulletList">
-                                <h3>Specific Behavior</h3>
-                                <p>Start and end define one event</p>
-                            </span>
-                        </button>
-                        <button className="moreButton" onClick={() => setScheduleInfo(prevState => ({ ...prevState, repeatType: 'specRpt' }))}>
-                            Specific Repeat
-                            <span className="more bulletList">
-                                <h3>Specific Repeat Behavior</h3>
-                                <p>Start and end serve as initial date</p>
-                                <p>Events will repeat the specified number of days apart</p>
-                                <p>Events will repeat in the past and future within the inclusive bounds of effective start and end</p>
-                            </span>
-                        </button>
-                        <button className="moreButton" onClick={() => setScheduleInfo(prevState => ({ ...prevState, repeatType: 'daily' }))}>
-                            Daily
-                            <span className="more bulletList">
-                                <h3>Daily Repeat Behavior</h3>
-                                <p>Start and end are only relevant for the starting time and time span</p>
-                                <p>If the start and end dates are different events will span multiple days</p>
-                                <p>Events will repeat each day in the past and future within the inclusive bounds of effective start and end</p>
-                            </span>
-                        </button>
-                        <button className="moreButton" onClick={() => setScheduleInfo(prevState => ({ ...prevState, repeatType: 'weekly', repeatInfo: '1'}))}>
-                            Weekly
-                            <span className="more bulletList">
-                                <h3>Weekly Repeat Behavior</h3>
-                                <p>Start and end are only relevant for the starting time and time span</p>
-                                <p>If the start and end date are different each event will span multiple days and the start date will use the given day of the week</p>
-                                <p>Events will repeat each week in the past and future within the inclusive bounds of effective start and end</p>
-                            </span>
-                        </button>
-                        <button className="moreButton" onClick={() => setScheduleInfo(prevState => ({ ...prevState, repeatType: 'monthly' }))}>
-                            Monthly
-                            <span className="more bulletList">
-                                <h3>Monthly Repeat Behavior</h3>
-                                <p>Start and end are only relevant for the day, and time</p>
-                                <p>If the start and end date are different each event will span multiple days</p>
-                                <p>If day used is not in a certain month the last day of the month will be used</p>
-                                <p>Events will repeat each month in the past and future within the bounds of effective start and end</p>
-                            </span>
-                        </button>
-                        <button className="moreButton" onClick={() => setScheduleInfo(prevState => ({ ...prevState, repeatType: 'annually' }))}>
-                            Annually
-                            <span className="more bulletList">
-                                <h3>Annually Repeat Behavior</h3>
-                                <p>Start and end are only relevant for the month, day, and time</p>
-                                <p>If the start and end date are different each event will span multiple days</p>
-                                <p>If month/day set to 2/29, 2/28 will be used on non-leap years</p>
-                                <p>Events will repeat each year in the past and future within the bounds of effective start and end</p>
-                            </span>
-                        </button>
-                    </div>
+                <div className="flexDivRows">
+                    <p>Schedule Type:</p>
+                    <button className="moreButton" 
+                        style={{ color: scheduleInfo.repeatType === 'none' ? 'gray' : undefined }}
+                        onClick={() => scheduleInfo.repeatType === 'none' 
+                            ?   setScheduleInfo(prevState => ({ ...prevState, repeatType: '' }))
+                            :   setScheduleInfo(prevState => ({ ...prevState, repeatType: 'none' }))}>
+                        Specific
+                        <span className="more bulletList">
+                            <h3>Specific Behavior</h3>
+                            <p>Start and end define one event</p>
+                        </span>
+                    </button>
+                    <button className="moreButton"
+                        style={{ color: scheduleInfo.repeatType === 'specRpt' ? 'gray' : undefined }}
+                        onClick={() => scheduleInfo.repeatType === 'specRpt'
+                            ? setScheduleInfo(prevState => ({ ...prevState, repeatType: '', repeatInfo: '' }))
+                            : setScheduleInfo(prevState => ({ ...prevState, repeatType: 'specRpt', repeatInfo: '1' }))}>
+                        Specific Repeat
+                        <span className="more bulletList">
+                            <h3>Specific Repeat Behavior</h3>
+                            <p>Start and end serve as initial date</p>
+                            <p>Events will repeat the specified number of days apart</p>
+                            <p>Events will repeat in the past and future within the inclusive bounds of effective start and end</p>
+                        </span>
+                    </button>
+                    <button className="moreButton"
+                        style={{ color: scheduleInfo.repeatType === 'daily' ? 'gray' : undefined }}
+                        onClick={() => scheduleInfo.repeatType === 'daily'
+                            ? setScheduleInfo(prevState => ({ ...prevState, repeatType: '' }))
+                            : setScheduleInfo(prevState => ({ ...prevState, repeatType: 'daily' }))}>
+                        Daily
+                        <span className="more bulletList">
+                            <h3>Daily Repeat Behavior</h3>
+                            <p>Start and end are only relevant for the starting time and time span</p>
+                            <p>If the start and end dates are different events will span multiple days</p>
+                            <p>Events will repeat each day in the past and future within the inclusive bounds of effective start and end</p>
+                        </span>
+                    </button>
+                    <button className="moreButton"
+                        style={{ color: scheduleInfo.repeatType === 'weekly' ? 'gray' : undefined }}
+                        onClick={() => scheduleInfo.repeatType === 'weekly'
+                            ? setScheduleInfo(prevState => ({ ...prevState, repeatType: '', repeatInfo: '' }))
+                            : setScheduleInfo(prevState => ({ ...prevState, repeatType: 'weekly', repeatInfo: '1' }))}>
+                        Weekly
+                        <span className="more bulletList">
+                            <h3>Weekly Repeat Behavior</h3>
+                            <p>Start and end are only relevant for the starting time and time span</p>
+                            <p>If the start and end date are different each event will span multiple days and the start date will use the given day of the week</p>
+                            <p>Events will repeat each week in the past and future within the inclusive bounds of effective start and end</p>
+                        </span>
+                    </button>
+                    <button className="moreButton"
+                        style={{ color: scheduleInfo.repeatType === 'monthly' ? 'gray' : undefined }}
+                        onClick={() => scheduleInfo.repeatType === 'monthly'
+                            ? setScheduleInfo(prevState => ({ ...prevState, repeatType: '' }))
+                            : setScheduleInfo(prevState => ({ ...prevState, repeatType: 'monthly' }))}>
+                        Monthly
+                        <span className="more bulletList">
+                            <h3>Monthly Repeat Behavior</h3>
+                            <p>Start and end are only relevant for the day, and time</p>
+                            <p>If the start and end date are different each event will span multiple days</p>
+                            <p>If day used is not in a certain month the last day of the month will be used</p>
+                            <p>Events will repeat each month in the past and future within the bounds of effective start and end</p>
+                        </span>
+                    </button>
+                    <button className="moreButton"
+                        style={{ color: scheduleInfo.repeatType === 'annually' ? 'gray' : undefined }}
+                        onClick={() => scheduleInfo.repeatType === 'annually'
+                            ? setScheduleInfo(prevState => ({ ...prevState, repeatType: '' }))
+                            : setScheduleInfo(prevState => ({ ...prevState, repeatType: 'annually' }))}>
+                        Annually
+                        <span className="more bulletList">
+                            <h3>Annually Repeat Behavior</h3>
+                            <p>Start and end are only relevant for the month, day, and time</p>
+                            <p>If the start and end date are different each event will span multiple days</p>
+                            <p>If month/day set to 2/29, 2/28 will be used on non-leap years</p>
+                            <p>Events will repeat each year in the past and future within the bounds of effective start and end</p>
+                        </span>
+                    </button>
+                </div>
             }
             {/** Display relevant inputs for repeatType */
                 scheduleInfo.repeatType && (
@@ -427,7 +434,6 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
                     <ScheduleDisplay 
                         rookie={rookie}
                         obj={obj} setObj={setObj} 
-                        setScheduleToggle={setScheduleToggle} 
                         setInfo={setScheduleInfo}/>
             }
             {/** Options to create elements */}
@@ -438,10 +444,34 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
                     onClick={() => setIncludeStart(!includeStart)}>
                     Add Start Time
                 </button>
-                <button onClick={() => setElementInfo(({ type: 'toggle', label: '', value: false, choices: null, group: 0 }))}>Add Button</button>
-                <button onClick={() => setElementInfo(({ type: 'choice', label: '', value: '', choices: [''], group: 0 }))}>Add Multiple Choice</button>
-                <button onClick={() => setElementInfo(({ type: 'input', label: '', value: [''], choices: null, group: 0 }))}>Add Input Box</button>
-                <button onClick={() => setElementInfo(({ type: 'text', label: '', value: '', choices: null, group: 0 }))}>Add Text Box</button>
+                <button 
+                    onClick={() => elementInfo.type === 'toggle'
+                        ?   setElementInfo({ type: '', label: '', choices: null, group: 0 })
+                        :   setElementInfo(({ type: 'toggle', label: '', value: false, choices: null, group: 0 }))}
+                    style={{ color: elementInfo.type === 'toggle' ? 'gray' : undefined }}>
+                            Add Button
+                </button>
+                <button 
+                    onClick={() => elementInfo.type === 'choice'
+                        ?   setElementInfo({ type: '', label: '', choices: null, group: 0 })
+                        :   setElementInfo(({ type: 'choice', label: '', value: '', choices: [''], group: 0 }))}
+                    style={{ color: elementInfo.type === 'choice' ? 'gray' : undefined }}>
+                            Add Multiple Choice
+                </button>
+                <button 
+                    onClick={() => elementInfo.type === 'input'
+                        ?   setElementInfo({ type: '', label: '', choices: null, group: 0 })
+                        :   setElementInfo(({ type: 'input', label: '', value: [''], choices: null, group: 0 }))}
+                    style={{ color: elementInfo.type === 'input' ? 'gray' : undefined }}>
+                            Add Input Box
+                </button>
+                <button 
+                    onClick={() => elementInfo.type === 'text'
+                        ?   setElementInfo({ type: '', label: '', choices: null, group: 0 })
+                        :   setElementInfo(({ type: 'text', label: '', value: '', choices: null, group: 0 }))}
+                    style={{ color: elementInfo.type === 'text' ? 'gray' : undefined }}>
+                            Add Text Box
+                </button>
             </div>
             {/** Element creation UI */
                 elementInfo.type === 'toggle' ? (
@@ -890,7 +920,7 @@ const EffectiveTimeRange = ({ rookie, info, setInfo, validity }) => {
 }
 
 /** HTML element for displaying schedules that will be saved with UI */
-const ScheduleDisplay = ({ rookie, obj, setObj, setScheduleToggle, setInfo }) => {
+const ScheduleDisplay = ({ rookie, obj, setObj, setInfo }) => {
 
     /** Remove content from obj.options.schedule */
     const removeSchedule = (index) => {
@@ -904,80 +934,62 @@ const ScheduleDisplay = ({ rookie, obj, setObj, setScheduleToggle, setInfo }) =>
     return (
         <div>
             <p className="flexDivRows">Scheduled Dates</p>
-            {
-                obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
-                obj.options.schedule.map((schedule, index) => (
-                    <div key={'fullSchedule' + index}>
-                        {/** Edit and remove buttons */}
-                        <div className="flexDivRows" key={"schedule" + index}>
-                            <p>Schedule {index+1}</p>
-                            <button onClick={() => {removeSchedule(index)}}>Remove</button>
-                            <button onClick={() => {
-                                setScheduleToggle(true); // Toggle scheduling interface
-                                setInfo(obj.options.schedule[index]); // Set scheduling interface equal to values from selected schedule to edit
-                                removeSchedule(index); // Remove the schedule being edited to prevent duplicates
-                                }}>
-                                    Edit
-                            </button>
-                        </div>
-                        { /** Display effective time range */
-                            schedule.repeatType !== 'none' &&
-                            <div className="flexDivRows" key={'effectiveSchedule' + index}>
-                                <p>
-                                    {schedule.effectiveEnd.month !== 'NA' ? (<>
-                                        Effective from {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}
-                                        &nbsp;- {schedule.effectiveEnd.month}/{schedule.effectiveEnd.day}/{schedule.effectiveEnd.year} at {schedule.effectiveEnd.hour}:{schedule.effectiveEnd.minute}
-                                    </>) : (<>Effective indefinitely after {schedule.effectiveStart.month}/{schedule.effectiveStart.day}/{schedule.effectiveStart.year} at {schedule.effectiveStart.hour}:{schedule.effectiveStart.minute}</>)
-                                    }
-                                </p>
+            <div style={{ border: '1px solid black' }}>
+                {
+                    obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
+                    obj.options.schedule.map((schedule, index) => (
+                        <div key={'fullSchedule' + index}>
+                            {/** Edit and remove buttons */}
+                            <div className="flexDivRows" key={"schedule" + index}>
+                                    <button style={{ display: 'inline-block' }}
+                                        onClick={() => { removeSchedule(index) }}>Remove</button>
+                                    <button style={{ display: 'inline-block' }}
+                                        onClick={() => {
+                                            setInfo(obj.options.schedule[index]); // Set scheduling interface equal to values from selected schedule to edit
+                                            removeSchedule(index); // Remove the schedule being edited to prevent duplicates
+                                        }}>
+                                        Edit
+                                    </button>
+                                    <div className="moreLink">
+                                    <p style={{ display: 'inline-block' }}>
+                                        Schedule {index+1}
+                                        {/** Displays repeat */
+                                            schedule.repeatType === 'specRpt' ? (
+                                                <span> repeats every {schedule.repeatInfo} days</span>
+                                            ) : schedule.repeatType === 'daily' ? (
+                                                <span> repeats daily</span>
+                                            ) : schedule.repeatType === 'weekly' ? (
+                                                <span> repeats every {getWeekdayString(parseInt(schedule.repeatInfo))}</span>
+                                            ) : schedule.repeatType === 'monthly' ? (
+                                                <span> repeats monthly</span>
+                                            ) : schedule.repeatType === 'annually' ? (
+                                                <span> repeats annually</span>
+                                            ) : (null)
+                                        }
+                                    </p>
+                                    <div className="more">
+                                        { /** Display effective time range */
+                                            schedule.repeatType !== 'none' &&
+                                            <div className="flexDivRows" key={'effectiveSchedule' + index}>
+                                                <p>
+                                                    {schedule.effectiveEnd.month !== 'NA' 
+                                                    ?   (<>Effective from {formatSplitDateToString(schedule.effectiveStart)} through {formatSplitDateToString(schedule.effectiveEnd)}</>) 
+                                                    :   (<>Effective indefinitely after {formatSplitDateToString(schedule.effectiveStart)}</>)
+                                                    }
+                                                </p>
+                                            </div>
+                                        }
+                                        { /** Display reference dates */}
+                                        <div className="flexDivRows" key={'referenceSchedule' + index}>
+                                            <p>Reference Dates: {formatSplitDateToString(schedule.start)} - {formatSplitDateToString(schedule.end)}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        }
-                        { /** Display reference dates */}
-                        <div className="flexDivRows" key={'referenceSchedule' + index}>
-                            <p>
-                                Reference Dates:&nbsp;
-                                {schedule.start.month}/{schedule.start.day}/{schedule.start.year}&nbsp;
-                                {schedule.start.hour}:{schedule.start.minute}&nbsp;
-                                -&nbsp;
-                                {schedule.start.month === schedule.end.month &&
-                                    schedule.start.day === schedule.end.day &&
-                                    schedule.start.year === schedule.end.year ? (
-                                    <span>{schedule.end.hour}:{schedule.end.minute}</span>
-                                ) : (
-                                    <span>
-                                        {schedule.end.month}/{schedule.end.day}/{schedule.end.year}&nbsp;
-                                        {schedule.end.hour}:{schedule.end.minute}
-                                    </span>
-                                )
-                                }
-                            </p>
-                            {
-                                schedule.repeatType === 'specRpt' ? (
-                                    <span>
-                                        &nbsp;repeats every {schedule.repeatInfo} days
-                                    </span>
-                                ) : schedule.repeatType === 'daily' ? (
-                                    <span>
-                                        &nbsp;repeats daily
-                                    </span>
-                                ) : schedule.repeatType === 'weekly' ? (
-                                    <span>
-                                        &nbsp;repeats every {getWeekdayString(parseInt(schedule.repeatInfo))}
-                                    </span>
-                                ) : schedule.repeatType === 'monthly' ? (
-                                    <span>
-                                        &nbsp;repeats monthly
-                                    </span>
-                                ) : schedule.repeatType === 'annually' ? (
-                                    <span>
-                                        &nbsp;repeats annually
-                                    </span>
-                                ) : (null)
-                            }
                         </div>
-                    </div>
-                ))
-            }
+                    ))
+                }
+            </div>
         </div>
     );
 }
@@ -1075,7 +1087,10 @@ const EditUI = ({ rookie, obj, setObj }) => {
                             )
                         : null
                     }
-                    <p className="flexDivRows">Group {element.group?.toString()}</p>
+                    {/** Only show input groups */
+                        element.type === 'input' &&
+                            <p className="flexDivRows">Group {element.group?.toString()}</p>
+                    }
                 </div>
                 <div key={'editUIB' + index}>
                     {
