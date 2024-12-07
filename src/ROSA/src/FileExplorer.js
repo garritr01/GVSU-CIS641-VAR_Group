@@ -42,10 +42,12 @@ export const FileExplorer = ({ rookie, printLevel, selectFn, preselectedObj, set
     },[obj.filename]);
     // reset filename upon dir change
     useEffect(() => {
-        const updatedObj = { ...obj, filename: '' };
-        setObj(updatedObj);
-        if (logCheck(printLevel, ['o']) === 1) { console.log('obj filename cleared by dir change.') }
-        else if (logCheck(printLevel, ['o']) === 2) { console.log('obj filename cleared by dir change.', updatedObj) }
+        if (!fileInfo.some(file => obj.dir === file.dir && obj.filename === file.filename)) {
+            const updatedObj = { ...obj, filename: '' };
+            setObj(updatedObj);
+            if (logCheck(printLevel, ['o']) === 1) { console.log('obj filename cleared by dir change.') }
+            else if (logCheck(printLevel, ['o']) === 2) { console.log('obj filename cleared by dir change.', updatedObj) }
+        }
     },[obj.dir]);
     // reset dir upon table change
     useEffect(() => {
@@ -119,19 +121,17 @@ export const FileExplorer = ({ rookie, printLevel, selectFn, preselectedObj, set
 
     return (
         <div className='mainContainer'>
-            <button onClick={() => console.log(obj)}>Log</button>
-            <button onClick={() => console.log(typeof(obj.payload))}>payload type log</button>
             <h3>Tables</h3>
             <div className="flexDivRows">
-                <p  style={{ cursor: 'pointer' }}
+                <p  style={{ cursor: 'pointer', border: obj.table === 'journal' ? '2px solid lightblue' : '1px solid black', padding: '0.5%' }}
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'journal' }))}>
                     Journals
                 </p>
-                <p  style={{ cursor: 'pointer' }}
+                <p style={{ cursor: 'pointer', border: obj.table === 'customUI' ? '2px solid lightblue' : '1px solid black', padding: '0.5%' }}
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'customUI' }))}>
                     Custom UIs
                 </p>
-                <p  style={{ cursor: 'pointer' }}
+                <p  style={{ cursor: 'pointer', border: obj.table === 'record' ? '2px solid lightblue' : '1px solid black', padding: '0.5%' }}
                     onClick={() => setObj(prevState => ({ ...prevState, table: 'record' }))}>
                     Records
                 </p>
@@ -237,10 +237,10 @@ const CascadingDropdown = ({ rookie, printLevel, dirs, fileInfo, handleDelete, o
             if (name === obj.dir+'/'+obj.filename) {
                 setObj(prevState => ({ ...prevState, filename: '' }));
                 if(logCheck(printLevel,['o']) === 2) {console.log(`Deselected. obj.filename is now empty`)}
-
             } else {
+                const newDir = name.split('/').slice(0, name.split('/').length - 1).join('/');
                 const newFilename = name.split('/')[name.split('/').length - 1];
-                setObj(prevState => ({ ...prevState, filename: newFilename }));
+                setObj(prevState => ({ ...prevState, dir: newDir, filename: newFilename }));
                 if(logCheck(printLevel,['o']) === 2) {console.log(`Selected new obj.filename: ${newFilename}`)}
             }
         } else {
@@ -261,27 +261,37 @@ const CascadingDropdown = ({ rookie, printLevel, dirs, fileInfo, handleDelete, o
             }
             <div className="flexDivColumns">
                 { /** Display directories and files currently available */
-                    outOptions.length > 0 &&
-                    outOptions.map((option, i) => (
-                        <div className="flexDivRows" key={i}>
-                            {
-                                option.name.split('/').slice(1).map((text, iBuffer) => (
-                                    <div key={iBuffer} 
-                                        style={{
-                                        width: '4px',
-                                        borderLeft: '1px solid black'
-                                    }}/>
-                                ))
-                            }
-                            <p
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => handleClick(option)}
-                                >
+                    outOptions.length > 0
+                    ?    outOptions.map((option, i) => (
+                            <div className="flexDivRows" key={i}>
+                                {
+                                    option.name.split('/').slice(1).map((text, iBuffer) => (
+                                        <div key={iBuffer}
+                                            style={{
+                                            color: 'transparent',
+                                            width: '8px',
+                                            borderLeft: '1px solid black'
+                                        }}>-</div>
+                                    ))
+                                }
+                                <p
+                                    style={{ 
+                                        cursor: 'pointer', 
+                                        border: 
+                                            obj.dir.split('/').slice(0, option.name.split('/').length).join('/') === option.name
+                                            || obj.dir+'/'+obj.filename === option.name
+                                                ?   '2px solid lightblue' 
+                                                :   undefined
+                                    }}
+                                    onClick={() => handleClick(option)}
+                                    >
                                 {option.name.split('/')[option.name.split('/').length - 1]}
-                            </p>
-                        </div>
+                                </p>
+                            </div>
+                            )
                         )
-                    )
+                    :   obj.table !== 'fileExplorer'
+                        && <p>You have no files in table: '{obj.table}'</p>
                 }
             </div>
             { /** Overlay with delete inquiry */
@@ -423,7 +433,7 @@ const DisplayFile = ({ rookie, printLevel, fileInfo, handleDelete, obj, setObj, 
                 {
                     versions.map((version,i) => (
                         <p  key={'version'+i}
-                            style={{ cursor: 'pointer' , border: obj.version === version ? '1px solid lightblue' : undefined }}
+                            style={{ cursor: 'pointer' , border: obj.dateTime === version ? '2px solid lightblue' : '1px solid black', padding: '0.5%' }}
                             onClick={() => setObj(prevState => ({ ...prevState, dateTime: version }))}>
                             {formatDateTimeToString(version)}
                         </p>
