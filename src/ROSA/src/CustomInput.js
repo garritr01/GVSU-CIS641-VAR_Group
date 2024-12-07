@@ -2,15 +2,12 @@ import React, { useState, useEffect, useRef
 } from 'react';
 
 import {
-    convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, getCurrentSplitDate,
+    convertUTCSplitDateToLocal, convertLocalSplitDateToUTC,
     convertUTCDateTimeToLocal, logCheck, newChooseMostRecent,
-    formatSplitDateToString,
-    formatDateTimeToString,
-    formatSplitDateToDateTime,
+    formatSplitDateToString, formatDateTimeToString,
+    formatJsDateToSplitDate, formatSplitDateToJsDate,
     checkSplitDateIsBefore,
-    formatJsDateToSplitDate,
-    formatSplitDateToJsDate,
-    getCurrentDateTime
+    getCurrentDateTime, getCurrentSplitDate
 } from './oddsAndEnds';
 
 import { 
@@ -166,14 +163,13 @@ export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
             // hold object so resolutions can save later (works around overwrite deleting them)
             const heldObj = { ...obj };
             // deconstruct options to get 'resolved' property
-            const { resolved, rest } = heldObj.options;
-            
+            const { resolved, schedule, rest } = heldObj.options;
             // Add resolved schedule end time if resolving
             // Check validity of start and end values and convert to UTC
             let objToSave = { ...obj,
                 options: resolved
-                    ? { ...obj.options, resolved: resolved }
-                    : { ...obj.options },
+                    ? { ...rest, resolved: resolved }
+                    : { ...rest },
                 payload: obj.payload.map((item) => {
                     if (item.type === 'start') {
                         const truth = checkDateInputs(item, 'start');

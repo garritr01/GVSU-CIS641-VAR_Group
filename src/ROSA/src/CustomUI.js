@@ -540,26 +540,29 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
                     </div>
                 ) : (null)
             }
-            {/** .more Display for UI creation */}
-            <div className="moreLink">
-                <p>UI Representation:</p>
-                <div className={ rookie ? "more" : "moreDisabled"}>
-                    <h3>Start Time</h3>
-                    <p>This is an option. Press it if you'd like the UI to include a start time. End time is automatically included.</p>
-                    <h3>Button</h3>
-                    <p>Displays as a button with a label on it that can be clicked or unclicked for true and false output.</p>
-                    <h3>Multiple Choice</h3>
-                    <p>Displays as a label followed by buttons with choices. One or no options can be selected.</p>
-                    <h3>Input</h3>
-                    <p>Displays as a label followed by short input boxes for small text entries. Entries can be added or removed with '+' and '-' buttons when recording. Grouped items remove or add inputs when inputs of the same group have inputs removed or added.</p>
-                    <h3>Text Box</h3>
-                    <p>Displays as a label with a text box for long responses.</p>
+            {/** UI editing display */}
+            <div className="flexDivRows" style={{ marginTop: '2%' }}>
+                <div className="moreLink">
+                    <p>User Interface</p>
+                    <div className={ rookie ? "more" : "moreDisabled"}>
+                        <h3>Start Time</h3>
+                        <p>This is an option. Press it if you'd like the UI to include a start time. End time is automatically included.</p>
+                        <h3>Button</h3>
+                        <p>Displays as a button with a label on it that can be clicked or unclicked for true and false output.</p>
+                        <h3>Multiple Choice</h3>
+                        <p>Displays as a label followed by buttons with choices. One or no options can be selected.</p>
+                        <h3>Input</h3>
+                        <p>Displays as a label followed by short input boxes for small text entries. Entries can be added or removed with '+' and '-' buttons when recording. Grouped items remove or add inputs when inputs of the same group have inputs removed or added.</p>
+                        <h3>Text Box</h3>
+                        <p>Displays as a label with a text box for long responses.</p>
+                    </div>
                 </div>
             </div>
-            {/** Display UI similar to how it will be in CustomRecord */
-                <EditUI rookie={rookie} obj={obj} setObj={setObj}/>
-            }
-            {/** Display end and maybe start times */}
+            <div style={{ border: '1px solid black' }}>
+                {/** Display UI similar to how it will be in CustomRecord */
+                    <EditUI rookie={rookie} obj={obj} setObj={setObj}/>
+                }
+                {/** Display end and maybe start times */}
             <div className="flexDivTable">
             {/** Display start if decided to include */
                 includeStart &&
@@ -620,6 +623,7 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
                         value={time.minute}/>
                 </div>
             }
+            </div>
             </div>
         </div>
     );
@@ -932,8 +936,8 @@ const ScheduleDisplay = ({ rookie, obj, setObj, setInfo }) => {
     }
 
     return (
-        <div>
-            <p className="flexDivRows">Scheduled Dates</p>
+        <div style={{ marginTop: '2%' }}>
+            <p className="flexDivRows">Schedules</p>
             <div style={{ border: '1px solid black' }}>
                 {
                     obj.options && obj.options.schedule && obj.options.schedule.length > 0 &&
