@@ -7,7 +7,8 @@ import {
     formatSplitDateToString, formatDateTimeToString,
     formatJsDateToSplitDate, formatSplitDateToJsDate,
     checkSplitDateIsBefore,
-    getCurrentDateTime, getCurrentSplitDate
+    getCurrentDateTime, getCurrentSplitDate,
+    formatSplitDateToDateTime
 } from './oddsAndEnds';
 
 import { 
@@ -222,7 +223,8 @@ export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
 
             // Use end time for dateTime in saving and set table to given table
             const UTCend = objToSave.payload[objToSave.payload.length - 1];
-            const saveDateTime = { date: `${UTCend.month}/${UTCend.day}/${UTCend.year}`, time: `${UTCend.hour}:${UTCend.minute}` };
+            const UTCstart = objToSave.payload[objToSave.payload.length - 2];
+            const saveDateTime = saveTable === 'clockIn' ? formatSplitDateToDateTime(UTCstart) : formatSplitDateToDateTime(UTCend);
             objToSave = { ...objToSave, dateTime: saveDateTime, table: saveTable };
 
             // Delete file in 'clockIn' and save to 'record'
