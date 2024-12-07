@@ -23,6 +23,7 @@ export const QuickNotes = ({ rookie, printLevel, userID }) => {
   // Retains file information from savedFile
   const [savedInfo, setSavedInfo] = useState(null);
 
+  /** Get all quick note names and position .more popups */
   useEffect(() => {
     getDirsAndFiles();
     positionMorePopup();

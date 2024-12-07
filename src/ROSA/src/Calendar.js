@@ -12,11 +12,11 @@ import {
 } from './oddsAndEnds';
 
 import { 
-    newDeleteEntry,
-    newFetchDirsAndFiles, newFetchFilteredDirsAndFiles,
-    newFetchObject, newFetchObjects,
-    newSaveObject
+    newDeleteEntry, newFetchDirsAndFiles, newFetchFilteredDirsAndFiles,
+    newFetchObject, newFetchObjects, newSaveObject
 } from './generalFetch';
+
+import { positionMorePopup } from './dynamicDisplays';
 
 /** Displays calendar and handles opening functions from calendar */
 export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, fullDisplay = true, externalDetectDelete }) => {
@@ -52,8 +52,9 @@ export const Calendar = ({ rookie, printLevel, selectFn, setCurrentObj, userID, 
     // Used to contain dir input to add to selected array
     const [selectedDir, setSelectedDir] = useState('');
 
-    // Get calendar info and define allDirs on initial render
+    // position .more popups, Get calendar info and define allDirs on initial render
     useEffect(() => {
+        positionMorePopup();
         spanRange();
         defineAllDirs();
     }, []);

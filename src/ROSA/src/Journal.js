@@ -9,6 +9,8 @@ import { getCurrentDateTime, logCheck
 import { newFetchText, newSaveText
 } from './generalFetch';
 
+import { positionMorePopup } from './dynamicDisplays';
+
 
 export const Journal = ({ rookie, printLevel, preselectedObj }) => {
 
@@ -18,6 +20,11 @@ export const Journal = ({ rookie, printLevel, preselectedObj }) => {
     const [loadedInfo, setLoadedInfo] = useState({ dir: preselectedObj.dir, filename: preselectedObj.filename, dateTime: preselectedObj.dateTime });
     // Retains file information from savedFile
     const [savedInfo, setSavedInfo] = useState(null);
+
+    /** Position .more popus on load */
+    useEffect(() => {
+        positionMorePopup();
+    },[]);
 
     /** Get payload and options and apply to obj given relevant arguments */
     const getJournal = async () => {

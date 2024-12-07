@@ -15,6 +15,8 @@ import {
     newSaveObject, newFetchObject
 } from './generalFetch';
 
+import { positionMorePopup } from './dynamicDisplays';
+
 import { FileAccess } from './Components';
 
 /** Interface for creating UIs to use in CustomInput */
@@ -47,6 +49,11 @@ export const CustomUI = ({ rookie, printLevel, preselectedObj }) => {
         effectiveEnd: { month: true, day: true, year: true, hour: true, minute: true },
         repeatInfo: true
     });
+
+    /** position .more popups on load */
+    useEffect(() => {
+        positionMorePopup();
+    },[]);
 
     /** Get payload and options given relevant arguments */
     const getCustomUI = async () => {

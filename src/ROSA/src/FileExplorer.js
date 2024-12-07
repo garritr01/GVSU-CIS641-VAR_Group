@@ -17,6 +17,8 @@ import {
     newDeleteEntry
 } from './generalFetch';
 
+import { positionMorePopup } from './dynamicDisplays';
+
 export const FileExplorer = ({ rookie, printLevel, selectFn, preselectedObj, setCurrentObj }) => {
     
     // Use object
@@ -25,6 +27,11 @@ export const FileExplorer = ({ rookie, printLevel, selectFn, preselectedObj, set
     const [dirs, setDirs] = useState([]);
     // Contains filename, dir, and dateTime for each entry in table
     const [fileInfo, setFileInfo] = useState([]);
+
+    //position .more popups
+    useEffect(() => {
+        positionMorePopup();
+    }, []);
 
     // reset version, options, and payload when filename is emptied
     useEffect(() => {

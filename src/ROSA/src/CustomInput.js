@@ -14,6 +14,8 @@ import {
     newFetchObject, newSaveObject, newFetchDirsAndFiles, newDeleteEntry
 } from './generalFetch';
 
+import { positionMorePopup } from './dynamicDisplays';
+
 export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
 
     // Contain entire custom input object (use customUI if object with version not preselected)
@@ -34,6 +36,11 @@ export const CustomInput = ({ rookie, printLevel, preselectedObj }) => {
         start: { month: true, day: true, year: true, hour: true, minute: true },
         end: { month: true, day: true, year: true, hour: true, minute: true }
     });
+
+    /** position .more popus on load */
+    useEffect(() => {
+        positionMorePopup();
+    },[]);
 
     /** Determines whether all inputs are in proper form and are real dates (eg. no 4/31) and blocks save if not */
     const checkDateInputs = (date, type) => {
