@@ -1,0 +1,5 @@
+4. Remove 'New' from function titles when done (.js)
+4b. Remove all non-camelcase functions when done (.py)
+5. Remove 'Log' buttons from the beginning of functions when done
+7. Add check that filename and dir are not empty on save
+8. Portia is a better name

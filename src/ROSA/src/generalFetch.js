@@ -14,7 +14,6 @@ export const createNewUser = async (userName, password) => {
         const data = await response.json();
         //If fails return failure and reason
         if (!response.ok) {
-            console.error(data.message);
             return { truth: false, msg: data.message, status: response.status };
         } else {
              return { truth: true, msg: data.message, status: response.status };

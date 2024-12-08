@@ -8,7 +8,8 @@ import {
     convertUTCSplitDateToLocal, convertLocalSplitDateToUTC, 
     convertUTCDateTimeToLocal, convertLocalDateTimeToUTC, 
     formatSplitDateToDateTime, convertObjTimes, formatJsDateToSplitDate, 
-    getCurrentDateTime
+    getCurrentDateTime,
+    getWeekdayString
 } from './oddsAndEnds';
 
 import { 
@@ -819,7 +820,7 @@ const Cell = ({ rookie, printLevel, userID, setCurrentObj, selectFn, date, recor
             { /** Display cell */
                 date.month !== "NA" &&
                 <div onClick={() => setSelectedCell(cellLoc)} style={{ overflow: 'auto'}}>
-                    <h3>{formatSplitDateToString(date, false)}</h3>
+                    <p>{getWeekdayString(formatSplitDateToJsDate(date).getDay())} {formatSplitDateToString(date, false)}</p>
                     {
                         chronologicalEvents.length > 0 &&
                         chronologicalEvents.map((event,i) => {

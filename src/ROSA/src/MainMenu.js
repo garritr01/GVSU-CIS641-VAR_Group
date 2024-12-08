@@ -385,6 +385,7 @@ const QuickNoteChecklist = ({ rookie, printLevel, userID }) => {
     );
 }
 
+
 // Below are temp functions for testing
 const massProduce = async (type, qty) => {
 

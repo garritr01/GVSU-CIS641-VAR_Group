@@ -1,15 +1,10 @@
 1. Get WSL2 and set up with ubuntu
     https://learn.microsoft.com/en-us/windows/wsl/install#prerequisites
-
-Using homebrew, /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install node
-
 2. Install nvm: 
     $curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
 3. Put follwing code in ~/.bashrc file
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
 4. Restart ubuntu.
 5. Install Node.js with nvm:
     $nvm install --lts ($nvm -use --lts    [if you had old version])
@@ -20,7 +15,6 @@ brew install node
 8. Create virtual environment.
     # retrieve updated package lists
         $sudo apt update
-
     # install venv
         $sudo apt install python3-venv
     # create venv (will be created in current directory):
@@ -41,7 +35,4 @@ brew install node
 12. Open in development build:
     $npm start
 13. Browser will open development server at http://localhost:3000/
-
-
-Note to self try not to use CORS (browsers don't like)
 
