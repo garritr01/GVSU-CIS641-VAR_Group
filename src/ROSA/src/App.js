@@ -18,7 +18,7 @@ import './default.css';
 const App = () => {
 
   // Variables for passing between functions
-  const [open, setOpen] = useState('main');
+  const [open, setOpen] = useState('logIn');
   // Deactivates display of .more class
   const [rookieMode, setRookieMode] = useState(false);
   /* array of strings for logging
@@ -32,7 +32,7 @@ const App = () => {
   */
   const logLevel = ['b','e']; //['d','e','b','o','p','s'];
   // contain logged in userID
-  const [userID, setUserID] = useState('garritr01');
+  const [userID, setUserID] = useState('');
   // Contains the object passed between functions
   const [currentObj, setCurrentObj] = 
     useState({ 
